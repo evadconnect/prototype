@@ -3,12 +3,11 @@ const RESEAU_PROFILS = {
   batisseur: {label:'Bâtisseur', color:'#a06c00', bg:'rgba(240,176,50,.18)', ic:'🌿'},
   semeur:    {label:'Semeur',    color:'#2563a8', bg:'rgba(59,130,180,.14)', ic:'🌱'},
 };
-const REGEN_PHASES = {
-  rever:        {label:'Rêver',        letter:'R', color:'#018262'},
-  explorer:     {label:'Explorer',     letter:'E', color:'#2d6a9f'},
-  generer:      {label:'Générer',      letter:'G', color:'#c8732a'},
-  entreprendre: {label:'Entreprendre', letter:'E', color:'#0a7d3f'},
-  nourrir:      {label:'Nourrir',      letter:'N', color:'#6b5b95'},
+const VADE_PHASES = {
+  valoriser:  {label:'Valoriser',  letter:'V', color:'#018262'},
+  activer:    {label:'Activer',    letter:'A', color:'#2d6a9f'},
+  developper: {label:'Développer', letter:'D', color:'#c8732a'},
+  elever:     {label:'Élever',     letter:'E', color:'#6b5b95'},
 };
 const RESEAU_POSTS = [];
 const RESEAU_CERCLES = [];
@@ -68,9 +67,9 @@ function reseauRenderRegenFilters(){
     const c = color || 'var(--forest)';
     return `<button onclick="reseauSetRegenFilter('${key}')" style="border:1px solid ${on?c:'rgba(46,102,66,.2)'};background:${on?c:'white'};color:${on?'white':(color||'var(--moss)')};border-radius:100px;padding:.3rem .7rem;font-size:.66rem;font-weight:700;cursor:pointer">${label}</button>`;
   };
-  box.innerHTML = `<span style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.5;text-transform:uppercase;letter-spacing:.08em;margin-right:.1rem">Phase REGEN</span>`
+  box.innerHTML = `<span style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.5;text-transform:uppercase;letter-spacing:.08em;margin-right:.1rem">Phase VADE</span>`
     + mk('tout', 'Toutes', null)
-    + Object.entries(REGEN_PHASES).map(([k,v]) => mk(k, v.label, v.color)).join('');
+    + Object.entries(VADE_PHASES).map(([k,v]) => mk(k, v.label, v.color)).join('');
 }
 function reseauSetRegenFilter(r){
   reseauRegenFilter = r;
@@ -86,7 +85,7 @@ function reseauToggleProx(btn){
 /* ─── Composer : formulaires quête / rencontre ─── */
 const RF_INP = "width:100%;border:1px solid rgba(46,102,66,.18);background:rgba(46,102,66,.04);border-radius:8px;padding:.55rem .7rem;font-size:.76rem;color:var(--ink);outline:none;font-family:inherit;margin-bottom:.5rem;box-sizing:border-box;";
 let reseauFormType = 'quete';
-let reseauFormRegen = 'entreprendre';
+let reseauFormRegen = 'activer';
 let reseauFormImg = '';
 function reseauFormPhoto(input){
   const file = input.files[0];
@@ -108,7 +107,7 @@ function reseauRemovePhoto(){
   if(prev) prev.innerHTML = '';
 }
 function reseauRegenChips(){
-  return Object.entries(REGEN_PHASES).map(([k,v])=>{
+  return Object.entries(VADE_PHASES).map(([k,v])=>{
     const on = k===reseauFormRegen;
     return `<button type="button" onclick="reseauFormRegen='${k}';reseauRefreshChips()" style="border:1px solid ${on?v.color:'rgba(46,102,66,.2)'};background:${on?v.color:'white'};color:${on?'white':v.color};border-radius:100px;padding:.25rem .6rem;font-size:.66rem;font-weight:700;cursor:pointer">${v.label}</button>`;
   }).join('');
@@ -119,7 +118,7 @@ function reseauRefreshChips(){
 }
 function reseauOpenForm(type){
   reseauFormType = type;
-  reseauFormRegen = type==='quete' ? 'entreprendre' : 'nourrir';
+  reseauFormRegen = type==='quete' ? 'activer' : 'elever';
   reseauFormImg = '';
   const isQuete = type==='quete';
   const box = document.getElementById('reseau-form');
@@ -141,7 +140,7 @@ function reseauOpenForm(type){
       </label>
       <div id="rf-photo-preview"></div>
     </div>
-    <div style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.1em;margin:.1rem 0 .4rem">Phase REGEN</div>
+    <div style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.1em;margin:.1rem 0 .4rem">Phase VADE</div>
     <div id="rf-regen" style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.8rem">${reseauRegenChips()}</div>
     <div style="display:flex;gap:.6rem;justify-content:flex-end">
       <button type="button" onclick="reseauCloseForm()" style="background:none;border:1px solid rgba(46,102,66,.2);color:var(--moss);border-radius:100px;padding:.5rem 1rem;font-size:.74rem;font-weight:700;cursor:pointer">Annuler</button>
@@ -203,7 +202,7 @@ function renderReseau(){
       ? `<img src="${p.img}" alt="" style="width:100%;max-height:240px;object-fit:cover;border-radius:12px;margin:.7rem 0;display:block">`
       : `<div style="height:120px;border-radius:12px;background:linear-gradient(135deg,rgba(46,107,71,.12),rgba(126,201,176,.18));display:flex;align-items:center;justify-content:center;font-size:2.4rem;margin:.7rem 0">${p.img}</div>`) : '';
     const matchBox = '';
-    const rg = REGEN_PHASES[p.regen];
+    const rg = VADE_PHASES[p.regen];
     const regenPastille = rg ? `
       <span style="display:inline-flex;align-items:center;gap:.35rem;font-size:.6rem;font-weight:700;color:${rg.color};background:${rg.color}14;border:1px solid ${rg.color}33;border-radius:100px;padding:.2rem .55rem .2rem .25rem">
         <span style="width:15px;height:15px;border-radius:50%;background:${rg.color};color:white;display:inline-flex;align-items:center;justify-content:center;font-size:.52rem;font-weight:900">${rg.letter}</span>${rg.label}
