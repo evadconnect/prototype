@@ -4972,7 +4972,7 @@ const DEVA_TOUR_STEPS = [
   { screen: 'pilote', tab: 'quetes', title: 'Tes quêtes ⚡', text: 'Des actions concrètes pour ton lieu. Tu mobilises des bâtisseurs, ils déposent des preuves, et tu les valides.' },
   { screen: 'pilote', tab: 'dossiers', title: 'Ton jardin d\'impact 🌱', text: 'Chaque preuve validée fait pousser tes plantes. Plus tu prouves, plus ton jardin grandit.' },
   { screen: 'pilote', tab: 'fiche', title: 'Ta fiche lieu ✏️', text: 'Tu peux compléter et enrichir ton lieu ici à tout moment : plus c\'est précis, plus ta Vadance est juste.' },
-  { screen: 'pilote', tab: 'marketplace', title: 'La marketplace 🛖', text: 'Échange des ressources, des compétences et des services avec les autres lieux de l\'écosystème.' },
+  { screen: 'pilote', tab: 'marketplace', title: 'La marketplace 🛖', text: 'Propose des biens et services payables en graines : les bâtisseurs viennent les dépenser chez toi. Les graines circulent, ton lieu fait vivre une économie locale régénérative.' },
   { screen: 'reseau', title: 'Le réseau 📣', text: 'Le fil de la communauté EVAD : publie tes quêtes, suis les autres lieux, trouve des bâtisseurs.' },
   { screen: 'pilote', tab: 'apercu', title: 'À toi de jouer ! 🌿', text: 'C\'est tout pour la visite. Une question ? Je suis toujours là, en bas à gauche. Bonne exploration !' },
 ];
@@ -6494,8 +6494,17 @@ function pmktRenderOffers() {
   const statusLabel = { active:'Active', paused:'En pause', full:'Stock épuisé' };
   const statusCls   = { active:'pmkt-status-active', paused:'pmkt-status-paused', full:'pmkt-status-full' };
 
+  const noOffersAtAll = pmktOffers.length === 0;
+  const exemples = ['🥦 un panier de légumes', '🎓 un atelier', '🛠 un coup de main', '🏛 une location de salle', '☕ un café'];
+  const inviteHtml = '<div style="padding:1.8rem 1.6rem;text-align:center">'
+    + '<div style="font-size:2.2rem;margin-bottom:.5rem">🛖</div>'
+    + '<div style="font-family:\'Satoshi\',sans-serif;font-size:1rem;font-weight:800;color:var(--ink);margin-bottom:.4rem">Fais vivre l\'économie de ton lieu</div>'
+    + '<div style="font-size:.76rem;color:var(--moss);line-height:1.6;max-width:460px;margin:0 auto .9rem">Propose des <b>biens et services payables en graines</b>. Les bâtisseurs et les membres du réseau viennent les dépenser chez toi : les graines circulent, et ton lieu devient un moteur d\'<b>économie locale régénérative</b>.</div>'
+    + '<div style="display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;margin-bottom:1.1rem">' + exemples.map(e => '<span style="font-size:.66rem;color:var(--ink);background:rgba(46,102,66,.06);border:1px solid rgba(46,102,66,.12);border-radius:100px;padding:.25rem .6rem">' + e + '</span>').join('') + '</div>'
+    + '<button class="btn btn-primary" style="font-size:.78rem;padding:.6rem 1.4rem" onclick="piloteMktOpenAdd()">+ Créer ma première offre</button>'
+    + '</div>';
   list.innerHTML = offers.length === 0
-    ? `<div style="padding:2rem;text-align:center;font-size:.78rem;color:var(--moss);opacity:.6">Aucune offre dans cette catégorie.</div>`
+    ? (noOffersAtAll ? inviteHtml : `<div style="padding:2rem;text-align:center;font-size:.78rem;color:var(--moss);opacity:.6">Aucune offre dans cette catégorie.</div>`)
     : offers.map(o => `
     <div class="pmkt-offer-row">
       <div class="pmkt-offer-icon" style="background:${o.bg}">${o.emoji}</div>
