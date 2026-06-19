@@ -4993,11 +4993,16 @@ function devaTourRender() {
   const steps = DEVA_TOUR_STEPS;
   const s = steps[n]; if (!s) return;
   const last = n === steps.length - 1;
+  // Ancrée au-dessus du pill Deva, exactement comme la bulle de création de fiche.
+  const anchor = document.getElementById('deva-fiche-hint');
+  const parent = (anchor && anchor.parentElement) ? anchor.parentElement : document.body;
   let box = document.getElementById('deva-tour');
-  if (!box) { box = document.createElement('div'); box.id = 'deva-tour'; document.body.appendChild(box); }
+  if (!box) { box = document.createElement('div'); box.id = 'deva-tour'; }
+  if (box.parentElement !== parent) parent.appendChild(box);
   const dots = steps.map((_, i) => '<span style="width:6px;height:6px;border-radius:50%;background:' + (i === n ? '#2e6b47' : 'rgba(46,102,66,.25)') + '"></span>').join('');
-  // Bulle crème ancrée en bas à gauche, comme la bulle Deva de la création de fiche.
-  box.style.cssText = 'position:fixed;left:1rem;bottom:1.1rem;z-index:99999;width:calc(100% - 2rem);max-width:344px;font-family:\'Satoshi\',sans-serif';
+  box.style.cssText = (parent === document.body)
+    ? 'position:fixed;left:1rem;bottom:1.1rem;z-index:99999;width:calc(100% - 2rem);max-width:344px;font-family:\'Satoshi\',sans-serif'
+    : 'position:absolute;left:4px;right:4px;bottom:calc(100% + 12px);z-index:41;font-family:\'Satoshi\',sans-serif';
   box.innerHTML = ''
     + '<div style="position:relative;background:#f3f0e6;border-radius:16px;box-shadow:0 16px 38px -10px rgba(0,20,12,.5);padding:.85rem .95rem .9rem;animation:devaTourIn .35s cubic-bezier(.34,1.2,.5,1)">'
       + '<button onclick="devaTourEnd()" title="Fermer" style="position:absolute;top:.4rem;right:.45rem;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.07);border:none;color:#2e6b47;cursor:pointer;font-size:.68rem;line-height:1">✕</button>'
