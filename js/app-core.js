@@ -4965,15 +4965,21 @@ function mmBubble(t){ /* bulles désactivées */ }
 
 /* ─── Visite guidée Deva (après création du lieu · prototype) ─── */
 const DEVA_TOUR_STEPS = [
-  { screen: 'carte', title: 'Bravo, ton lieu est sur la carte ! 🌿', text: 'En quelques secondes, je te montre l\'essentiel pour t\'y retrouver. Prêt·e ?' },
+  { screen: 'carte', title: 'Bravo, ton lieu est sur la carte ! 🗺', text: 'Tu y retrouves tous les lieux de la communauté et leurs quêtes. Je te montre l\'essentiel en quelques secondes ?' },
+  // ── Ton tableau de bord ──
   { screen: 'pilote', tab: 'apercu', title: 'Ton tableau de bord', text: 'Tu vois ici où en est ton lieu. Ta <b>Vadance</b>, c\'est ta promesse d\'impact : ce que tu vises.' },
   { screen: 'pilote', tab: 'apercu', title: 'Promesse vs preuve', text: 'Ta <b>Vadité</b>, c\'est ce que tu as déjà prouvé. L\'écart entre les deux, c\'est ton <b>taux de tenue</b>.' },
   { screen: 'pilote', tab: 'apercu', title: 'Ton prochain cran 🎯', text: 'Je t\'indique toujours la prochaine action utile pour faire grandir ton impact. Suis le fil !' },
   { screen: 'pilote', tab: 'quetes', title: 'Tes quêtes ⚡', text: 'Des actions concrètes pour ton lieu. Tu mobilises des bâtisseurs, ils déposent des preuves, et tu les valides.' },
   { screen: 'pilote', tab: 'dossiers', title: 'Ton jardin d\'impact 🌱', text: 'Chaque preuve validée fait pousser tes plantes. Plus tu prouves, plus ton jardin grandit.' },
   { screen: 'pilote', tab: 'fiche', title: 'Ta fiche lieu ✏️', text: 'Tu peux compléter et enrichir ton lieu ici à tout moment : plus c\'est précis, plus ta Vadance est juste.' },
-  { screen: 'pilote', tab: 'marketplace', title: 'La marketplace 🛖', text: 'Propose des biens et services payables en graines : les bâtisseurs viennent les dépenser chez toi. Les graines circulent, ton lieu fait vivre une économie locale régénérative.' },
-  { screen: 'reseau', title: 'Le réseau 📣', text: 'Le fil de la communauté EVAD : publie tes quêtes, suis les autres lieux, trouve des bâtisseurs.' },
+  // ── Explore l'écosystème EVAD ──
+  { screen: 'gestion', title: 'La gestion de projet 🗂', text: 'Découpe ton lieu en tâches concrètes et suis l\'avancement, étape par étape.' },
+  { screen: 'reseau', title: 'Le réseau 🌍', text: 'Le fil de la communauté EVAD : publie tes quêtes, suis les autres lieux, trouve des bâtisseurs.' },
+  { screen: 'bdd', title: 'La bibliothèque 📚', text: 'Un catalogue de solutions, d\'indicateurs (ICI) et de ressources pour t\'inspirer et enrichir ton lieu.' },
+  { screen: 'modelisation', title: 'La modélisation 🧊', text: 'Visualise la structure de ton lieu : ses espaces, ses ressources et leurs flux.' },
+  { screen: 'marketplace', title: 'La marketplace 🛖', text: 'Propose des biens et services payables en graines, et dépense les tiens chez les autres lieux : l\'économie regen circule.' },
+  // ── Fin ──
   { screen: 'pilote', tab: 'apercu', title: 'À toi de jouer ! 🌿', text: 'C\'est tout pour la visite. Une question ? Je suis toujours là, en bas à gauche. Bonne exploration !' },
 ];
 function devaTourStart() { devaTourGo(0); }
