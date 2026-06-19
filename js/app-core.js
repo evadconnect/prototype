@@ -4971,6 +4971,9 @@ const DEVA_TOUR_STEPS = [
   { screen: 'pilote', tab: 'apercu', title: 'Ton prochain cran 🎯', text: 'Je t\'indique toujours la prochaine action utile pour faire grandir ton impact. Suis le fil !' },
   { screen: 'pilote', tab: 'quetes', title: 'Tes quêtes ⚡', text: 'Des actions concrètes pour ton lieu. Tu mobilises des bâtisseurs, ils déposent des preuves, et tu les valides.' },
   { screen: 'pilote', tab: 'dossiers', title: 'Ton jardin d\'impact 🌱', text: 'Chaque preuve validée fait pousser tes plantes. Plus tu prouves, plus ton jardin grandit.' },
+  { screen: 'pilote', tab: 'fiche', title: 'Ta fiche lieu ✏️', text: 'Tu peux compléter et enrichir ton lieu ici à tout moment : plus c\'est précis, plus ta Vadance est juste.' },
+  { screen: 'pilote', tab: 'marketplace', title: 'La marketplace 🛖', text: 'Échange des ressources, des compétences et des services avec les autres lieux de l\'écosystème.' },
+  { screen: 'reseau', title: 'Le réseau 📣', text: 'Le fil de la communauté EVAD : publie tes quêtes, suis les autres lieux, trouve des bâtisseurs.' },
   { screen: 'pilote', tab: 'apercu', title: 'À toi de jouer ! 🌿', text: 'C\'est tout pour la visite. Une question ? Je suis toujours là, en bas à gauche. Bonne exploration !' },
 ];
 function devaTourStart() { devaTourGo(0); }
@@ -4992,25 +4995,27 @@ function devaTourRender() {
   const last = n === steps.length - 1;
   let box = document.getElementById('deva-tour');
   if (!box) { box = document.createElement('div'); box.id = 'deva-tour'; document.body.appendChild(box); }
-  const dots = steps.map((_, i) => '<span style="width:6px;height:6px;border-radius:50%;background:' + (i === n ? 'var(--forest)' : 'rgba(46,102,66,.22)') + '"></span>').join('');
-  box.style.cssText = 'position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);z-index:99999;width:calc(100% - 2rem);max-width:440px;font-family:\'Satoshi\',sans-serif';
+  const dots = steps.map((_, i) => '<span style="width:6px;height:6px;border-radius:50%;background:' + (i === n ? '#2e6b47' : 'rgba(46,102,66,.25)') + '"></span>').join('');
+  // Bulle crème ancrée en bas à gauche, comme la bulle Deva de la création de fiche.
+  box.style.cssText = 'position:fixed;left:1rem;bottom:1.1rem;z-index:99999;width:calc(100% - 2rem);max-width:344px;font-family:\'Satoshi\',sans-serif';
   box.innerHTML = ''
-    + '<div style="background:#fff;border:1px solid rgba(46,102,66,.15);border-radius:18px;box-shadow:0 18px 50px -10px rgba(0,20,12,.4);padding:1rem 1.1rem;animation:devaTourIn .35s cubic-bezier(.34,1.2,.5,1)">'
-      + '<div style="display:flex;gap:.75rem;align-items:flex-start">'
-        + '<img src="Deva.png" alt="Deva" style="width:42px;height:42px;object-fit:contain;flex-shrink:0;transform:scaleX(-1) rotate(8deg);filter:drop-shadow(0 0 6px rgba(74,200,100,.3))">'
+    + '<div style="position:relative;background:#f3f0e6;border-radius:16px;box-shadow:0 16px 38px -10px rgba(0,20,12,.5);padding:.85rem .95rem .9rem;animation:devaTourIn .35s cubic-bezier(.34,1.2,.5,1)">'
+      + '<button onclick="devaTourEnd()" title="Fermer" style="position:absolute;top:.4rem;right:.45rem;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.07);border:none;color:#2e6b47;cursor:pointer;font-size:.68rem;line-height:1">✕</button>'
+      + '<div style="display:flex;gap:.6rem;align-items:flex-start;padding-right:.8rem">'
+        + '<img src="Deva.png" alt="Deva" style="width:38px;height:38px;object-fit:contain;flex-shrink:0;transform:scaleX(-1) rotate(8deg);filter:drop-shadow(0 0 6px rgba(74,200,100,.3))">'
         + '<div style="flex:1;min-width:0">'
-          + '<div style="font-size:.85rem;font-weight:800;color:var(--ink);margin-bottom:.2rem">' + s.title + '</div>'
-          + '<div style="font-size:.74rem;color:var(--moss);line-height:1.5">' + s.text + '</div>'
-        + '</div>'
-        + '<button onclick="devaTourEnd()" title="Fermer" style="background:none;border:none;color:var(--moss);opacity:.45;font-size:.95rem;line-height:1;cursor:pointer;flex-shrink:0">✕</button>'
-      + '</div>'
-      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:.9rem">'
-        + '<div style="display:flex;gap:.32rem;align-items:center">' + dots + '</div>'
-        + '<div style="display:flex;gap:.6rem;align-items:center">'
-          + (last ? '' : '<button onclick="devaTourEnd()" style="background:none;border:none;color:var(--moss);opacity:.6;font-size:.7rem;font-weight:600;cursor:pointer;font-family:inherit">Passer</button>')
-          + '<button onclick="devaTourGo(' + (n + 1) + ')" style="background:var(--forest);color:#fff;border:none;border-radius:100px;padding:.45rem 1.15rem;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit">' + (last ? 'Terminer ✓' : 'Suivant →') + '</button>'
+          + '<div style="font-size:.82rem;font-weight:800;color:#163524;margin-bottom:.18rem">' + s.title + '</div>'
+          + '<div style="font-size:.74rem;color:#1c3d28;font-weight:500;line-height:1.45">' + s.text + '</div>'
         + '</div>'
       + '</div>'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:.75rem">'
+        + '<div style="display:flex;gap:.3rem;align-items:center">' + dots + '</div>'
+        + '<div style="display:flex;gap:.55rem;align-items:center">'
+          + (last ? '' : '<button onclick="devaTourEnd()" style="background:none;border:none;color:#2e6b47;opacity:.65;font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit">Passer</button>')
+          + '<button onclick="devaTourGo(' + (n + 1) + ')" style="background:var(--forest);color:#fff;border:none;border-radius:100px;padding:.42rem 1.1rem;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit">' + (last ? 'Terminer ✓' : 'Suivant →') + '</button>'
+        + '</div>'
+      + '</div>'
+      + '<div style="position:absolute;left:30px;bottom:-6px;width:13px;height:13px;background:#f3f0e6;transform:rotate(45deg)"></div>'
     + '</div>';
 }
 function devaTourEnd() {
