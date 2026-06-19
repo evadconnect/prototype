@@ -4993,16 +4993,20 @@ function devaTourRender() {
   const steps = DEVA_TOUR_STEPS;
   const s = steps[n]; if (!s) return;
   const last = n === steps.length - 1;
-  // Ancrée au-dessus du pill Deva, exactement comme la bulle de création de fiche.
-  const anchor = document.getElementById('deva-fiche-hint');
-  const parent = (anchor && anchor.parentElement) ? anchor.parentElement : document.body;
+  // Bulle posée juste au-dessus du pill Deva (position calculée), largeur confortable.
   let box = document.getElementById('deva-tour');
   if (!box) { box = document.createElement('div'); box.id = 'deva-tour'; }
-  if (box.parentElement !== parent) parent.appendChild(box);
+  if (box.parentElement !== document.body) document.body.appendChild(box);
   const dots = steps.map((_, i) => '<span style="width:6px;height:6px;border-radius:50%;background:' + (i === n ? '#2e6b47' : 'rgba(46,102,66,.25)') + '"></span>').join('');
-  box.style.cssText = (parent === document.body)
-    ? 'position:fixed;left:1rem;bottom:1.1rem;z-index:99999;width:calc(100% - 2rem);max-width:344px;font-family:\'Satoshi\',sans-serif'
-    : 'position:absolute;left:4px;right:4px;bottom:calc(100% + 12px);z-index:41;font-family:\'Satoshi\',sans-serif';
+  const pill = document.getElementById('deva-pill-btn');
+  const r = (pill && pill.getBoundingClientRect) ? pill.getBoundingClientRect() : null;
+  if (r && r.width) {
+    const left = Math.max(8, Math.round(r.left));
+    const bottom = Math.max(8, Math.round(window.innerHeight - r.top + 12));
+    box.style.cssText = 'position:fixed;left:' + left + 'px;bottom:' + bottom + 'px;z-index:99999;width:340px;max-width:calc(100vw - 16px);font-family:\'Satoshi\',sans-serif';
+  } else {
+    box.style.cssText = 'position:fixed;left:1rem;bottom:1.1rem;z-index:99999;width:340px;max-width:calc(100vw - 2rem);font-family:\'Satoshi\',sans-serif';
+  }
   box.innerHTML = ''
     + '<div style="position:relative;background:#f3f0e6;border-radius:16px;box-shadow:0 16px 38px -10px rgba(0,20,12,.5);padding:.85rem .95rem .9rem;animation:devaTourIn .35s cubic-bezier(.34,1.2,.5,1)">'
       + '<button onclick="devaTourEnd()" title="Fermer" style="position:absolute;top:.4rem;right:.45rem;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.07);border:none;color:#2e6b47;cursor:pointer;font-size:.68rem;line-height:1">✕</button>'
