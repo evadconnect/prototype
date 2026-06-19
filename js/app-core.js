@@ -4963,6 +4963,61 @@ function renderFluxTable() {
 
 function mmBubble(t){ /* bulles désactivées */ }
 
+/* ─── Visite guidée Deva (après création du lieu · prototype) ─── */
+const DEVA_TOUR_STEPS = [
+  { screen: 'carte', title: 'Bravo, ton lieu est sur la carte ! 🌿', text: 'En quelques secondes, je te montre l\'essentiel pour t\'y retrouver. Prêt·e ?' },
+  { screen: 'pilote', tab: 'apercu', title: 'Ton tableau de bord', text: 'Tu vois ici où en est ton lieu. Ta <b>Vadance</b>, c\'est ta promesse d\'impact : ce que tu vises.' },
+  { screen: 'pilote', tab: 'apercu', title: 'Promesse vs preuve', text: 'Ta <b>Vadité</b>, c\'est ce que tu as déjà prouvé. L\'écart entre les deux, c\'est ton <b>taux de tenue</b>.' },
+  { screen: 'pilote', tab: 'apercu', title: 'Ton prochain cran 🎯', text: 'Je t\'indique toujours la prochaine action utile pour faire grandir ton impact. Suis le fil !' },
+  { screen: 'pilote', tab: 'quetes', title: 'Tes quêtes ⚡', text: 'Des actions concrètes pour ton lieu. Tu mobilises des bâtisseurs, ils déposent des preuves, et tu les valides.' },
+  { screen: 'pilote', tab: 'dossiers', title: 'Ton jardin d\'impact 🌱', text: 'Chaque preuve validée fait pousser tes plantes. Plus tu prouves, plus ton jardin grandit.' },
+  { screen: 'pilote', tab: 'apercu', title: 'À toi de jouer ! 🌿', text: 'C\'est tout pour la visite. Une question ? Je suis toujours là, en bas à gauche. Bonne exploration !' },
+];
+function devaTourStart() { devaTourGo(0); }
+function devaTourGo(n) {
+  const steps = DEVA_TOUR_STEPS;
+  if (n >= steps.length) { devaTourEnd(); return; }
+  window._devaTourStep = Math.max(0, n);
+  const s = steps[n];
+  if (s.screen && typeof showScreen === 'function') { try { showScreen(s.screen); } catch (e) {} }
+  if (s.tab && s.screen === 'pilote' && typeof piloteTab === 'function') {
+    try { piloteTab(s.tab, document.getElementById('ptab-' + s.tab)); } catch (e) {}
+  }
+  setTimeout(devaTourRender, s.tab ? 140 : 60);
+}
+function devaTourRender() {
+  const n = window._devaTourStep || 0;
+  const steps = DEVA_TOUR_STEPS;
+  const s = steps[n]; if (!s) return;
+  const last = n === steps.length - 1;
+  let box = document.getElementById('deva-tour');
+  if (!box) { box = document.createElement('div'); box.id = 'deva-tour'; document.body.appendChild(box); }
+  const dots = steps.map((_, i) => '<span style="width:6px;height:6px;border-radius:50%;background:' + (i === n ? 'var(--forest)' : 'rgba(46,102,66,.22)') + '"></span>').join('');
+  box.style.cssText = 'position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);z-index:99999;width:calc(100% - 2rem);max-width:440px;font-family:\'Satoshi\',sans-serif';
+  box.innerHTML = ''
+    + '<div style="background:#fff;border:1px solid rgba(46,102,66,.15);border-radius:18px;box-shadow:0 18px 50px -10px rgba(0,20,12,.4);padding:1rem 1.1rem;animation:devaTourIn .35s cubic-bezier(.34,1.2,.5,1)">'
+      + '<div style="display:flex;gap:.75rem;align-items:flex-start">'
+        + '<img src="Deva.png" alt="Deva" style="width:42px;height:42px;object-fit:contain;flex-shrink:0;transform:scaleX(-1) rotate(8deg);filter:drop-shadow(0 0 6px rgba(74,200,100,.3))">'
+        + '<div style="flex:1;min-width:0">'
+          + '<div style="font-size:.85rem;font-weight:800;color:var(--ink);margin-bottom:.2rem">' + s.title + '</div>'
+          + '<div style="font-size:.74rem;color:var(--moss);line-height:1.5">' + s.text + '</div>'
+        + '</div>'
+        + '<button onclick="devaTourEnd()" title="Fermer" style="background:none;border:none;color:var(--moss);opacity:.45;font-size:.95rem;line-height:1;cursor:pointer;flex-shrink:0">✕</button>'
+      + '</div>'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:.9rem">'
+        + '<div style="display:flex;gap:.32rem;align-items:center">' + dots + '</div>'
+        + '<div style="display:flex;gap:.6rem;align-items:center">'
+          + (last ? '' : '<button onclick="devaTourEnd()" style="background:none;border:none;color:var(--moss);opacity:.6;font-size:.7rem;font-weight:600;cursor:pointer;font-family:inherit">Passer</button>')
+          + '<button onclick="devaTourGo(' + (n + 1) + ')" style="background:var(--forest);color:#fff;border:none;border-radius:100px;padding:.45rem 1.15rem;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit">' + (last ? 'Terminer ✓' : 'Suivant →') + '</button>'
+        + '</div>'
+      + '</div>'
+    + '</div>';
+}
+function devaTourEnd() {
+  const box = document.getElementById('deva-tour');
+  if (box) box.remove();
+}
+
 /* ─── ESRS DATA ─── */
 const ESRS_DATA=[
   {code:'ESRS E1',name:'Changement climatique',sub:'Émissions GES, énergie, trajectoire Net-Zero',pct:82,status:'ok',evad:'E1 Énergie',evad_lieux:3},
@@ -5142,6 +5197,11 @@ async function createLieuOnMap(){
   }
 
   setTimeout(() => mmBubble(`🏡 ${nom} ajouté dans la communauté EVAD !`), 250);
+  // Visite guidée Deva à la 1ère création (prototype).
+  if (!window._devaTourSeen && typeof devaTourStart === 'function') {
+    window._devaTourSeen = true;
+    setTimeout(devaTourStart, 1100);
+  }
 }
 
 /* ─── AFFICHER FICHE BÂTISSEUR CRÉÉE PAR L'UTILISATEUR ─── */
