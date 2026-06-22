@@ -8001,10 +8001,101 @@ let batFicheStep = 0;
 let batQueteFilter = 'matched';
 let batFicheData = { prenom:'', nom:'', ville:'', lat:null, lng:null, dispo:[], rayon:20, bio:'', avatar:'', cover:'', email:'', tel:'', web:'', skills:[], skillLevels:{}, axe:'', contrib:'', motivation:'', mode:'', engagement:'', wantLearn:[], valeurs:[], valeurAutre:'', moteur:'', apporte:[], cherche:[], lieuType:[] };
 
+/* ─── Gamification : Potentiel bâtisseur vivant pendant la création de la fiche ───
+   Les points viennent surtout des compétences déclarées (le cœur de la valeur d'un
+   bâtisseur), pas du simple remplissage administratif. Miroir de la « Vadance
+   projetée » du Pilote. ── */
+const BAT_POT_PALIERS = [
+  { min: 85, label: '🚀 Bâtisseur rayonnant' },
+  { min: 60, label: '✨ Prêt à publier' },
+  { min: 35, label: '🌿 Profil consistant' },
+  { min: 12, label: '🌱 Profil esquissé' },
+];
+let batLastPotentiel = 0;
+
+function computeBatPotentiel(d) {
+  d = d || {};
+  let v = 0;
+  // Fondations (présence) : peu de points, ce n'est pas de l'impact.
+  if (d.prenom && d.nom) v += 4;
+  if (d.ville) v += 3;
+  if (d.bio && String(d.bio).trim().length > 15) v += 5;
+  if ((d.dispo || []).length) v += 3;
+  const nbVal = (d.valeurs || []).length + ((d.valeurAutre || '').trim() ? 1 : 0);
+  v += Math.min(3, nbVal) * 2;                         // jusqu'à 6
+  v += Math.min(3, (d.lieuType || []).length) * 2;     // jusqu'à 6
+
+  // Cœur : les compétences portent le potentiel (comme les solutions du Pilote).
+  let skPts = 0;
+  (d.skills || []).forEach(id => {
+    const lvl = (d.skillLevels || {})[id] || 0;
+    skPts += 9 + lvl * 3;                              // base + maîtrise déclarée
+  });
+  v += Math.min(50, skPts);
+  v += Math.min(4, (d.apporte || []).length + (d.cherche || []).length) * 2; // jusqu'à 8
+
+  // Engagement (étape 2) — le rayon est un réglage, 0 point.
+  if (d.contrib) v += 3;
+  if (d.mode) v += 3;
+  if (d.engagement) v += 3;
+  if (d.motivation && String(d.motivation).trim().length > 15) v += 5;
+
+  return Math.min(100, Math.round(v));
+}
+function batPotentiel() { return computeBatPotentiel(batFicheData); }
+const batPotentielPalier = (s) => BAT_POT_PALIERS.find(p => s >= p.min) || null;
+
+function batUpdatePotentiel(silent) {
+  const v = batPotentiel();
+  const bar = document.getElementById('bat-pot-bar');
+  if (!bar) { batLastPotentiel = v; return; }
+  bar.style.width = v + '%';
+  const valEl = document.getElementById('bat-pot-val'); if (valEl) valEl.textContent = v;
+  const p = batPotentielPalier(v);
+  const palEl = document.getElementById('bat-pot-palier'); if (palEl) palEl.textContent = p ? p.label : '';
+  if (!silent) {
+    const delta = v - batLastPotentiel;
+    if (delta > 0) batPotFloat('+' + delta);
+    const prevP = batPotentielPalier(batLastPotentiel);
+    if (p && (!prevP || p.min > prevP.min)) batPotCelebrate(p.label);
+  }
+  batLastPotentiel = v;
+}
+
+function batPotFloat(txt) {
+  const g = document.getElementById('bat-pot'); if (!g) return;
+  const f = document.createElement('div');
+  f.textContent = txt + ' 🔨';
+  f.style.cssText = 'position:absolute;top:44px;left:50%;transform:translateX(-50%);z-index:26;font-family:Satoshi,sans-serif;font-weight:900;font-size:.92rem;color:#018262;pointer-events:none;text-shadow:0 2px 6px rgba(255,255,255,.8);animation:vadFloat 1s ease-out forwards';
+  g.parentElement.appendChild(f);
+  setTimeout(() => f.remove(), 1000);
+  g.style.animation = 'none'; void g.offsetWidth; g.style.animation = 'vadPop .42s ease';
+}
+
+function batPotCelebrate(label) {
+  const g = document.getElementById('bat-pot'); if (!g) return;
+  const host = g.parentElement;
+  ['✨','🌿','💚','✨','🔨'].forEach((e, i) => {
+    const ang = (i / 5) * Math.PI * 2;
+    const s = document.createElement('div');
+    s.textContent = e;
+    s.style.cssText = 'position:absolute;top:26px;left:50%;z-index:27;font-size:1.15rem;pointer-events:none;transform:translate(-50%,0);transition:transform .85s cubic-bezier(.2,.8,.2,1),opacity .85s ease-out';
+    host.appendChild(s);
+    requestAnimationFrame(() => { s.style.transform = 'translate(calc(-50% + ' + Math.round(Math.cos(ang) * 72) + 'px), ' + Math.round(-32 - Math.abs(Math.sin(ang)) * 46) + 'px)'; s.style.opacity = '0'; });
+    setTimeout(() => s.remove(), 880);
+  });
+  const t = document.createElement('div');
+  t.textContent = 'Palier atteint · ' + label;
+  t.style.cssText = 'position:absolute;top:52px;left:50%;transform:translateX(-50%);z-index:28;background:#018262;color:#fff;font-family:Satoshi,sans-serif;font-weight:800;font-size:.7rem;padding:.4rem .85rem;border-radius:100px;box-shadow:0 10px 24px -6px rgba(1,130,98,.6);white-space:nowrap;pointer-events:none;animation:vadFloat 1.7s ease-out forwards';
+  host.appendChild(t);
+  setTimeout(() => t.remove(), 1700);
+}
+
 function initFicheBat() {
   batFicheStep = 0;
   batQueteFilter = 'matched';
   batFicheData._quetesReady = false;
+  batLastPotentiel = 0;
   batFicheRenderStep();
   batTreeInit();
 }
@@ -8129,7 +8220,7 @@ function batFicheRenderStep() {
         ${[['ponctuel','⚡','Ponctuel'],['recurrent','🔄','Récurrent'],['immersif','🏕','Immersif']].map(([id,ic,l])=>`<button class="type-btn${batFicheData.engagement===id?' sel':''}" onclick="batFicheData.engagement='${id}';this.closest('div').querySelectorAll('.type-btn').forEach(b=>b.classList.remove('sel'));this.classList.add('sel');batTreeFinal()"><div style="font-size:1.1rem;margin-bottom:.15rem">${ic}</div><div>${l}</div></button>`).join('')}
       </div>
       <label class="creer-lbl">Pourquoi tu contribues</label>
-      <textarea class="creer-inp" style="height:65px;resize:none" oninput="batFicheData.motivation=this.value">${batFicheData.motivation}</textarea>`;
+      <textarea class="creer-inp" style="height:65px;resize:none" oninput="batFicheData.motivation=this.value;batUpdatePotentiel(true)">${batFicheData.motivation}</textarea>`;
     batTreeFinal();
   } else {
     /* ── Étape 4 · Matching ── */
@@ -8209,6 +8300,8 @@ function batFicheRenderStep() {
     `;
     batMatchViz();
   }
+
+  if (typeof batUpdatePotentiel === 'function') batUpdatePotentiel();
 }
 
 function batSkillToggle(id, btn) {
@@ -8628,6 +8721,7 @@ function batTreeUpdate() {
   const el = document.getElementById('btn-center');
   if (el) el.innerHTML = batCenterHtml();
   if (batFicheStep === 0) batTreeUpdateStep1();
+  if (typeof batUpdatePotentiel === 'function') batUpdatePotentiel(true); // saisie texte : maj silencieuse
 }
 
 function batTreeGrowSkills() {
@@ -8712,6 +8806,7 @@ function batTreeGrowSkills() {
 }
 
 function batTreeFinal() {
+  if (typeof batUpdatePotentiel === 'function') batUpdatePotentiel();
   // Redessine la base (valeurs, lieux, dispos) + nettoie
   batTreeUpdateStep1();
   document.querySelectorAll('[id^="btn-sk-"],[id^="btn-sat-"],[id^="btn-deva-"]').forEach(e=>e.remove());
