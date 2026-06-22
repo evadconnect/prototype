@@ -5430,14 +5430,14 @@ function mapShowNewLieu() {
       <!-- Vadance (promesse) + Vadité (preuve) -->
       <div style="margin:.85rem .85rem .2rem;background:white;border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:.75rem 1rem">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
-          <span style="font-size:.65rem;font-weight:700;color:var(--ink)">Vadance <span style="font-weight:500;opacity:.55">(promesse)</span></span>
+          <span style="font-size:.65rem;font-weight:700;color:var(--ink)">Vadance <span style="font-weight:500;opacity:.55">(promesse)</span>${evadGlossaryChip('vadance')}</span>
           <span style="font-size:1.3rem;font-weight:900;color:var(--amber)">${_imp.vadance}</span>
         </div>
         <div class="score-bar-bg" style="height:6px;border-radius:3px;background:rgba(46,102,66,.1)">
           <div style="height:6px;border-radius:3px;width:${_imp.vadance}%;background:linear-gradient(90deg,var(--fern),var(--amber));transition:width .6s ease"></div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.55rem;padding-top:.5rem;border-top:1px solid rgba(46,102,66,.08)">
-          <span style="font-size:.65rem;font-weight:700;color:var(--ink)">✅ Vadité <span style="font-weight:500;opacity:.55">(preuve)</span></span>
+          <span style="font-size:.65rem;font-weight:700;color:var(--ink)">✅ Vadité <span style="font-weight:500;opacity:.55">(preuve)</span>${evadGlossaryChip('vadite')}</span>
           <span style="font-size:1.1rem;font-weight:900;color:var(--fern)">${_imp.vadite}</span>
         </div>
         <div class="score-bar-bg" style="height:6px;border-radius:3px;background:rgba(46,102,66,.1);margin-top:.3rem">
@@ -5445,7 +5445,7 @@ function mapShowNewLieu() {
         </div>
         <div style="display:flex;justify-content:space-between;margin-top:.45rem">
           <span style="font-size:.58rem;color:var(--moss);opacity:.7">${solutions.length} solution${solutions.length !== 1 ? 's' : ''} · ${espaces.length} espace${espaces.length !== 1 ? 's' : ''}${statut ? ' · ' + statut : ''}</span>
-          <span style="font-size:.58rem;color:var(--fern);font-weight:700">⚖️ Taux de tenue ${_imp.taux}%</span>
+          <span style="font-size:.58rem;color:var(--fern);font-weight:700">⚖️ Taux de tenue ${_imp.taux}%${evadGlossaryChip('taux')}</span>
         </div>
       </div>
 
@@ -5508,6 +5508,52 @@ function mapShowNewLieu() {
 
   mainPanel.style.display = 'none';
   panel.style.display = '';
+}
+
+/* ─── Glossaire d'impact : démystifie le vocabulaire EVAD ───
+   Une source unique de vérité ; la pastille « ? » se pose sur n'importe quel
+   terme et ouvre une bulle « phrase simple + exemple concret ». ── */
+const EVAD_GLOSSARY = {
+  vadance: { ic: '🌱', term: 'Vadance (promesse)', short: "L'impact que ton lieu vise — une note sur 100.", ex: 'Plus tu déclares de solutions à fort impact, plus elle monte.' },
+  vadite:  { ic: '✅', term: 'Vadité (preuve)', short: 'La part de cette promesse déjà prouvée par des documents.', ex: 'Chaque preuve déposée (facture, photo, mesure) fait monter la Vadité.' },
+  taux:    { ic: '⚖️', term: 'Taux de tenue', short: 'Vadité ÷ Vadance : à quel point tu tiens tes promesses.', ex: '100 % = tout ce que tu promets est déjà prouvé.' },
+  ici:     { ic: '📈', term: 'ICI · Indicateurs de Changement d’Impact', short: 'Les effets concrets et mesurables de ton lieu.', ex: 'Ex. 900 kg CO₂ évités/an · 12 personnes formées · 500 m² renaturés.' },
+  vade:    { ic: '🔄', term: 'Boucle VADE', short: 'Ton parcours : Valoriser → Activer → Développer → Élever.', ex: 'Les mêmes 4 étapes pour les trois profils EVAD.' },
+};
+
+// Pastille « ? » cliquable à insérer juste après un terme jargon.
+function evadGlossaryChip(key) {
+  const g = EVAD_GLOSSARY[key];
+  if (!g) return '';
+  return `<button type="button" class="gloss-q" onclick="evadGlossaryShow(event,'${key}')" aria-label="Qu'est-ce que ${g.term} ?" title="Qu'est-ce que c'est ?">?</button>`;
+}
+
+function evadGlossaryShow(e, key) {
+  if (e) e.stopPropagation();
+  const g = EVAD_GLOSSARY[key]; if (!g) return;
+  evadGlossaryClose();
+  const pop = document.createElement('div');
+  pop.id = 'gloss-pop';
+  pop.innerHTML =
+    `<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.32rem"><span style="font-size:.95rem">${g.ic}</span><span style="font-size:.72rem;font-weight:800;color:var(--ink)">${g.term}</span></div>`
+    + `<div style="font-size:.68rem;color:var(--moss);line-height:1.45;margin-bottom:.4rem">${g.short}</div>`
+    + `<div style="font-size:.62rem;color:var(--fern);line-height:1.4;background:rgba(74,140,92,.08);border-radius:7px;padding:.32rem .46rem">💡 ${g.ex}</div>`;
+  document.body.appendChild(pop);
+  const target = (e && (e.currentTarget || e.target)) || document.body;
+  const r = target.getBoundingClientRect();
+  const pr = pop.getBoundingClientRect();
+  let left = r.left + r.width / 2 - pr.width / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - pr.width - 8));
+  let top = r.bottom + 8;
+  if (top + pr.height > window.innerHeight - 8) top = r.top - pr.height - 8;
+  pop.style.left = left + 'px';
+  pop.style.top = Math.max(8, top) + 'px';
+  // Ferme au prochain clic n'importe où (sans attraper le clic d'ouverture).
+  setTimeout(() => { document.addEventListener('click', evadGlossaryClose, { once: true }); }, 0);
+}
+
+function evadGlossaryClose() {
+  const p = document.getElementById('gloss-pop'); if (p) p.remove();
 }
 
 /* ─── Aperçu de la fiche avant publication (commun aux 3 profils) ───
