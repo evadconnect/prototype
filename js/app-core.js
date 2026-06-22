@@ -8131,7 +8131,7 @@ function batPotFloat(txt) {
   const g = document.getElementById('bat-pot'); if (!g) return;
   const f = document.createElement('div');
   f.textContent = txt + ' 🔨';
-  f.style.cssText = 'position:absolute;top:44px;left:50%;transform:translateX(-50%);z-index:26;font-family:Satoshi,sans-serif;font-weight:900;font-size:.92rem;color:#018262;pointer-events:none;text-shadow:0 2px 6px rgba(255,255,255,.8);animation:vadFloat 1s ease-out forwards';
+  f.style.cssText = 'position:absolute;top:44px;left:50%;transform:translateX(-50%);z-index:26;font-family:Satoshi,sans-serif;font-weight:900;font-size:.92rem;color:#c8732a;pointer-events:none;text-shadow:0 2px 6px rgba(255,255,255,.8);animation:vadFloat 1s ease-out forwards';
   g.parentElement.appendChild(f);
   setTimeout(() => f.remove(), 1000);
   g.style.animation = 'none'; void g.offsetWidth; g.style.animation = 'vadPop .42s ease';
@@ -8151,7 +8151,7 @@ function batPotCelebrate(label) {
   });
   const t = document.createElement('div');
   t.textContent = 'Palier atteint · ' + label;
-  t.style.cssText = 'position:absolute;top:52px;left:50%;transform:translateX(-50%);z-index:28;background:#018262;color:#fff;font-family:Satoshi,sans-serif;font-weight:800;font-size:.7rem;padding:.4rem .85rem;border-radius:100px;box-shadow:0 10px 24px -6px rgba(1,130,98,.6);white-space:nowrap;pointer-events:none;animation:vadFloat 1.7s ease-out forwards';
+  t.style.cssText = 'position:absolute;top:52px;left:50%;transform:translateX(-50%);z-index:28;background:#c8732a;color:#fff;font-family:Satoshi,sans-serif;font-weight:800;font-size:.7rem;padding:.4rem .85rem;border-radius:100px;box-shadow:0 10px 24px -6px rgba(200,115,42,.6);white-space:nowrap;pointer-events:none;animation:vadFloat 1.7s ease-out forwards';
   host.appendChild(t);
   setTimeout(() => t.remove(), 1700);
 }
