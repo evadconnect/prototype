@@ -3936,8 +3936,8 @@ function renderStep(){
 
       // Sous-titre du header
       const subTxt = assigned.length
-        ? assigned.length+' solution'+(assigned.length!==1?'s':'')+' sélectionnée'+(assigned.length!==1?'s':'')+' par Deva'
-        : 'Aucune solution sélectionnée';
+        ? assigned.length+' solution'+(assigned.length!==1?'s':'')+' proposée'+(assigned.length!==1?'s':'')
+        : 'Aucune solution proposée';
 
       // Panneau "ajouter d'autres solutions" (sans filtres)
       const bddPanelHTML=isOpen
@@ -3996,7 +3996,7 @@ function renderStep(){
     // ── Onglets « Solutions » / « Indicateurs » de la sidebar ──
     const _solutionsPane=''
       +'<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem">'
-        +'<div style="font-size:.72rem;font-weight:700;color:var(--ink)">🧩 Solutions sélectionnées par Deva</div>'
+        +'<div style="font-size:.72rem;font-weight:700;color:var(--ink)">🧩 Solutions proposées</div>'
         +'<div style="margin-left:auto;font-size:.65rem;font-weight:700;background:rgba(1,130,98,.1);color:var(--forest);padding:.1rem .5rem;border-radius:100px">'+totalSols+' solution'+(totalSols!==1?'s':'')+'</div>'
       +'</div>'
       +'<div style="font-size:.65rem;color:var(--moss);opacity:.75;margin-bottom:.9rem;line-height:1.55">Deva a présélectionné les solutions les plus adaptées à chaque espace de ton lieu. Retire celles qui ne te conviennent pas ou ajoute-en d\'autres depuis la bibliothèque.</div>'
