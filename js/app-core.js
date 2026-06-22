@@ -4632,7 +4632,7 @@ function genMM(espItems){
   window._mmStep4Items = items;
   window._mmStep4EspPos = items.map((item,i)=>{
     const a=(2*Math.PI/items.length)*i-Math.PI/2;
-    const re=Math.min(W,H)*.25;
+    const re=Math.min(W,H)*.22;
     return { x:cx+re*Math.cos(a), y:cy+re*Math.sin(a), a, re, item, idx:i };
   });
 
@@ -4640,13 +4640,13 @@ function genMM(espItems){
     const {esp, ic, c:col, bg} = item;
     const label = ic + ' ' + (esp.nom || esp.l || item.eid);
     const a=(2*Math.PI/items.length)*i-Math.PI/2;
-    const re=Math.min(W,H)*.25; const ex=cx+re*Math.cos(a),ey=cy+re*Math.sin(a);
+    const re=Math.min(W,H)*.22; const ex=cx+re*Math.cos(a),ey=cy+re*Math.sin(a);
     const sols=byEsp[i]||[];
     setTimeout(()=>{
       mmLine(cx,cy,ex,ey,col+'99',false,'mn-c','mn-e-'+i);
       mmAdd('e-'+i,label,ex,ey,'espace',col,bg).style.cursor='grab';
       sols.forEach((sol,j)=>{
-        const sa=a+(j-(sols.length-1)/2)*.64; const rs=re+142;
+        const sa=a+(j-(sols.length-1)/2)*.82; const rs=re+185;
         const sx=cx+rs*Math.cos(sa),sy=cy+rs*Math.sin(sa);
         const isSel=cData.solutions.includes(sol.nom);
         const solDomId='mn-sol-'+i+'-'+j;
@@ -4680,11 +4680,11 @@ function mmIciNodes(solNom, sx, sy, solDomId){
   const st = window._mmStep4State || { cx: mmW() / 2, cy: mmH() / 2 };
   const cx = st.cx, cy = st.cy;
   const baseA = Math.atan2(sy - cy, sx - cx);
-  const rIci = Math.hypot(sx - cx, sy - cy) + 96;
+  const rIci = Math.hypot(sx - cx, sy - cy) + 128;
   const svg = document.getElementById('mm-svg');
   icis.forEach((ici, k) => {
     const meta = (typeof ICI_LIVRE_META !== 'undefined' ? ICI_LIVRE_META[ici.livre] : null) || { ic: '◆', col: '#4a8c5c' };
-    const ia = baseA + (k - (icis.length - 1) / 2) * 0.5;
+    const ia = baseA + (k - (icis.length - 1) / 2) * 0.66;
     const ix = cx + rIci * Math.cos(ia), iy = cy + rIci * Math.sin(ia);
     const iciDomId = 'mn-ici-' + safe + '-' + k;
     const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -4716,8 +4716,8 @@ function mmRefreshSolsStep4() {
     solNoms.forEach((solNom, j) => {
       const sol = SOLS.find(s => s.nom === solNom);
       if (!sol) return;
-      const sa = a + (j - (solNoms.length-1)/2) * .64;
-      const rs = re + 142;
+      const sa = a + (j - (solNoms.length-1)/2) * .82;
+      const rs = re + 185;
       const sx = cx + rs*Math.cos(sa), sy = cy + rs*Math.sin(sa);
       const solDomId = 'mn-sol-'+idx+'-'+j;
       mmLine(ex, ey, sx, sy, col+'55', true, 'mn-e-'+idx, solDomId);
