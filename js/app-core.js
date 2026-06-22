@@ -5702,8 +5702,6 @@ function batReflectProfile() {
   // Graines liées au profil (bonus de bienvenue + compétences déclarées)
   const graines = batProfileGraines();
   const nbComp = (fd.skills || []).length;
-  const tg = document.getElementById('bat-topbar-graines');
-  if (tg) tg.textContent = graines + ' 🌱 graines';
   const ag = document.getElementById('bat-apercu-graines');
   if (ag) ag.textContent = graines;
   const ags = document.getElementById('bat-apercu-graines-sub');
@@ -8494,10 +8492,19 @@ function batMatchViz() {
     .map(q => ({ ...q, score: calcMatch(batFicheData, q) }))
     .sort((a, b) => b.score - a.score);
 
+  /* N'affiche que les quêtes proposées par Deva (mêmes que le panneau de gauche).
+     Par défaut « Mes compétences » → uniquement les quêtes _matched ; suit le chip actif. */
+  const mySkills = (batFicheData.skills || []).map(id => BAT_SKILLS.find(s => s.id === id)).filter(Boolean);
+  let shown;
+  if (!mySkills.length || batQueteFilter === 'all') shown = scored;
+  else if (batQueteFilter === 'matched') shown = scored.filter(q => q._matched);
+  else shown = scored.filter(q => (q.matchedSkills || []).includes(batQueteFilter));
+  if (!shown.length) shown = scored; // garde-fou : jamais de carte vide
+
   const colFor = s => s >= 65 ? '#4a8c5c' : s >= 45 ? '#c8732a' : '#3a6e8c';
 
-  scored.forEach((q, i) => {
-    const angle  = (2 * Math.PI / scored.length) * i - Math.PI / 2;
+  shown.forEach((q, i) => {
+    const angle  = (2 * Math.PI / shown.length) * i - Math.PI / 2;
     /* Rayon inversement proportionnel au score : meilleur match = plus proche */
     const rFrac  = 0.15 + (1 - q.score / 100) * 0.34;
     const r      = Math.min(W, H) * rFrac;
@@ -8527,10 +8534,10 @@ function batMatchViz() {
 
   /* Légende score */
   setTimeout(() => {
-    const top = scored[0];
-    const nb80 = scored.filter(q => q.score >= 65).length;
+    const top = shown[0];
+    const nb80 = shown.filter(q => q.score >= 65).length;
     batTreeBubble(`Meilleur match : "${top.titre.split('—')[0].trim()}" · ${top.score}%, ${nb80} quête${nb80 > 1 ? 's' : ''} très compatibles · Clique pour postuler`);
-  }, scored.length * 110 + 200);
+  }, shown.length * 110 + 200);
 }
 
 /* ── Arbre de compétences (mind-map bâtisseur) ── */
