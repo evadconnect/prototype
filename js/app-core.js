@@ -8002,13 +8002,13 @@ let batQueteFilter = 'matched';
 let batFicheData = { prenom:'', nom:'', ville:'', lat:null, lng:null, dispo:[], rayon:20, bio:'', avatar:'', cover:'', email:'', tel:'', web:'', skills:[], skillLevels:{}, axe:'', contrib:'', motivation:'', mode:'', engagement:'', wantLearn:[], valeurs:[], valeurAutre:'', moteur:'', apporte:[], cherche:[], lieuType:[] };
 
 /* ─── Gamification : Potentiel bâtisseur vivant pendant la création de la fiche ───
-   Les points viennent surtout des compétences déclarées (le cœur de la valeur d'un
-   bâtisseur), pas du simple remplissage administratif. Miroir de la « Vadance
-   projetée » du Pilote. ── */
+   Score de COMPLÉTUDE du profil, pas de quantité : chaque section remplie rapporte
+   un montant fixe, quel que soit le nombre d'items. Déclarer 1 compétence vaut
+   autant que 5 — équitable pour tous les profils. ── */
 const BAT_POT_PALIERS = [
-  { min: 85, label: '🚀 Bâtisseur rayonnant' },
+  { min: 85, label: '🚀 Profil complet' },
   { min: 60, label: '✨ Prêt à publier' },
-  { min: 35, label: '🌿 Profil consistant' },
+  { min: 35, label: '🌿 Bien avancé' },
   { min: 12, label: '🌱 Profil esquissé' },
 ];
 let batLastPotentiel = 0;
@@ -8016,28 +8016,27 @@ let batLastPotentiel = 0;
 function computeBatPotentiel(d) {
   d = d || {};
   let v = 0;
-  // Fondations (présence) : peu de points, ce n'est pas de l'impact.
-  if (d.prenom && d.nom) v += 4;
-  if (d.ville) v += 3;
-  if (d.bio && String(d.bio).trim().length > 15) v += 5;
-  if ((d.dispo || []).length) v += 3;
-  const nbVal = (d.valeurs || []).length + ((d.valeurAutre || '').trim() ? 1 : 0);
-  v += Math.min(3, nbVal) * 2;                         // jusqu'à 6
-  v += Math.min(3, (d.lieuType || []).length) * 2;     // jusqu'à 6
+  // Étape 1 · Identité — présence d'une info, pas sa longueur.
+  if (d.prenom && d.nom) v += 8;
+  if (d.ville) v += 8;
+  if (d.bio && String(d.bio).trim().length > 15) v += 9;
+  if ((d.dispo || []).length) v += 8;
+  if ((d.valeurs || []).length || (d.valeurAutre || '').trim()) v += 8;
+  if ((d.lieuType || []).length) v += 8;
 
-  // Cœur : les compétences portent le potentiel (comme les solutions du Pilote).
-  let skPts = 0;
-  (d.skills || []).forEach(id => {
-    const lvl = (d.skillLevels || {})[id] || 0;
-    skPts += 9 + lvl * 3;                              // base + maîtrise déclarée
-  });
-  v += Math.min(50, skPts);
-  v += Math.min(4, (d.apporte || []).length + (d.cherche || []).length) * 2; // jusqu'à 8
+  // Étape 2 · Compétences — présence uniquement (équitable quel que soit le nombre).
+  const skills = d.skills || [];
+  if (skills.length) {
+    v += 14;
+    if (skills.every(id => (d.skillLevels || {})[id])) v += 7; // niveaux renseignés
+  }
+  if ((d.apporte || []).length) v += 5;
+  if ((d.cherche || []).length) v += 5;
 
-  // Engagement (étape 2) — le rayon est un réglage, 0 point.
-  if (d.contrib) v += 3;
-  if (d.mode) v += 3;
-  if (d.engagement) v += 3;
+  // Étape 3 · Engagement.
+  if (d.contrib) v += 5;
+  if (d.mode) v += 5;
+  if (d.engagement) v += 5;
   if (d.motivation && String(d.motivation).trim().length > 15) v += 5;
 
   return Math.min(100, Math.round(v));
