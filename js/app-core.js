@@ -3464,6 +3464,7 @@ function semGeoShowDrop(features){
 
 function semGeoSelect(label){
   semFicheData.localisation=label;
+  if (typeof semUpdatePotentiel === 'function') semUpdatePotentiel();
   const inp=document.getElementById('sem-loc-inp');
   if(inp) inp.value=label;
   const drop=document.getElementById('sem-loc-drop');
@@ -5507,6 +5508,71 @@ function mapShowNewLieu() {
 
   mainPanel.style.display = 'none';
   panel.style.display = '';
+}
+
+/* ─── Aperçu de la fiche avant publication (commun aux 3 profils) ───
+   Réutilise EXACTEMENT la carte détaillée de la carte communauté
+   (mapShowNewLieu / Batisseur / Semeur) pour montrer la fiche telle qu'elle
+   apparaîtra, avec confirmation avant l'action irréversible. ── */
+const _PUBLISH_FNS = {
+  lieu: () => { if (typeof createLieuOnMap === 'function') createLieuOnMap(); },
+  bat:  () => { if (typeof publishBatProfil === 'function') publishBatProfil(); },
+  sem:  () => { if (typeof publishSemProfil === 'function') publishSemProfil(); },
+};
+
+// Capture le HTML de la carte « acteur » produite par mapShowNew* sans
+// perturber le panneau réel de la carte : on rend, on lit, on restaure.
+function _captureActeurCard(kind) {
+  const render = { lieu: mapShowNewLieu, bat: mapShowNewBatisseur, sem: mapShowNewSemeur }[kind];
+  const panel = document.getElementById('map-acteur-panel');
+  if (!panel || typeof render !== 'function') return '';
+  const mainPanel = document.getElementById('map-panel-main');
+  const prevHTML = panel.innerHTML, prevDisp = panel.style.display;
+  const prevMain = mainPanel ? mainPanel.style.display : null;
+  render();
+  let html = panel.innerHTML;
+  panel.innerHTML = prevHTML; panel.style.display = prevDisp;
+  if (mainPanel) mainPanel.style.display = prevMain;
+  // En aperçu : la croix interne ferme l'aperçu (pas la carte).
+  return html.replace(/mapCloseActeur\(\)/g, 'closePublishPreview()');
+}
+
+function openPublishPreview(kind) {
+  if (!_PUBLISH_FNS[kind]) return;
+  const card = _captureActeurCard(kind);
+  const old = document.getElementById('publish-preview-modal'); if (old) old.remove();
+  const accent = kind === 'sem' ? '#3a6e8c' : '#018262';
+  const cta = 'Publier' + (kind === 'lieu' ? ' le lieu' : ' la fiche');
+  const ov = document.createElement('div');
+  ov.id = 'publish-preview-modal';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:10020;background:rgba(13,43,34,.62);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:1.2rem;animation:obFadeIn .25s ease';
+  ov.onclick = (e) => { if (e.target === ov) closePublishPreview(); };
+  ov.innerHTML = `
+    <style>#publish-preview-modal .acteur-cta{display:none!important}#publish-preview-modal .acteur-hero>button{display:none!important}#publish-preview-modal .acteur-fiche{padding-bottom:.4rem}</style>
+    <div style="display:flex;flex-direction:column;width:344px;max-width:94vw;max-height:90vh;background:var(--paper);border-radius:var(--r-lg);overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.34);font-family:'Satoshi',sans-serif" onclick="event.stopPropagation()">
+      <div style="display:flex;align-items:center;gap:.4rem;padding:.7rem 1rem;background:#fff;border-bottom:1px solid rgba(46,102,66,.1);flex-shrink:0">
+        <span style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:${accent}">👁 Aperçu avant publication</span>
+        <button onclick="closePublishPreview()" style="margin-left:auto;background:rgba(46,102,66,.08);border:none;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:.7rem;color:var(--moss)">✕</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;min-height:0">${card || '<div style="padding:1.4rem;font-size:.74rem;color:var(--moss)">Aperçu indisponible.</div>'}</div>
+      <div style="display:flex;gap:.6rem;padding:.85rem 1rem;border-top:1px solid rgba(46,102,66,.1);background:#fff;flex-shrink:0">
+        <button onclick="closePublishPreview()" style="flex:1;padding:.65rem;border-radius:100px;border:1.5px solid rgba(46,102,66,.2);background:#fff;color:var(--moss);font-family:inherit;font-weight:700;font-size:.74rem;cursor:pointer">← Continuer l'édition</button>
+        <button onclick="confirmPublishPreview()" style="flex:1.3;padding:.65rem;border-radius:100px;border:none;background:${accent};color:#fff;font-family:inherit;font-weight:800;font-size:.74rem;cursor:pointer;box-shadow:0 8px 20px -8px ${accent}">${cta} →</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  window._publishPreviewFn = _PUBLISH_FNS[kind];
+}
+
+function closePublishPreview() {
+  const m = document.getElementById('publish-preview-modal'); if (m) m.remove();
+  window._publishPreviewFn = null;
+}
+
+function confirmPublishPreview() {
+  const fn = window._publishPreviewFn;
+  closePublishPreview();
+  if (typeof fn === 'function') fn();
 }
 
 /* ─── PUBLIER FICHE BÂTISSEUR → Carte communauté ─── */
@@ -9055,8 +9121,88 @@ const SEM_IMPACT_BY_TYPE = {
 let semFicheStep = 0;
 let semFicheData = { nom:'', localisation:'', type:'Fondation', secteur:'ESS', zone:'Nouvelle-Aquitaine', typeFinancement:'', axes:[], reporting:'CSRD', freq:'Trimestriel', kpis:'CO₂ évité, personnes formées, Vadance', selectedKpis:[], selectedCadres:[], selectedCadreItems:{}, selectedODD:[] };
 
+/* ─── Gamification : Portée d'impact vivante pendant la création de la fiche financeur ───
+   Score de COMPLÉTUDE du profil, pas de quantité : chaque section remplie rapporte un
+   montant fixe. Compléter la fiche compte, pas en mettre plus que les autres. Miroir de
+   la « Vadance projetée » (Pilote) et du « Potentiel bâtisseur » (Bâtisseur). ── */
+const SEM_POT_PALIERS = [
+  { min: 85, label: '🚀 Profil complet' },
+  { min: 60, label: '✨ Prêt à publier' },
+  { min: 35, label: '🌟 Bien avancé' },
+  { min: 12, label: '✦ Profil esquissé' },
+];
+let semLastPortee = 0;
+
+function computeSemPortee(d) {
+  d = d || {};
+  let v = 0;
+  // Étape 1 · Organisation.
+  if (d.nom) v += 14;
+  if (d.localisation) v += 12;
+  if (d.typeFinancement) v += 8;
+
+  // Étape 2 · Impacts — présence d'un choix, pas la quantité (équitable).
+  if ((d.axes || []).length) v += 18;
+  if ((d.selectedCadres || []).length) v += 14;
+  if ((d.selectedODD || []).length) v += 14;
+
+  // Étape 3 · Projets à financer — avoir parcouru le matching de Deva.
+  if (d._projetsReady) v += 20;
+
+  return Math.min(100, Math.round(v));
+}
+function semPortee() { return computeSemPortee(semFicheData); }
+const semPorteePalier = (s) => SEM_POT_PALIERS.find(p => s >= p.min) || null;
+
+function semUpdatePotentiel(silent) {
+  const v = semPortee();
+  const bar = document.getElementById('sem-pot-bar');
+  if (!bar) { semLastPortee = v; return; }
+  bar.style.width = v + '%';
+  const valEl = document.getElementById('sem-pot-val'); if (valEl) valEl.textContent = v;
+  const p = semPorteePalier(v);
+  const palEl = document.getElementById('sem-pot-palier'); if (palEl) palEl.textContent = p ? p.label : '';
+  if (!silent) {
+    const delta = v - semLastPortee;
+    if (delta > 0) semPotFloat('+' + delta);
+    const prevP = semPorteePalier(semLastPortee);
+    if (p && (!prevP || p.min > prevP.min)) semPotCelebrate(p.label);
+  }
+  semLastPortee = v;
+}
+
+function semPotFloat(txt) {
+  const g = document.getElementById('sem-pot'); if (!g) return;
+  const f = document.createElement('div');
+  f.textContent = txt + ' ✦';
+  f.style.cssText = 'position:absolute;top:44px;left:50%;transform:translateX(-50%);z-index:26;font-family:Satoshi,sans-serif;font-weight:900;font-size:.92rem;color:#3a6e8c;pointer-events:none;text-shadow:0 2px 6px rgba(255,255,255,.85);animation:vadFloat 1s ease-out forwards';
+  g.parentElement.appendChild(f);
+  setTimeout(() => f.remove(), 1000);
+  g.style.animation = 'none'; void g.offsetWidth; g.style.animation = 'vadPop .42s ease';
+}
+
+function semPotCelebrate(label) {
+  const g = document.getElementById('sem-pot'); if (!g) return;
+  const host = g.parentElement;
+  ['✨','🌟','💧','✨','✦'].forEach((e, i) => {
+    const ang = (i / 5) * Math.PI * 2;
+    const s = document.createElement('div');
+    s.textContent = e;
+    s.style.cssText = 'position:absolute;top:26px;left:50%;z-index:27;font-size:1.15rem;pointer-events:none;transform:translate(-50%,0);transition:transform .85s cubic-bezier(.2,.8,.2,1),opacity .85s ease-out';
+    host.appendChild(s);
+    requestAnimationFrame(() => { s.style.transform = 'translate(calc(-50% + ' + Math.round(Math.cos(ang) * 72) + 'px), ' + Math.round(-32 - Math.abs(Math.sin(ang)) * 46) + 'px)'; s.style.opacity = '0'; });
+    setTimeout(() => s.remove(), 880);
+  });
+  const t = document.createElement('div');
+  t.textContent = 'Palier atteint · ' + label;
+  t.style.cssText = 'position:absolute;top:52px;left:50%;transform:translateX(-50%);z-index:28;background:#3a6e8c;color:#fff;font-family:Satoshi,sans-serif;font-weight:800;font-size:.7rem;padding:.4rem .85rem;border-radius:100px;box-shadow:0 10px 24px -6px rgba(58,110,140,.6);white-space:nowrap;pointer-events:none;animation:vadFloat 1.7s ease-out forwards';
+  host.appendChild(t);
+  setTimeout(() => t.remove(), 1700);
+}
+
 function initFicheSem() {
   semFicheStep = 0;
+  semLastPortee = 0;
   semFicheData._projetsReady = false;
   semFicheData._finances = [];
   semFicheData._financedQuetes = [];
@@ -9086,7 +9232,7 @@ function semFicheRenderStep() {
   if (semFicheStep === 0) {
     c.innerHTML = `
       <label class="creer-lbl">Nom de l'organisation</label>
-      <input class="creer-inp" placeholder="Ex : Fondation Territoires Vivants" value="${semFicheData.nom}" oninput="semFicheData.nom=this.value;semStarUpdateCenter()">
+      <input class="creer-inp" placeholder="Ex : Fondation Territoires Vivants" value="${semFicheData.nom}" oninput="semFicheData.nom=this.value;semStarUpdateCenter();semUpdatePotentiel(true)">
       <label class="creer-lbl">Localisation</label>
       <div style="position:relative" id="sem-loc-wrap">
         <input class="creer-inp" type="text" id="sem-loc-inp" placeholder="Tapez une adresse, ville…"
@@ -9106,7 +9252,7 @@ function semFicheRenderStep() {
       </div>
       <label class="creer-lbl">Mode de financement</label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem">
-        ${[['Numéraire','💰'],['Mécénat','🎁'],['Nature','🌿'],['Subvention','📋']].map(([t,ic])=>`<button class="type-btn${semFicheData.typeFinancement===t?' sel':''}" onclick="semFicheData.typeFinancement='${t}';this.closest('div').querySelectorAll('.type-btn').forEach(b=>b.classList.remove('sel'));this.classList.add('sel');semStarLights()"><div style="font-size:1rem;margin-bottom:.15rem">${ic}</div><div style="font-size:.68rem">${t}</div></button>`).join('')}
+        ${[['Numéraire','💰'],['Mécénat','🎁'],['Nature','🌿'],['Subvention','📋']].map(([t,ic])=>`<button class="type-btn${semFicheData.typeFinancement===t?' sel':''}" onclick="semFicheData.typeFinancement='${t}';this.closest('div').querySelectorAll('.type-btn').forEach(b=>b.classList.remove('sel'));this.classList.add('sel');semStarLights();semUpdatePotentiel()"><div style="font-size:1rem;margin-bottom:.15rem">${ic}</div><div style="font-size:.68rem">${t}</div></button>`).join('')}
       </div>`;
     semStarBubble('Définissez votre organisation, les étoiles s\'allumeront selon votre zone d\'action…');
   } else if (semFicheStep === 1) {
@@ -9244,6 +9390,8 @@ function semFicheRenderStep() {
     semStarFinal();
     semStarProjets(projets);   // affiche aussi les projets dans la constellation
   }
+
+  if (typeof semUpdatePotentiel === 'function') semUpdatePotentiel();
 }
 
 // Construit la liste des projets (lieux de la démo) à financer, classés par
