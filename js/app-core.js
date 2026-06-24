@@ -5645,7 +5645,14 @@ function confirmPublishPreview() {
 async function publishBatProfil() {
   // Persistance (prête pour Supabase) : enregistre le bâtisseur publié, vide le brouillon.
   if (window.store) {
-    try { const row = store.insert('batisseurs', Object.assign({}, batFicheData)); batFicheData.id = row.id; store.clearDraft('batisseur'); } catch(e) {}
+    try {
+      const row = store.insert('batisseurs', Object.assign({}, batFicheData));
+      batFicheData.id = row.id;
+      store.clearDraft('batisseur');
+      // Transaction graines : gain (bonus de bienvenue lié au profil).
+      const bonus = (typeof batProfileGraines === 'function') ? batProfileGraines() : 0;
+      _grainesTx(row.id, 'gain', bonus, 'Bonus de bienvenue', 'batisseurs', row.id);
+    } catch(e) {}
   }
   const prenom = batFicheData.prenom || 'Bâtisseur';
   const nom    = batFicheData.nom    || '';
@@ -6555,6 +6562,30 @@ function renderQueteDetail() {
   }
 }
 
+/* ─── Loops relationnels (prêts pour Supabase) : candidatures, financements,
+   transactions graines. Chaque action métier écrit une ligne de jointure. ── */
+function _currentBatisseurId() {
+  if (!window.store) return null;
+  if (!batFicheData.id) batFicheData.id = store.uuid();
+  return batFicheData.id;
+}
+function _currentSemeurId() {
+  if (!window.store) return null;
+  if (!semFicheData.id) semFicheData.id = store.uuid();
+  return semFicheData.id;
+}
+// Garantit que la quête existe comme ligne (cible de FK), renvoie son id de store.
+function _persistQuete(q) {
+  if (!window.store || !q) return null;
+  const qid = 'q-' + (q.id != null ? q.id : store.uuid());
+  store.upsert('quetes', { id: qid, titre: q.titre || '', lieu: q.lieu || q.lieuNom || '', duree: q.duree || '', tokens: q.tokens || 0 });
+  return qid;
+}
+function _grainesTx(userId, type, montant, label, refTable, refId) {
+  if (!window.store || !montant) return;
+  store.insert('graines_tx', { user_id: userId || null, type: type, montant: montant, label: label || '', ref_table: refTable || null, ref_id: (refId != null ? refId : null) });
+}
+
 function qdJoindre() {
   const q = qdQuest(); if (!q) return;
   if (q.joined) { mmBubble('Tu participes déjà à cette quête'); return; }
@@ -6564,6 +6595,13 @@ function qdJoindre() {
   const m = String(q.places || '0/6').split('/');
   const cur = Math.min((parseInt(m[0], 10) || 0) + 1, parseInt(m[1], 10) || 6);
   q.places = cur + '/' + (m[1] || 6);
+  // Candidature : jointure bâtisseur × quête (id composite → pas de doublon).
+  if (window.store) {
+    try {
+      const bid = _currentBatisseurId(), qid = _persistQuete(q);
+      store.upsert('candidatures', { id: 'cand-' + bid + '-' + qid, batisseur_id: bid, quete_id: qid, statut: 'rejoint' });
+    } catch (e) {}
+  }
   mmBubble('✅ Inscription confirmée · tu as rejoint « ' + (q.titre || 'la quête') + ' »');
   qdRerender();
 }
@@ -6574,6 +6612,13 @@ function qdFinancer() {
   if (!q.financement.objectif || q.financement.objectif <= 0) q.financement.objectif = Math.max(2000, (q.tokens || 50) * 40);
   q.financement.montant = q.financement.objectif;
   q.financement.semeur = semNom;
+  // Financement : jointure semeur × quête (id composite → pas de doublon).
+  if (window.store) {
+    try {
+      const sid = _currentSemeurId(), qid = _persistQuete(q);
+      store.upsert('financements', { id: 'fin-' + sid + '-' + qid, semeur_id: sid, quete_id: qid, montant: q.financement.objectif });
+    } catch (e) {}
+  }
   mmBubble('💰 Quête financée par ' + semNom + ' · preuve auditable certifiée EVAD');
   qdRerender();
 }
@@ -6895,6 +6940,8 @@ function mktConfirmBuy(id) {
   const o = mktAllOffres().find(x => x.id === id) || MKT_OFFRES[id];
   if (!o || mktBalance < o.prix) return;
   mktBalance -= o.prix;
+  // Transaction graines : dépense (mouvement du portefeuille).
+  if (o.prix > 0) _grainesTx(_currentBatisseurId(), 'depense', o.prix, o.titre || '', 'offres_mkt', id);
   const _b = document.getElementById('mkt-balance'); if (_b) _b.textContent = mktBalance;
   // Décrémente le stock à la source (offre du tableau de bord ou catalogue)
   const src = (typeof pmktOffers !== 'undefined') ? pmktOffers.find(x => x.id === id) : null;
