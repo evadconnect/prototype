@@ -7710,7 +7710,8 @@ function regenInit() {
 function lqPiloteFilter(filter, btn) {
   document.querySelectorAll('#pilote-panel-quetes .pmkt-filter-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  mmBubble(`Filtre quêtes : ${filter.replace('_', ' ')}`);
+  piloteQueteFilter = filter || 'toutes';
+  if (typeof renderPiloteQuetes === 'function') renderPiloteQuetes();
 }
 
 /* ─── SEMEUR TABS ─── */
