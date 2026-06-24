@@ -1550,6 +1550,52 @@ const SOLS=[
    photo:'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=800&q=80&auto=format&fit=crop',
    lieux:['cafe','epicerie','tiers','ecole','coworking','ecolieu','ferme'],
    quete:{titre:'Monter le partenariat AMAP',duree:'2 réunions',nb:'2–4 pers.',impact_quete:'+12 pts social · 90% approvisionnement local'}},
+
+  // ── Adaptation à la hausse des températures (+1,7 à +2,6 °C) ──
+  {nom:'Toiture & murs végétalisés',cat:'adaptation',cplx:'moyen',impact:'−3 à −5 °C en toiture',co2:.3,tok:80,img:'🪴',
+   desc:'Couvrir toits et murs d\'une couche végétale (substrat léger + plantes résistantes à la sécheresse) qui isole du chaud comme du froid. La surface abaisse sa température de plusieurs degrés, retient 50 à 80 % des eaux de pluie et crée un refuge de biodiversité. Réduit les besoins de climatisation lors des canicules de plus en plus fréquentes.',
+   avantages:['Abaisse la température intérieure de 2 à 4 °C en été','Retient 50–80 % des eaux de pluie, limite le ruissellement','Double l\'isolation et accueille la biodiversité'],
+   budget:'60–150 €/m²',
+   ind:['Surface végétalisée m²','Température de surface évitée °C'],
+   esrs:['ESRS E1','ESRS E4'],esrs_detail:'Adaptation au changement climatique (E1) et contribution à la biodiversité (E4).',
+   lieux:['ecolieu','habitat','tiers','fablab','coworking','incubateur','cafe','epicerie','ecole','autre'],
+   quete:{titre:'Installer une toiture végétalisée',duree:'2 week-ends',nb:'4–8 pers.',impact_quete:'+10 pts adaptation · −3 °C en toiture'}},
+
+  {nom:'Canopée & îlots de fraîcheur',cat:'adaptation',cplx:'moyen',impact:'−2 à −4 °C ressentis',co2:.6,tok:70,img:'🌳',
+   desc:'Planter des arbres et arbustes d\'ombrage (essences locales adaptées à la sécheresse) pour créer des îlots de fraîcheur. Un arbre mature rafraîchit l\'air ambiant par évapotranspiration et par son ombre, jusqu\'à 2 à 4 °C ressentis sous le houppier. Protège les espaces extérieurs, les façades et les usagers pendant les vagues de chaleur.',
+   avantages:['Jusqu\'à −4 °C ressentis sous les arbres','Stocke du carbone et abrite la biodiversité','Ombre naturelle qui limite la surchauffe des bâtiments'],
+   budget:'30–120 €/arbre',
+   ind:['Arbres plantés','Surface ombragée m²'],
+   esrs:['ESRS E1','ESRS E4'],esrs_detail:'Adaptation aux fortes chaleurs (E1) et renforcement des écosystèmes (E4).',
+   lieux:['ferme','ecolieu','habitat','jardin','tiers','ecole','autre'],
+   quete:{titre:'Planter des arbres d\'ombrage',duree:'1 journée',nb:'5–12 pers.',impact_quete:'+9 pts adaptation · îlot de fraîcheur'}},
+
+  {nom:'Ombrières & pergolas bioclimatiques',cat:'adaptation',cplx:'facile',impact:'−30 à −50 % de soleil direct',co2:.2,tok:50,img:'⛱️',
+   desc:'Installer des structures d\'ombrage (pergolas, voiles, ombrières), végétalisées ou couplées à des panneaux solaires, sur les zones exposées : terrasses, façades sud, parkings. Elles bloquent le rayonnement direct, abaissent la température des surfaces et des espaces de vie, et peuvent produire de l\'électricité (ombrière photovoltaïque).',
+   avantages:['Réduit de 30 à 50 % le rayonnement solaire direct','Protège façades et terrasses de la surchauffe','Cumulable avec du solaire en ombrière photovoltaïque'],
+   budget:'150–500 €/m²',
+   ind:['Surface ombragée m²','Énergie solaire produite kWh/an'],
+   esrs:['ESRS E1'],esrs_detail:'Protection solaire passive, adaptation au réchauffement (E1).',
+   lieux:['ecolieu','habitat','tiers','fablab','coworking','cafe','epicerie','ecole','autre'],
+   quete:{titre:'Monter une pergola bioclimatique',duree:'1 journée',nb:'3–6 pers.',impact_quete:'+7 pts adaptation · −30 % ensoleillement'}},
+
+  {nom:'Rafraîchissement passif du bâti',cat:'adaptation',cplx:'moyen',impact:'−4 à −6 °C sans clim',co2:.4,tok:85,img:'❄️',
+   desc:'Combiner protections solaires (volets, brise-soleil), ventilation nocturne traversante et inertie thermique pour rafraîchir le bâtiment sans climatisation. Un puits canadien (échangeur air-sol) pré-rafraîchit l\'air entrant de 4 à 8 °C. Le confort d\'été est assuré avec une consommation énergétique quasi nulle, même par +2 °C.',
+   avantages:['Jusqu\'à −6 °C en intérieur sans climatisation','Consommation énergétique quasi nulle','Confort d\'été durable face aux canicules'],
+   budget:'2 000–12 000 €',
+   ind:['Température intérieure évitée °C','Énergie de clim économisée kWh/an'],
+   esrs:['ESRS E1'],esrs_detail:'Confort d\'été passif, réduit le besoin de climatisation (E1).',
+   lieux:['ecolieu','habitat','tiers','fablab','coworking','incubateur','ecole','autre'],
+   quete:{titre:'Audit & rafraîchissement passif',duree:'2 jours',nb:'3–5 pers.',impact_quete:'+12 pts adaptation · −5 °C sans clim'}},
+
+  {nom:'Désimperméabilisation des sols',cat:'adaptation',cplx:'moyen',impact:'−2 °C en surface',co2:.3,tok:60,img:'💦',
+   desc:'Remplacer le bitume et le béton par des sols perméables et végétalisés (stabilisé clair, dalles engazonnées, noues plantées). Les surfaces claires et vivantes stockent moins de chaleur, laissent l\'eau s\'infiltrer et rafraîchissent l\'air par évaporation. Lutte directement contre l\'effet d\'îlot de chaleur et contre les inondations lors des orages intenses.',
+   avantages:['Réduit l\'effet d\'îlot de chaleur urbain','Infiltre l\'eau de pluie et recharge les nappes','Rafraîchit l\'air ambiant par évaporation'],
+   budget:'40–120 €/m²',
+   ind:['Surface désimperméabilisée m²','Eau infiltrée L/an'],
+   esrs:['ESRS E1','ESRS E3'],esrs_detail:'Adaptation aux chaleurs et aux pluies intenses (E1), gestion de l\'eau (E3).',
+   lieux:['ecolieu','habitat','tiers','jardin','ecole','autre'],
+   quete:{titre:'Désimperméabiliser une cour',duree:'2 week-ends',nb:'5–10 pers.',impact_quete:'+8 pts adaptation · sol perméable'}},
 ];
 
 /* ── Méta ODD (couleurs officielles ONU) ── */
@@ -1779,6 +1825,7 @@ const CATS={
   dechets:     {l:'Déchets',      c:'#5a4090',bg:'rgba(122,100,168,0.12)'},
   biodiversite:{l:'Biodiversité', c:'#1a7050',bg:'rgba(26,112,80,0.12)'},
   social:      {l:'Social',       c:'#903060',bg:'rgba(180,78,100,0.12)'},
+  adaptation:  {l:'Adaptation climat', c:'#b84e35',bg:'rgba(184,78,53,0.12)'},
 };
 
 const ESPS=[
@@ -4166,6 +4213,7 @@ const CAT_META = {
   dechets:      {ic:'♻️', l:'Déchets',      c:'#2e9970'},
   biodiversite: {ic:'🌿', l:'Biodiversité', c:'#3a7a3a'},
   social:       {ic:'🤝', l:'Social',       c:'#7a5a9a'},
+  adaptation:   {ic:'🌡', l:'Adaptation',   c:'#b84e35'},
 };
 
 function creerBddPanelHTML(espIdx){
@@ -6018,14 +6066,16 @@ function batSelectQuete(id) {
 let _qdCurrentId = 0;
 let _qdFrom = 'quete';
 let _qdQuestOverride = null;  // quête arbitraire (ex. quête Pilote) affichée dans la fiche
-let _qdEdit = false;          // mode édition de la fiche quête
+let _qdEdit = false;          // (déprécié) ancien mode édition global
+let _qdEditSection = null;    // section en cours d'édition : 'infos' | 'materiel' | 'etapes' | null
+let _qdOpenSections = {};     // sections dépliées (matériel/étapes repliés par défaut)
 function qdSet(field, val, num){ const q = qdQuest(); if(!q) return; const t = String(val).trim(); q[field] = num ? (parseFloat(t.replace(',','.'))||0) : t; }
 function qdSetArr(field, i, val){ const q = qdQuest(); if(!q || !Array.isArray(q[field])) return; q[field][i] = String(val).trim(); }
 function qdSetObj(field, i, key, val){ const q = qdQuest(); if(!q || !Array.isArray(q[field]) || !q[field][i]) return; q[field][i][key] = String(val).trim(); }
 
 function showQueteDetail(id, from) {
   _qdQuestOverride = null;
-  _qdEdit = false;
+  _qdEditSection = null; _qdOpenSections = {};
   _qdCurrentId = id;
   _qdFrom = from || 'quete';
   showScreen('quete-detail');
@@ -6035,7 +6085,7 @@ function showQueteDetail(id, from) {
 // pour pouvoir revenir à la liste sans quitter l'étape de création de fiche.
 function openQueteModalFromFiche(id) {
   _qdQuestOverride = null;
-  _qdEdit = false;
+  _qdEditSection = null; _qdOpenSections = {};
   _qdCurrentId = id;
   _qdFrom = 'fiche-bat';
   renderQueteDetail(); // remplit l'écran (caché) qd-main / qd-panel / qd-topbar-*
@@ -6083,7 +6133,7 @@ function closeFicheQueteModal() {
 // Ouvre la fiche quête (même présentation) pour n'importe quelle quête.
 function showQueteFiche(quest, from) {
   _qdQuestOverride = quest;
-  _qdEdit = false;
+  _qdEditSection = null; _qdOpenSections = {};
   _qdFrom = from || (typeof currentRole !== 'undefined' ? currentRole : 'quete');
   showScreen('quete-detail');
 }
@@ -6172,11 +6222,26 @@ function qdValiderEtape() {
   qdRerender();
 }
 
+// Édition ciblée par section ('infos' | 'materiel' | 'etapes') au lieu d'un mode global.
+function qdEditSection(sec) {
+  if (!qdQuest()) return;
+  _qdEditSection = (_qdEditSection === sec) ? null : sec;
+  qdRerender();
+}
+function qdSaveSection() {
+  _qdEditSection = null;
+  mmBubble('✏️ Modifications enregistrées');
+  qdRerender();
+}
+// Replie / déplie une section (matériel, étapes) — repliées par défaut.
+function qdToggleSection(sec) {
+  _qdOpenSections[sec] = !_qdOpenSections[sec];
+  qdRerender();
+}
+// « Modifier les paramètres » = éditer le bloc d'infos principal.
 function qdModifier() {
   if (!qdQuest()) return;
-  _qdEdit = !_qdEdit;
-  if (!_qdEdit) mmBubble('✏️ Modifications enregistrées');
-  qdRerender();
+  qdEditSection('infos');
 }
 
 function qdToggleMat(i, el) {
@@ -6221,17 +6286,28 @@ function renderQueteDetail() {
   const q = _qdQuestOverride || BAT_QUETES[_qdCurrentId];
   if (!q) return;
 
-  // Helpers d'édition (mode "Modifier les paramètres")
-  const ED = _qdEdit;
-  const _eb = (f,v,num,dark)=> ED
+  // Édition ciblée : une section à la fois (infos / materiel / etapes)
+  const EDinfos = _qdEditSection === 'infos';
+  const EDmat   = _qdEditSection === 'materiel';
+  const EDplan  = _qdEditSection === 'etapes';
+  // Sections repliables (matériel/étapes) — dépliées si ouvertes OU en édition
+  const matOpen  = !!_qdOpenSections.materiel || EDmat;
+  const planOpen = !!_qdOpenSections.etapes   || EDplan;
+  // Contrôle pilote d'une section repliable : crayon (éditer) / ✓ (enregistrer)
+  const secCtrl = (sec, on) => currentRole !== 'pilote' ? '' : (on
+    ? `<button onclick="event.stopPropagation();qdSaveSection()" style="background:var(--forest);color:#fff;border:none;border-radius:100px;padding:.22rem .6rem;font-size:.62rem;font-weight:700;cursor:pointer;font-family:inherit">✓ Enregistrer</button>`
+    : `<button onclick="event.stopPropagation();qdEditSection('${sec}')" title="Modifier" style="background:rgba(46,102,66,.07);color:var(--forest);border:1px solid rgba(46,102,66,.2);border-radius:100px;padding:.22rem .5rem;font-size:.62rem;font-weight:700;cursor:pointer;font-family:inherit">✏️</button>`);
+
+  // Helpers d'édition inline (les champs ne sont éditables que si leur section l'est)
+  const _eb = (f,v,num,dark)=> EDinfos
     ? `<span contenteditable="true" onblur="qdSet('${f}',this.textContent${num?',1':''})" style="outline:1px dashed ${dark?'rgba(255,255,255,.5)':'rgba(46,102,66,.4)'};border-radius:4px;padding:0 .25rem;cursor:text;min-width:1ch;display:inline-block">${v}</span>`
     : `${v}`;
   const edDark = (f,v,num)=>_eb(f,v,num,true);
   const edLight= (f,v,num)=>_eb(f,v,num,false);
-  const edArr = (f,i,v)=> ED
+  const edArr = (on,f,i,v)=> on
     ? `<span contenteditable="true" onblur="qdSetArr('${f}',${i},this.textContent)" style="outline:1px dashed rgba(46,102,66,.4);border-radius:4px;padding:0 .25rem;cursor:text;min-width:1ch;display:inline-block">${v}</span>`
     : `${v}`;
-  const edObj = (f,i,k,v)=> ED
+  const edObj = (f,i,k,v)=> EDplan
     ? `<span contenteditable="true" onblur="qdSetObj('${f}',${i},'${k}',this.textContent)" style="outline:1px dashed rgba(46,102,66,.4);border-radius:4px;padding:0 .25rem;cursor:text;min-width:1ch;display:inline-block">${v}</span>`
     : `${v}`;
 
@@ -6257,8 +6333,8 @@ function renderQueteDetail() {
   const steps = Array.from({length:_stepCount},(_,i)=>{
     const done=i<q.etape_actuelle-1, active=i===q.etape_actuelle-1;
     const ps = _planSteps ? _planSteps[i] : null;
-    const titre = ps ? ((ps.ic?ps.ic+' ':'')+(ED ? edObj('plan', i, 'titre', ps.titre||('Étape '+(i+1))) : (ps.titre||('Étape '+(i+1))))) : (labels[i]||('Étape '+(i+1)));
-    const desc = (ps && (ps.desc || ED)) ? `<div style="font-size:.66rem;font-weight:400;color:var(--moss);opacity:.8;line-height:1.45;margin-top:.15rem">${ED ? edObj('plan', i, 'desc', ps.desc||'(description)') : ps.desc}</div>` : '';
+    const titre = ps ? ((ps.ic?ps.ic+' ':'')+(EDplan ? edObj('plan', i, 'titre', ps.titre||('Étape '+(i+1))) : (ps.titre||('Étape '+(i+1))))) : (labels[i]||('Étape '+(i+1)));
+    const desc = (ps && (ps.desc || EDplan)) ? `<div style="font-size:.66rem;font-weight:400;color:var(--moss);opacity:.8;line-height:1.45;margin-top:.15rem">${EDplan ? edObj('plan', i, 'desc', ps.desc||'(description)') : ps.desc}</div>` : '';
     return `<div style="display:flex;align-items:flex-start;gap:.7rem;padding:.55rem .8rem;border-radius:var(--r);border:1px solid ${active?'rgba(200,115,42,.35)':done?'rgba(74,140,92,.2)':'rgba(46,102,66,.1)'};background:${active?'rgba(200,115,42,.04)':done?'rgba(74,140,92,.04)':'transparent'};margin-bottom:.35rem">
       <div style="width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;margin-top:.05rem;background:${done?'var(--fern)':active?'var(--amber)':'rgba(46,102,66,.12)'};color:${done||active?'white':'var(--moss)'}">
         ${done?'✓':i+1}
@@ -6304,12 +6380,12 @@ function renderQueteDetail() {
 
   // Dates
   const datesHtml = (q.dates && q.dates.length) ? `<div style="display:flex;gap:.4rem;flex-wrap:wrap">
-    ${q.dates.map((d,i)=>`<span style="font-size:.68rem;padding:.3rem .7rem;border-radius:var(--r);background:rgba(46,102,66,.07);border:1px solid rgba(46,102,66,.15);color:var(--ink)">📅 ${edArr('dates', i, d)}</span>`).join('')}
+    ${q.dates.map((d,i)=>`<span style="font-size:.68rem;padding:.3rem .7rem;border-radius:var(--r);background:rgba(46,102,66,.07);border:1px solid rgba(46,102,66,.15);color:var(--ink)">📅 ${edArr(EDinfos, 'dates', i, d)}</span>`).join('')}
   </div>` : '';
 
   // Colonne principale (mode édition: champs contenteditable)
   document.getElementById('qd-main').innerHTML = `
-    ${ED ? '<button onclick="qdModifier()" style="width:100%;background:var(--forest);color:#fff;border:none;border-radius:100px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer;margin-bottom:.2rem">✓ Enregistrer les modifications</button>' : ''}
+    ${EDinfos ? '<button onclick="qdSaveSection()" style="width:100%;background:var(--forest);color:#fff;border:none;border-radius:100px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer;margin-bottom:.2rem">✓ Enregistrer les infos</button>' : ''}
 
     <!-- Hero -->
     <div style="background:linear-gradient(135deg,#0e2a1a,#1a3a22);border-radius:var(--r-xl);padding:1.4rem 1.8rem;position:relative;overflow:hidden">
@@ -6324,11 +6400,11 @@ function renderQueteDetail() {
         ${q.joined ? '<span style="font-size:.62rem;padding:.18rem .5rem;border-radius:100px;background:rgba(74,140,92,.2);color:#9be3a6;border:1px solid rgba(74,140,92,.35);font-weight:700">✓ Tu participes</span>' : ''}
       </div>
       <div style="font-family:'Satoshi', sans-serif;font-size:1.5rem;font-weight:900;color:white;line-height:1.15;margin-bottom:.5rem">${edDark('titre', q.titre)}</div>
-      <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:${ED ? '1rem' : '.7rem'};flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:${EDinfos ? '1rem' : '.7rem'};flex-wrap:wrap">
         <div style="font-size:.72rem;color:rgba(255,255,255,.5)">🏡 Pilote : ${edDark('pilote', q.pilote)}</div>
         <div style="font-size:.72rem;color:rgba(255,255,255,.5)">⏱ ${edDark('duree', q.duree)}</div>
       </div>
-      ${ED ? '' : `<button onclick="qdVoirLieu()" style="display:inline-flex;align-items:center;gap:.35rem;margin-bottom:1rem;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:.4rem .85rem;font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit">🏡 Voir le lieu →</button>`}
+      ${EDinfos ? '' : `<button onclick="qdVoirLieu()" style="display:inline-flex;align-items:center;gap:.35rem;margin-bottom:1rem;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:.4rem .85rem;font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit">🏡 Voir le lieu →</button>`}
       <div style="display:flex;gap:.8rem;flex-wrap:wrap">
         <div style="text-align:center;background:rgba(255,255,255,.07);border-radius:var(--r);padding:.55rem .9rem">
           <div style="font-family:'Satoshi', sans-serif;font-size:1.3rem;font-weight:900;color:var(--amber)">${edDark('tokens', q.tokens, true)}</div>
@@ -6378,21 +6454,26 @@ function renderQueteDetail() {
       ${datesHtml}
     </div>` : ''}
 
-    <!-- Matériel nécessaire (checklist · Bibliothèque) -->
+    <!-- Matériel nécessaire (checklist · Bibliothèque) · replié par défaut -->
     ${(q.materiel && q.materiel.length) ? (() => {
       const checked = q.materielChecked || (q.materielChecked = []);
       const nb = q.materiel.filter((_, i) => checked[i]).length;
-      return `<div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-lg);padding:1rem 1.1rem">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
-        <div style="font-size:.72rem;font-weight:600;color:var(--ink)">🧰 Le matériel <span style="font-weight:400;opacity:.5">· ce qu'il faut réunir</span></div>
-        <span id="qd-mat-count" style="font-size:.62rem;font-weight:700;color:${nb===q.materiel.length?'var(--fern)':'var(--moss)'}">${nb===q.materiel.length?'🎉 Tout est prêt':nb+'/'+q.materiel.length}</span>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:.1rem">${q.materiel.map((m, i) => ED
-        ? `<div style="display:flex;align-items:center;gap:.6rem;padding:.42rem .2rem;border-bottom:1px solid rgba(46,102,66,.05)"><span style="opacity:.5">🔩</span><span style="font-size:.74rem;color:var(--ink);flex:1">${edArr('materiel', i, m)}</span></div>`
+      const rows = q.materiel.map((m, i) => EDmat
+        ? `<div style="display:flex;align-items:center;gap:.6rem;padding:.42rem .2rem;border-bottom:1px solid rgba(46,102,66,.05)"><span style="opacity:.5">🔩</span><span style="font-size:.74rem;color:var(--ink);flex:1">${edArr(EDmat, 'materiel', i, m)}</span></div>`
         : `<label style="display:flex;align-items:center;gap:.6rem;padding:.42rem .2rem;cursor:pointer;border-bottom:1px solid rgba(46,102,66,.05)">
           <input type="checkbox" ${checked[i] ? 'checked' : ''} onchange="qdToggleMat(${i}, this)" style="width:16px;height:16px;accent-color:var(--forest);cursor:pointer;flex-shrink:0">
           <span style="font-size:.74rem;color:${checked[i] ? 'var(--moss)' : 'var(--ink)'};${checked[i] ? 'text-decoration:line-through;opacity:.6' : ''}">${m}</span>
-        </label>`).join('')}</div>
+        </label>`).join('');
+      return `<div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-lg);padding:1rem 1.1rem">
+      <div onclick="qdToggleSection('materiel')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;${matOpen?'margin-bottom:.6rem':''}">
+        <div style="font-size:.72rem;font-weight:600;color:var(--ink)">🧰 Le matériel <span style="font-weight:400;opacity:.5">· ${q.materiel.length} élément${q.materiel.length>1?'s':''}</span></div>
+        <div style="display:flex;align-items:center;gap:.55rem">
+          <span id="qd-mat-count" style="font-size:.62rem;font-weight:700;color:${nb===q.materiel.length?'var(--fern)':'var(--moss)'}">${nb===q.materiel.length?'🎉 Tout est prêt':nb+'/'+q.materiel.length}</span>
+          ${secCtrl('materiel', EDmat)}
+          <span style="font-size:.7rem;color:var(--moss);opacity:.6">${matOpen?'▾':'▸'}</span>
+        </div>
+      </div>
+      ${matOpen ? `<div style="display:flex;flex-direction:column;gap:.1rem">${rows}</div>` : ''}
     </div>`; })() : ''}
 
     <!-- Les étapes (le plan) -->
@@ -6402,12 +6483,16 @@ function renderQueteDetail() {
       const pct = total ? Math.round(fait / total * 100) : 0;
       const complete = (q.etape_actuelle || 1) > total;
       return `<div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-lg);padding:1rem 1.1rem">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
-        <div style="font-size:.74rem;font-weight:700;color:var(--ink)">🎯 Les étapes <span style="font-weight:400;opacity:.55">· le plan d'action</span></div>
-        <span style="font-size:.68rem;font-weight:800;color:${complete?'var(--fern)':'var(--moss)'}">${fait}/${total} ${complete?'🌳':''}</span>
+      <div onclick="qdToggleSection('etapes')" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;cursor:pointer">
+        <div style="font-size:.74rem;font-weight:700;color:var(--ink)">🎯 Les étapes <span style="font-weight:400;opacity:.55">· ${total} étape${total>1?'s':''}</span></div>
+        <div style="display:flex;align-items:center;gap:.55rem">
+          <span style="font-size:.68rem;font-weight:800;color:${complete?'var(--fern)':'var(--moss)'}">${fait}/${total} ${complete?'🌳':''}</span>
+          ${secCtrl('etapes', EDplan)}
+          <span style="font-size:.7rem;color:var(--moss);opacity:.6">${planOpen?'▾':'▸'}</span>
+        </div>
       </div>
       <div style="height:8px;background:rgba(46,102,66,.08);border-radius:100px;overflow:hidden;margin-bottom:.75rem"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--fern),#7ab840);border-radius:100px;transition:width .6s cubic-bezier(.34,1.2,.5,1)"></div></div>
-      ${steps}
+      ${planOpen ? steps : ''}
       ${currentRole === 'pilote' && !complete ? `<button onclick="qdValiderEtape()" style="width:100%;margin-top:.5rem;background:rgba(74,140,92,.1);color:var(--fern);border:1px solid rgba(74,140,92,.3);border-radius:100px;padding:.55rem;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit">✓ Valider l'étape en cours →</button>`
         : (complete ? `<div style="margin-top:.5rem;text-align:center;font-size:.72rem;font-weight:700;color:var(--fern);background:rgba(74,140,92,.08);border-radius:100px;padding:.5rem">🌳 Toutes les étapes franchies !</div>` : '')}
     </div>`;
