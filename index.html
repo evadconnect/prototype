@@ -2390,7 +2390,7 @@
       <div class="topbar-sub">Mon profil · Bâtisseur · <span id="bat-fiche-completion" style="color:var(--fern);font-weight:600">Complète ta fiche</span></div>
     </div>
     <div class="topbar-actions">
-      <button class="btn btn-ghost" onclick="batFicheStep=0;batFicheRenderStep()">↺ Recommencer</button>
+      <button class="btn btn-ghost" onclick="batFicheReset()">↺ Recommencer</button>
       <button id="bat-fiche-publish-btn" class="btn btn-primary" style="display:none" onclick="openPublishPreview('bat')">Publier la fiche →</button>
     </div>
   </div>
@@ -2440,7 +2440,7 @@
       <div class="topbar-sub">Mon organisation · <span id="sem-fiche-completion" style="color:var(--fern);font-weight:600">Complète ta fiche</span></div>
     </div>
     <div class="topbar-actions">
-      <button class="btn btn-ghost" onclick="semFicheStep=0;semFicheRenderStep()">↺ Recommencer</button>
+      <button class="btn btn-ghost" onclick="semFicheReset()">↺ Recommencer</button>
       <button id="sem-fiche-publish-btn" class="btn btn-primary" style="display:none" onclick="openPublishPreview('sem')">Publier la fiche →</button>
     </div>
   </div>
@@ -2509,6 +2509,7 @@
 
 
 
+<script src="js/store.js?v=48"></script>
 <script src="js/app-core.js?v=48"></script>
 
 <script

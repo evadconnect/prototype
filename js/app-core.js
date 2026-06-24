@@ -3357,6 +3357,14 @@ let cStep=0, cData=_CDATA_EMPTY(), cOk=false;
 function initCreer(){
   if(!cOk){cOk=true;}
   cStep=0; cData=_CDATA_EMPTY();
+  // Reprise d'un brouillon non publié (persisté en localStorage).
+  if (window.store) {
+    const _d = store.loadDraft('lieu');
+    if (_d && (_d.nom || (_d.espacesData || []).length || (_d.solutions || []).length)) {
+      Object.assign(cData, _d);
+      if (typeof mmBubble === 'function') setTimeout(() => mmBubble('📝 Brouillon de lieu restauré · « Recommencer » pour repartir de zéro'), 400);
+    }
+  }
   renderStep(); initMM();
   // Gamification : brancher la jauge de Vadance projetée (une seule fois)
   const cc = document.getElementById('creer-step-content');
@@ -3553,7 +3561,9 @@ function addBesoinCustom() {
   if (v && !cData.besoins.includes(v)) { cData.besoins.push(v); renderStep(); }
 }
 
-function creerReset(){initCreer();}
+function creerReset(){ if(window.store) store.clearDraft('lieu'); initCreer(); }
+function batFicheReset(){ if(window.store) store.clearDraft('batisseur'); batFicheData = _BAT_FICHE_EMPTY(); initFicheBat(); }
+function semFicheReset(){ if(window.store) store.clearDraft('semeur'); semFicheData = _SEM_FICHE_EMPTY(); initFicheSem(); }
 
 /* ─── Gamification : Vadance projetée vivante pendant la création ───
    Les points viennent du potentiel d'impact de ce que le Pilote déclare
@@ -3593,6 +3603,7 @@ function creerVadance(){ return computeVadance(cData); }
 const creerVadancePalier = (s) => VADANCE_PALIERS.find(p => s >= p.min) || null;
 
 function creerUpdateVadance(silent){
+  if (window.store && (cData.nom || (cData.espacesData || []).length || (cData.solutions || []).length)) store.saveDraft('lieu', cData);   // brouillon auto-sauvegardé (si contenu)
   const v = creerVadance();
   const bar = document.getElementById('creer-vadance-bar');
   if (!bar) { creerLastVadance = v; return; }
@@ -5108,6 +5119,15 @@ async function createLieuOnMap(){
     myLieuData.vadance = (typeof computeVadance === 'function') ? computeVadance(cData) : 0;
   } catch(e) {}
 
+  // Persistance (prête pour Supabase) : enregistre le lieu publié, vide le brouillon.
+  if (window.store) {
+    try {
+      const row = store.insert('lieux', Object.assign({}, myLieuData));
+      myLieuData.id = row.id;
+      store.clearDraft('lieu');
+    } catch(e) {}
+  }
+
   showScreen('carte');
   setTimeout(initRealMap, 80);
 
@@ -5623,6 +5643,10 @@ function confirmPublishPreview() {
 
 /* ─── PUBLIER FICHE BÂTISSEUR → Carte communauté ─── */
 async function publishBatProfil() {
+  // Persistance (prête pour Supabase) : enregistre le bâtisseur publié, vide le brouillon.
+  if (window.store) {
+    try { const row = store.insert('batisseurs', Object.assign({}, batFicheData)); batFicheData.id = row.id; store.clearDraft('batisseur'); } catch(e) {}
+  }
   const prenom = batFicheData.prenom || 'Bâtisseur';
   const nom    = batFicheData.nom    || '';
   const ville  = batFicheData.ville  || 'France';
@@ -5701,6 +5725,10 @@ async function publishBatProfil() {
 
 /* ─── PUBLIER FICHE FINANCEUR → Carte communauté ─── */
 async function publishSemProfil() {
+  // Persistance (prête pour Supabase) : enregistre le semeur publié, vide le brouillon.
+  if (window.store) {
+    try { const row = store.insert('semeurs', Object.assign({}, semFicheData)); semFicheData.id = row.id; store.clearDraft('semeur'); } catch(e) {}
+  }
   const nom      = semFicheData.nom  || 'Financeur';
   const ville    = semFicheData.localisation || 'France';
   const type     = semFicheData.type || 'Fondation';
@@ -8111,7 +8139,8 @@ let batFicheStep = 0;
 // Filtre des quêtes proposées à l'étape matching : 'matched' (toutes les
 // compétences déclarées), 'all' (toutes les quêtes) ou un id de compétence.
 let batQueteFilter = 'matched';
-let batFicheData = { prenom:'', nom:'', ville:'', lat:null, lng:null, dispo:[], rayon:20, bio:'', avatar:'', cover:'', email:'', tel:'', web:'', skills:[], skillLevels:{}, axe:'', contrib:'', motivation:'', mode:'', engagement:'', wantLearn:[], valeurs:[], valeurAutre:'', moteur:'', apporte:[], cherche:[], lieuType:[] };
+function _BAT_FICHE_EMPTY() { return { prenom:'', nom:'', ville:'', lat:null, lng:null, dispo:[], rayon:20, bio:'', avatar:'', cover:'', email:'', tel:'', web:'', skills:[], skillLevels:{}, axe:'', contrib:'', motivation:'', mode:'', engagement:'', wantLearn:[], valeurs:[], valeurAutre:'', moteur:'', apporte:[], cherche:[], lieuType:[] }; }
+let batFicheData = _BAT_FICHE_EMPTY();
 
 /* ─── Gamification : Potentiel bâtisseur vivant pendant la création de la fiche ───
    Score de COMPLÉTUDE du profil, pas de quantité : chaque section remplie rapporte
@@ -8157,6 +8186,7 @@ function batPotentiel() { return computeBatPotentiel(batFicheData); }
 const batPotentielPalier = (s) => BAT_POT_PALIERS.find(p => s >= p.min) || null;
 
 function batUpdatePotentiel(silent) {
+  if (window.store && (batFicheData.prenom || batFicheData.nom || (batFicheData.skills || []).length)) store.saveDraft('batisseur', batFicheData);   // brouillon auto-sauvegardé (si contenu)
   const v = batPotentiel();
   const bar = document.getElementById('bat-pot-bar');
   if (!bar) { batLastPotentiel = v; return; }
@@ -8205,6 +8235,14 @@ function batPotCelebrate(label) {
 function initFicheBat() {
   batFicheStep = 0;
   batQueteFilter = 'matched';
+  // Reprise d'un brouillon non publié (persisté en localStorage).
+  if (window.store) {
+    const _d = store.loadDraft('batisseur');
+    if (_d && (_d.prenom || _d.nom || (_d.skills || []).length)) {
+      Object.assign(batFicheData, _d);
+      if (typeof mmBubble === 'function') setTimeout(() => mmBubble('📝 Brouillon de fiche restauré · « Recommencer » pour repartir de zéro'), 400);
+    }
+  }
   batFicheData._quetesReady = false;
   batLastPotentiel = 0;
   batFicheRenderStep();
@@ -9165,7 +9203,8 @@ const SEM_IMPACT_BY_TYPE = {
 };
 
 let semFicheStep = 0;
-let semFicheData = { nom:'', localisation:'', type:'Fondation', secteur:'ESS', zone:'Nouvelle-Aquitaine', typeFinancement:'', axes:[], reporting:'CSRD', freq:'Trimestriel', kpis:'CO₂ évité, personnes formées, Vadance', selectedKpis:[], selectedCadres:[], selectedCadreItems:{}, selectedODD:[] };
+function _SEM_FICHE_EMPTY() { return { nom:'', localisation:'', type:'Fondation', secteur:'ESS', zone:'Nouvelle-Aquitaine', typeFinancement:'', axes:[], reporting:'CSRD', freq:'Trimestriel', kpis:'CO₂ évité, personnes formées, Vadance', selectedKpis:[], selectedCadres:[], selectedCadreItems:{}, selectedODD:[] }; }
+let semFicheData = _SEM_FICHE_EMPTY();
 
 /* ─── Gamification : Portée d'impact vivante pendant la création de la fiche financeur ───
    Score de COMPLÉTUDE du profil, pas de quantité : chaque section remplie rapporte un
@@ -9201,6 +9240,7 @@ function semPortee() { return computeSemPortee(semFicheData); }
 const semPorteePalier = (s) => SEM_POT_PALIERS.find(p => s >= p.min) || null;
 
 function semUpdatePotentiel(silent) {
+  if (window.store && (semFicheData.nom || semFicheData.localisation || (semFicheData.axes || []).length)) store.saveDraft('semeur', semFicheData);   // brouillon auto-sauvegardé (si contenu)
   const v = semPortee();
   const bar = document.getElementById('sem-pot-bar');
   if (!bar) { semLastPortee = v; return; }
@@ -9249,6 +9289,14 @@ function semPotCelebrate(label) {
 function initFicheSem() {
   semFicheStep = 0;
   semLastPortee = 0;
+  // Reprise d'un brouillon non publié (persisté en localStorage).
+  if (window.store) {
+    const _d = store.loadDraft('semeur');
+    if (_d && (_d.nom || _d.localisation || (_d.axes || []).length)) {
+      Object.assign(semFicheData, _d);
+      if (typeof mmBubble === 'function') setTimeout(() => mmBubble('📝 Brouillon de fiche restauré · « Recommencer » pour repartir de zéro'), 400);
+    }
+  }
   semFicheData._projetsReady = false;
   semFicheData._finances = [];
   semFicheData._financedQuetes = [];
