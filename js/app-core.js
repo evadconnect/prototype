@@ -4985,6 +4985,7 @@ const DEVA_TOUR_STEPS = [
   { screen: 'pilote', tab: 'quetes', title: 'Tes quêtes ⚡', text: 'Des actions concrètes pour ton lieu. Tu mobilises des bâtisseurs, ils déposent des preuves, et tu les valides.' },
   { screen: 'pilote', tab: 'dossiers', title: 'Ton jardin d\'impact 🌱', text: 'Chaque preuve validée fait pousser tes plantes. Plus tu prouves, plus ton jardin grandit.' },
   { screen: 'pilote', tab: 'fiche', title: 'Ta fiche lieu ✏️', text: 'Tu peux compléter et enrichir ton lieu ici à tout moment : plus c\'est précis, plus ta Vadance est juste.' },
+  { screen: 'pilote', tab: 'marketplace', title: 'Ta marketplace 🛖', text: 'Dépose ici tes <b>biens et services payables en graines</b> (paniers, ateliers, hébergement, prêt de matériel…). Les bâtisseurs et membres du réseau viennent les échanger chez toi : l\'économie regen circule.' },
   // ── Explore l'écosystème EVAD ──
   { screen: 'gestion', title: 'La gestion de projet 🗂', text: 'Découpe ton lieu en tâches concrètes et suis l\'avancement, étape par étape.' },
   { screen: 'reseau', title: 'Le réseau 🌍', text: 'Le fil de la communauté EVAD : publie tes quêtes, suis les autres lieux, trouve des bâtisseurs.' },
