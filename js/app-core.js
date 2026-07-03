@@ -3983,8 +3983,13 @@ function renderStep(){
     // Expose espItems so creerBddPanelHTML can resolve eid per espace
     window._creerEspItems = espItems;
 
-    // Deva pré-sélectionne les solutions à la première visite
-    if(!cData.solsByEspace || Object.keys(cData.solsByEspace).length===0){
+    // Deva pré-sélectionne les solutions. On régénère si les espaces ou leurs
+    // problématiques ont changé depuis la dernière présélection (ou si elle
+    // vient d'un ancien brouillon), sauf si l'utilisateur a modifié les
+    // solutions à la main : dans ce cas son choix prime.
+    const _solsFp=JSON.stringify(espItems.map(({esp})=>[(esp&&esp.nom)||'',(esp&&esp.fonctions&&esp.fonctions[0])||'',(esp&&esp.probleme)||'']));
+    if(!cData.solsByEspace || Object.keys(cData.solsByEspace).length===0
+       || (!cData._solsCustomized && cData._solsFingerprint!==_solsFp)){
       cData.solsByEspace={};
       cData._problemeSols={};        // solution → problématique qui l'a fait remonter
       const _seenSols=new Set();   // une solution n'est proposée qu'une seule fois
@@ -4009,6 +4014,7 @@ function renderStep(){
         }
         cData.solsByEspace[idx]=chosen;
       });
+      cData._solsFingerprint=_solsFp;
       cData.solutions=[...new Set(Object.values(cData.solsByEspace).flat())];
       // La présélection ajoute des solutions APRÈS le 1er calcul de jauge :
       // on recalcule pour que la Vadance projetée = celle de la fiche publiée.
@@ -4223,6 +4229,7 @@ function creerAddSol(espIdx, solNom){
   if(!cData.solsByEspace[espIdx].includes(solNom)){
     cData.solsByEspace[espIdx].push(solNom);
     cData.solutions = [...new Set(Object.values(cData.solsByEspace).flat())];
+    cData._solsCustomized = true;   // choix manuel : la présélection ne l'écrasera plus
   }
   // Garder le panneau ouvert sur cet espace après ajout
   window._activeEspacePanel = espIdx;
@@ -4234,6 +4241,7 @@ function creerRemoveSol(espIdx, solNom){
   if(cData.solsByEspace && cData.solsByEspace[espIdx]){
     cData.solsByEspace[espIdx] = cData.solsByEspace[espIdx].filter(n=>n!==solNom);
     cData.solutions = Object.values(cData.solsByEspace).flat();
+    cData._solsCustomized = true;   // choix manuel : la présélection ne l'écrasera plus
   }
   renderStep();
   mmRefreshSolsStep4();
