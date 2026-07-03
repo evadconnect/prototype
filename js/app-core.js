@@ -5071,7 +5071,20 @@ function renderFluxTable() {
   initFluxDrag();
 }
 
-function mmBubble(t){ /* bulles désactivées */ }
+function mmBubble(t){
+  let el = document.getElementById('mm-bubble');
+  if (!el){
+    el = document.createElement('div');
+    el.id = 'mm-bubble';
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    document.body.appendChild(el);
+  }
+  el.textContent = t;
+  el.classList.add('show');
+  clearTimeout(window._mmBubbleTimer);
+  window._mmBubbleTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
 
 /* ─── Visite guidée Deva (après création du lieu · prototype) ─── */
 const DEVA_TOUR_STEPS = [
@@ -6920,6 +6933,7 @@ function piloteMktToggle(id) {
 function piloteMktDelete(id) {
   const o = pmktOffers.find(o => o.id === id);
   if (!o) return;
+  if (!confirm(`Supprimer l'offre « ${o.titre} » ?\nCette action est définitive.`)) return;
   pmktOffers = pmktOffers.filter(o => o.id !== id);
   pmktRenderOffers();
   mmBubble(`Offre "${o.titre.substring(0,28)}…" supprimée.`);

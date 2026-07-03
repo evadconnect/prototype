@@ -119,6 +119,7 @@ function devaHideTyping() {
 
 async function devaSubmit() {
   const input = document.getElementById('deva-chat-input');
+  if (!input) return;
   const text = input.value.trim();
   if (!text || devaTyping) return;
 
@@ -131,14 +132,14 @@ async function devaSubmit() {
 
   devaTyping = true;
   const sendBtn = document.getElementById('deva-chat-send');
-  sendBtn.disabled = true;
+  if (sendBtn) sendBtn.disabled = true;
   devaShowTyping();
 
   // Proxy pas encore branché : message d'attente clair plutôt qu'une erreur réseau.
   if (!DEVA_API_URL) {
     devaHideTyping();
     devaAddMessage('deva', 'Je ne suis pas encore reliée à mon moteur 🌱 Renseigne l\'URL du proxy Mistral (DEVA_API_URL dans js/deva.js) pour m\'activer.');
-    devaTyping = false; sendBtn.disabled = false; input.focus();
+    devaTyping = false; if (sendBtn) sendBtn.disabled = false; input.focus();
     return;
   }
 
@@ -151,6 +152,7 @@ async function devaSubmit() {
       body: JSON.stringify({ messages: devaHistory })
     });
 
+    if (!response.ok) throw new Error('HTTP ' + response.status);
     const data = await response.json();
     devaHideTyping();
 
@@ -159,8 +161,11 @@ async function devaSubmit() {
     devaAddMessage('deva', reply);
 
     // Update pill status
-    document.getElementById('deva-pill-status').textContent = 'Répond';
-    setTimeout(() => { document.getElementById('deva-pill-status').textContent = 'Active'; }, 2000);
+    const pill = document.getElementById('deva-pill-status');
+    if (pill) {
+      pill.textContent = 'Répond';
+      setTimeout(() => { pill.textContent = 'Active'; }, 2000);
+    }
 
   } catch (err) {
     devaHideTyping();
@@ -168,7 +173,7 @@ async function devaSubmit() {
   }
 
   devaTyping = false;
-  sendBtn.disabled = false;
+  if (sendBtn) sendBtn.disabled = false;
   input.focus();
 }
 

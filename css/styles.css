@@ -2681,16 +2681,17 @@ body {
     flex: 1;
     display: flex; flex-direction: column;
     align-items: center; gap: 0.2rem;
-    padding: 0.28rem 0.15rem;
+    padding: 0.42rem 0.15rem;
+    min-height: 44px;
     background: none; border: none; cursor: pointer;
-    color: rgba(207,238,231,0.5);
+    color: rgba(207,238,231,0.68);
     font-family: 'Satoshi', sans-serif;
-    font-size: 0.53rem; font-weight: 500;
+    font-size: 0.62rem; font-weight: 500;
     transition: color 0.15s;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
   }
-  .mob-btn-icon { font-size: 1.15rem; line-height: 1; }
+  .mob-btn-icon { font-size: 1.25rem; line-height: 1; }
   .mob-btn.active { color: var(--cream); }
   .mob-btn.mob-deva { color: var(--sage); }
 
@@ -3741,3 +3742,31 @@ body {
 .gloss-q:hover { background:rgba(46,102,66,.24); transform:scale(1.12); }
 #gloss-pop { position:fixed; z-index:10050; width:max-content; max-width:248px; background:#fff; border:1px solid rgba(46,102,66,.15); border-radius:12px; box-shadow:0 14px 38px -10px rgba(0,30,20,.36); padding:.7rem .8rem; font-family:'Satoshi',sans-serif; animation:obFadeIn .16s ease; }
 @keyframes devaTourIn { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+
+/* Bulle de confirmation d'action (mmBubble) : feedback après enregistrer/supprimer/etc. */
+#mm-bubble {
+  position: fixed;
+  bottom: calc(1.4rem + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translate(-50%, 12px);
+  z-index: 10060;
+  max-width: min(90vw, 420px);
+  background: var(--forest);
+  color: var(--cream);
+  border-radius: 100px;
+  padding: .65rem 1.15rem;
+  font-family: 'Satoshi', sans-serif;
+  font-size: .8rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  box-shadow: 0 12px 32px -8px rgba(0, 30, 20, .45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease, transform .25s ease;
+}
+#mm-bubble.show { opacity: 1; transform: translate(-50%, 0); }
+@media (max-width: 600px) {
+  /* Au-dessus de la barre de navigation mobile */
+  #mm-bubble { bottom: calc(4.4rem + env(safe-area-inset-bottom, 0px)); }
+}

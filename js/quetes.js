@@ -1053,8 +1053,13 @@ function renderJournal() {
 
 /* ─── Supprimer une action du journal ─── */
 function supprimerAction(idx) {
+  const a = actionsTerrains[idx];
+  if (!a) return;
+  const nom = a.label ? ` « ${a.label} »` : '';
+  if (!confirm(`Supprimer l'action${nom} du journal ?\nCette action est définitive.`)) return;
   actionsTerrains.splice(idx, 1);
   initDossiers();
+  if (typeof mmBubble === 'function') mmBubble('🗑 Action supprimée du journal');
 }
 
 /* ─── Bilan ESRS agrégé ─── */

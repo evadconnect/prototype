@@ -131,7 +131,7 @@ function evadFeedbackEnsureDom(){
   +     '<div id="evad-feedback-hint" style="font-size:.7rem;color:var(--terracotta);margin-top:.4rem;height:1rem"></div>'
   +     '<div style="display:flex;align-items:center;justify-content:flex-end;gap:.6rem;margin-top:.5rem">'
   +       '<button onclick="closeAmelioration()" style="background:none;border:none;color:var(--moss);font-size:.8rem;font-weight:600;cursor:pointer;padding:.5rem .6rem">Annuler</button>'
-  +       '<button onclick="submitAmelioration()" style="background:var(--forest);color:#fff;border:none;border-radius:100px;padding:.55rem 1.3rem;font-size:.8rem;font-weight:700;cursor:pointer">Envoyer</button>'
+  +       '<button id="evad-feedback-send" onclick="submitAmelioration()" style="background:var(--forest);color:#fff;border:none;border-radius:100px;padding:.55rem 1.3rem;font-size:.8rem;font-weight:700;cursor:pointer">Envoyer</button>'
   +     '</div>'
   +   '</div>'
   +   '<div id="evad-feedback-thanks" style="display:none;padding:2rem 1.4rem 2.2rem;text-align:center">'
@@ -170,41 +170,67 @@ const EVAD_FEEDBACK_SUPABASE = {
   table: 'feedback'
 };
 
-function submitAmelioration(){
-  const txt = (document.getElementById('evad-feedback-text').value || '').trim();
+async function submitAmelioration(){
+  const txtEl  = document.getElementById('evad-feedback-text');
+  const hintEl = document.getElementById('evad-feedback-hint');
+  const sendBtn = document.getElementById('evad-feedback-send');
+  if (!txtEl || !hintEl) return;
+  const txt = (txtEl.value || '').trim();
   if (!txt){
-    document.getElementById('evad-feedback-hint').textContent = 'Écris quelques mots avant d\'envoyer 🙂';
-    document.getElementById('evad-feedback-text').focus();
+    hintEl.style.color = 'var(--terracotta)';
+    hintEl.textContent = 'Écris quelques mots avant d\'envoyer 🙂';
+    txtEl.focus();
     return;
   }
+  const catEl = document.getElementById('evad-feedback-cat');
   const row = {
-    categorie: document.getElementById('evad-feedback-cat').value,
+    categorie: catEl ? catEl.value : '',
     idee: txt,
     role: (typeof currentRole !== 'undefined' ? currentRole : null),
     page: (location.hash || location.pathname || '')
   };
   // Secours local : ne jamais perdre un retour (hors-ligne, ou Supabase non configuré).
-  try {
-    const all = JSON.parse(localStorage.getItem('evad_feedback') || '[]');
-    all.push(row);
-    localStorage.setItem('evad_feedback', JSON.stringify(all));
-  } catch(e){}
-  // Envoi direct à Supabase si configuré.
-  const cfg = EVAD_FEEDBACK_SUPABASE;
-  if (cfg.url && cfg.anonKey) {
+  const saveLocal = () => {
     try {
-      fetch(cfg.url.replace(/\/+$/, '') + '/rest/v1/' + cfg.table, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': cfg.anonKey,
-          'Authorization': 'Bearer ' + cfg.anonKey,
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify(row)
-      }).catch(() => {});
+      const all = JSON.parse(localStorage.getItem('evad_feedback') || '[]');
+      all.push(row);
+      localStorage.setItem('evad_feedback', JSON.stringify(all));
     } catch(e){}
+  };
+  const showThanks = () => {
+    const form = document.getElementById('evad-feedback-form');
+    const thanks = document.getElementById('evad-feedback-thanks');
+    if (form) form.style.display = 'none';
+    if (thanks) thanks.style.display = 'block';
+  };
+  const cfg = EVAD_FEEDBACK_SUPABASE;
+  if (!cfg.url || !cfg.anonKey){
+    saveLocal();
+    showThanks();
+    return;
   }
-  document.getElementById('evad-feedback-form').style.display = 'none';
-  document.getElementById('evad-feedback-thanks').style.display = 'block';
+  // Envoi à Supabase : on attend la réponse pour ne pas afficher un faux « Merci ».
+  hintEl.style.color = 'var(--moss)';
+  hintEl.textContent = 'Envoi en cours…';
+  if (sendBtn) sendBtn.disabled = true;
+  try {
+    const r = await fetch(cfg.url.replace(/\/+$/, '') + '/rest/v1/' + cfg.table, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': cfg.anonKey,
+        'Authorization': 'Bearer ' + cfg.anonKey,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(row)
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    showThanks();
+  } catch(e){
+    saveLocal();
+    hintEl.style.color = 'var(--terracotta)';
+    hintEl.textContent = 'L\'envoi n\'a pas fonctionné. Ton idée est gardée sur cet appareil : réessaie dans un instant.';
+  } finally {
+    if (sendBtn) sendBtn.disabled = false;
+  }
 }
