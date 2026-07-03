@@ -6078,13 +6078,13 @@ function batBuildQuetesFromProfile() {
       preuve: 'Photos de l\'action réalisée + indicateurs mesurés (CO₂, énergie, déchets…).',
       apprendre: 'Mise en œuvre de « ' + sol.nom + ' » et documentation de l\'impact.',
       duree: sol.quete.duree || '1 journée',
-      places: '2/' + (parseInt(sol.quete.nb, 10) || 6),
+      places: '0/' + (parseInt(sol.quete.nb, 10) || 6),
       etape_actuelle: 1, etapes: _plan.length || 4,
       etapeLabels: _plan.length ? _plan.map(p => p.titre) : ['Lancement', 'Préparation', 'Réalisation', 'Certification'],
       tokens: sol.tok || 50, co2: sol.co2 || 0,
       esrs: (sol.esrs || []).map(e => String(e).replace('ESRS ', '').trim()),
       financement: { objectif: 0, montant: 0, semeur: null },
-      equipe: [{ i: 'L', c: '#4a8c5c' }, { i: 'H', c: '#c8732a' }],
+      equipe: [],
       dates: ['Samedi · 9h–17h', 'Dimanche · 9h–13h'], _matched: matched, matchedSkills: matchedSkills
     });
   });
@@ -6244,17 +6244,11 @@ function qdContactPilote() {
 // Métadonnées des types de preuve (partagées fiche quête).
 const QD_PREUVE_META = { photo:{ic:'📷',label:'Photo'}, mesure:{ic:'📊',label:'Mesure chiffrée'}, temoignage:{ic:'👥',label:'Témoignage pair'} };
 
-// Preuves déposées par les bâtisseurs sur cette quête (seed démo si absent).
+// Preuves déposées par les bâtisseurs sur cette quête (vide tant que
+// personne n'a déposé : qdDeposerPreuve alimente la liste).
 function qdPreuvesBat(q) {
   if (!q) return [];
-  if (!q._preuvesBat) {
-    const team = (q.equipe && q.equipe.length) ? q.equipe.slice() : [];
-    const pad = [{ i: 'L', c: '#3a6e8c' }, { i: 'A', c: '#c8732a' }];
-    while (team.length < 2) team.push(pad[team.length % 2]);
-    const NOTES = ['Photo de l\'action réalisée sur le terrain', 'Mesure relevée : conforme à l\'objectif', 'Compte-rendu signé par 2 participants'];
-    const TYPES = ['photo', 'mesure', 'temoignage'];
-    q._preuvesBat = team.slice(0, 2).map((m, i) => ({ bat: m, type: TYPES[i % 3], note: NOTES[i % 3], validated: false }));
-  }
+  if (!q._preuvesBat) q._preuvesBat = [];
   return q._preuvesBat;
 }
 
@@ -6744,11 +6738,11 @@ function renderQueteDetail() {
       <!-- Bâtisseurs inscrits -->
       <div style="background:white;border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:.9rem 1rem">
         <div style="font-size:.68rem;font-weight:600;color:var(--ink);margin-bottom:.5rem">👥 Bâtisseurs inscrits (${q.equipe.length})</div>
-        ${q.equipe.map(m=>`<div style="display:flex;align-items:center;gap:.6rem;padding:.3rem 0;border-bottom:1px solid rgba(46,102,66,.06)">
+        ${q.equipe.length ? q.equipe.map(m=>`<div style="display:flex;align-items:center;gap:.6rem;padding:.3rem 0;border-bottom:1px solid rgba(46,102,66,.06)">
           <div style="width:26px;height:26px;border-radius:50%;background:${m.c};color:white;display:flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:700">${m.i}</div>
           <div style="font-size:.7rem;color:var(--ink)">Bâtisseur ${m.i}</div>
           <button class="btn" style="margin-left:auto;font-size:.6rem;padding:.15rem .45rem;background:transparent;color:var(--moss);border:1px solid rgba(46,102,66,.2)" onclick="mmBubble('Profil bâtisseur ouvert')">Voir →</button>
-        </div>`).join('')}
+        </div>`).join('') : '<div style="font-size:.68rem;color:var(--moss);opacity:.6">Aucun bâtisseur inscrit pour l\'instant. Publie la quête au Réseau pour en mobiliser.</div>'}
       </div>
 
       <!-- Financement reçu -->
@@ -7972,7 +7966,6 @@ function semBuildQuetesAFinancer() {
       const aligned = axes.some(a => (AXE_KW[a] || []).some(k => text.includes(k)));
       const tok = sol.tok || 50;
       const objectif = 1500 + tok * 18;
-      const montant  = Math.round(objectif * (0.08 + ((li * 5 + j * 11) % 42) / 100));
       const esrs = (sol.esrs || []).map(e => String(e).replace('ESRS ', '').trim());
       const _ind = (typeof SOLS_INDICATORS !== 'undefined') ? SOLS_INDICATORS[nom] : null;
       const plan = (_ind && _ind.plan) || [];
@@ -7981,19 +7974,19 @@ function semBuildQuetesAFinancer() {
         lieu: l.nom, pilote: l.nom, ville: l.ville || 'Bordeaux',
         desc: sol.desc || sol.quete.titre,
         impact: sol.quete.impact_quete || sol.impact || '',
-        esrs, graines: tok, objectif, montant,
-        urgence: (montant / objectif < 0.22) ? 'urgent' : 'normal',
+        esrs, graines: tok, objectif, montant: 0,
+        urgence: 'normal',
         aligned,
         plan, materiel: (_ind && _ind.materiel) || [],
         preuve: 'Photos de l\'action réalisée + indicateurs mesurés (CO₂, énergie, déchets…).',
         apprendre: 'Mise en œuvre de « ' + nom + ' » et documentation de l\'impact.',
         duree: sol.quete.duree || '1 journée',
-        places: '2/' + (parseInt(sol.quete.nb, 10) || 6),
+        places: '0/' + (parseInt(sol.quete.nb, 10) || 6),
         etape_actuelle: 1, etapes: plan.length || 4,
         etapeLabels: plan.length ? plan.map(p => p.titre) : ['Lancement', 'Préparation', 'Réalisation', 'Certification'],
         tokens: tok, co2: sol.co2 || 0,
-        financement: { objectif, montant, semeur: null },
-        equipe: [{ i:'L', c:'#4a8c5c' }, { i:'H', c:'#c8732a' }],
+        financement: { objectif, montant: 0, semeur: null },
+        equipe: [],
         dates: ['Samedi · 9h–17h', 'Dimanche · 9h–13h']
       });
     });
