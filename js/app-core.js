@@ -10474,10 +10474,15 @@ function ficheSaveEspace() {
 }
 
 function ficheRemoveEspace(idx) {
+  const esp = ficheEspaces[idx];
+  if (!esp) return;
+  const nom = esp.nom ? ` « ${esp.nom} »` : '';
+  if (!confirm(`Supprimer l'espace${nom} ?\nSes fonctions, flux et activités seront perdus.`)) return;
   ficheEspaces.splice(idx, 1);
   ficheSolsByEspace = {};
   ficheRenderEspaces();
   setTimeout(ficheMmRender, 80);
+  mmBubble('🗑 Espace supprimé');
 }
 
 function creerOpenEspaceModal(idx) {
@@ -10508,8 +10513,13 @@ function creerOpenEspaceModal(idx) {
 }
 
 function creerRemoveEspace(idx) {
+  const esp = cData.espacesData[idx];
+  if (!esp) return;
+  const nom = esp.nom ? ` « ${esp.nom} »` : '';
+  if (!confirm(`Supprimer l'espace${nom} ?\nSes fonctions, flux et activités seront perdus.`)) return;
   cData.espacesData.splice(idx, 1);
   creerRenderEspaces();
+  mmBubble('🗑 Espace supprimé');
 }
 
 function creerRenderEspaces() {
