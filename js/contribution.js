@@ -40,6 +40,128 @@ function ctbRemovePhoto(){
   const zone = document.getElementById('ctb-photo-zone'); if(zone) zone.style.display = '';
 }
 
+/* ── Coup de main de Deva : pré-remplit le formulaire depuis une idée en une phrase ── */
+function _ctbHint(msg, kind){
+  const h = document.getElementById('ctb-deva-hint');
+  if(!h) return;
+  h.style.display = 'block';
+  h.style.color = kind === 'error' ? 'var(--terracotta)' : 'var(--moss)';
+  h.textContent = msg;
+}
+
+// Remplit une liste dynamique (points clés, indicateurs, matériel) depuis un tableau.
+function _ctbFillList(listId, arr){
+  const list = document.getElementById(listId);
+  if(!list || !Array.isArray(arr)) return;
+  list.innerHTML = '';
+  arr.filter(Boolean).slice(0, 6).forEach(val => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:.5rem;padding:.38rem .6rem;border-radius:.6rem;background:rgba(46,102,66,.05);border:1px solid rgba(46,102,66,.1)';
+    row.innerHTML = `<div style="width:5px;height:5px;border-radius:50%;background:var(--fern);flex-shrink:0"></div><span style="flex:1;font-size:.75rem;color:var(--ink)">${String(val)}</span><button onclick="this.parentElement.remove()" style="border:none;background:none;cursor:pointer;color:var(--moss);opacity:.45;font-size:.75rem;padding:0;line-height:1">✕</button>`;
+    list.appendChild(row);
+  });
+}
+
+async function ctbDevaFill(){
+  const ideeEl = document.getElementById('ctb-deva-idee');
+  const btn = document.getElementById('ctb-deva-btn');
+  if(!ideeEl) return;
+  const idee = ideeEl.value.trim();
+  if(!idee){
+    _ctbHint('Décris ton idée en quelques mots avant que je puisse t\'aider 🙂', 'error');
+    ideeEl.focus();
+    return;
+  }
+  if(typeof DEVA_API_URL === 'undefined' || !DEVA_API_URL){
+    _ctbHint('Deva n\'est pas encore reliée. Tu peux remplir les champs à la main.', 'error');
+    return;
+  }
+  if(btn){ btn.disabled = true; btn.style.opacity = '.6'; btn.textContent = '✨ Deva réfléchit…'; }
+  _ctbHint('Deva compose ta fiche solution… un instant.', 'info');
+
+  const prompt = "Un contributeur d'EVAD propose une solution régénérative pour un lieu à impact. À partir de son idée, rédige une fiche complète et réaliste. Réponds UNIQUEMENT par un objet JSON valide (aucun texte avant/après, pas de balise code) avec ces clés (chaîne vide ou [] si tu ne sais pas) :\n"
+    + '{"emoji":"un emoji","nom":"nom court de la solution","categorie":"un de: eau, electricite, construction, alimentaire, dechets, biodiversite, social","complexite":"1 (simple), 2 (modérée) ou 3 (complexe)","description":"2-3 phrases claires","regen":"1-2 phrases: en quoi c est régénératif (rend au vivant plus qu il ne prélève, boucles refermées)","avantages":["3 points clés courts"],"impact":"impact principal chiffré ex: -18 000 L/an","co2":"tonnes de CO2 évitées par an, nombre seul ou vide","indicateurs":["2-3 indicateurs à suivre"],"lieux":["types parmi: ferme, jardin, fablab, repair, ressourcerie, tiers, cafe, epicerie, coworking, incubateur, ecolieu, habitat, ecole"],"cout_min":"euros nombre seul","cout_max":"euros nombre seul","quete_nom":"titre d une quête de mise en oeuvre","quete_duree":"ex: 1 journée","quete_nb":"ex: 2-4 pers.","quete_impact":"impact de la quête","materiel":["2-4 éléments"],"plan":[{"ic":"emoji","titre":"étape","desc":"1 phrase"}]}\n\n'
+    + "En français, ton bienveillant et concret. IDÉE DU CONTRIBUTEUR :\n" + idee;
+
+  try {
+    const r = await fetch(DEVA_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
+    });
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    const reply = (d && d.reply) || '';
+    const jsonStr = (reply.match(/\{[\s\S]*\}/) || [reply])[0];
+    const data = JSON.parse(jsonStr);
+    ctbApplyDevaData(data);
+    _ctbHint('Voilà une première version ✨ Relis, ajuste ce qui te ressemble, et complète le contact.', 'info');
+  } catch(e){
+    _ctbHint('Je n\'ai pas réussi cette fois. Réessaie, ou remplis les champs à la main 🙂', 'error');
+  } finally {
+    if(btn){ btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '✨ Deva remplit pour moi'; }
+  }
+}
+
+// Applique les données renvoyées par Deva aux champs du formulaire.
+function ctbApplyDevaData(data){
+  if(!data || typeof data !== 'object') return;
+  const setVal = (id, v) => { const el = document.getElementById(id); if(el && v != null && String(v).trim() !== '') el.value = String(v).trim(); };
+  setVal('ctb-emoji', data.emoji);
+  setVal('ctb-nom', data.nom);
+  setVal('ctb-desc', data.description);
+  setVal('ctb-regen', data.regen);
+  setVal('ctb-impact', data.impact);
+  setVal('ctb-co2', data.co2);
+  setVal('ctb-cout-min', data.cout_min);
+  setVal('ctb-cout-max', data.cout_max);
+  setVal('ctb-quete-nom', data.quete_nom);
+  setVal('ctb-quete-duree', data.quete_duree);
+  setVal('ctb-quete-nb', data.quete_nb);
+  setVal('ctb-quete-impact', data.quete_impact);
+
+  // Catégorie / complexité : sélectionne l'option si elle existe.
+  const catEl = document.getElementById('ctb-cat');
+  if(catEl && data.categorie && [...catEl.options].some(o => o.value === String(data.categorie))) catEl.value = String(data.categorie);
+  const cplxEl = document.getElementById('ctb-cplx');
+  if(cplxEl && data.complexite && [...cplxEl.options].some(o => o.value === String(data.complexite))) cplxEl.value = String(data.complexite);
+
+  // Listes dynamiques.
+  _ctbFillList('ctb-avant-list', data.avantages);
+  _ctbFillList('ctb-ind-list', data.indicateurs);
+  _ctbFillList('ctb-mat-list', data.materiel);
+
+  // Types de lieux compatibles : active les puces correspondantes.
+  if(Array.isArray(data.lieux)){
+    document.querySelectorAll('#ctb-lieux-chips button').forEach(btn => {
+      if(data.lieux.includes(btn.dataset.val)){
+        btn.dataset.active = '1';
+        btn.style.background = 'var(--forest)';
+        btn.style.color = 'white';
+        btn.style.borderColor = 'var(--forest)';
+      }
+    });
+  }
+
+  // Plan d'action.
+  const planList = document.getElementById('ctb-plan-list');
+  if(planList && Array.isArray(data.plan)){
+    planList.innerHTML = '';
+    data.plan.filter(p => p && p.titre).slice(0, 8).forEach((p, i) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:.65rem;padding:.6rem .7rem;border-radius:.75rem;border:1px solid rgba(46,102,66,.1);background:rgba(46,102,66,.03);align-items:flex-start';
+      row.innerHTML = `
+        <div style="width:28px;height:28px;border-radius:.5rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem;background:rgba(46,102,66,.08)">${p.ic || '▶'}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.73rem;font-weight:700;color:var(--ink);margin-bottom:.12rem">${i+1}. ${p.titre}</div>
+          ${p.desc?`<div style="font-size:.66rem;color:var(--moss);line-height:1.45;opacity:.85">${p.desc}</div>`:''}
+        </div>
+        <button onclick="ctbRemovePlan(this)" style="border:none;background:none;cursor:pointer;color:var(--moss);opacity:.4;font-size:.75rem;padding:0;flex-shrink:0;margin-top:.1rem">✕</button>`;
+      planList.appendChild(row);
+    });
+  }
+}
+
 function ctbAddPlan(){
   const ic    = document.getElementById('ctb-plan-ic').value.trim() || '▶';
   const titre = document.getElementById('ctb-plan-titre').value.trim();
@@ -102,6 +224,8 @@ function openContribModal(){
     const el = document.getElementById(id); if (el) el.value = '';
   });
   if (typeof ctbRemovePhoto === 'function') ctbRemovePhoto();
+  const ideeEl = document.getElementById('ctb-deva-idee'); if (ideeEl) ideeEl.value = '';
+  const hintEl = document.getElementById('ctb-deva-hint'); if (hintEl) hintEl.style.display = 'none';
   // Reset error
   document.getElementById('ctb-error').style.display='none';
   // Animate in
