@@ -3424,7 +3424,6 @@ function initCreer(){
     const _d = store.loadDraft('lieu');
     if (_d && (_d.nom || (_d.espacesData || []).length || (_d.solutions || []).length)) {
       Object.assign(cData, _d);
-      if (typeof mmBubble === 'function') setTimeout(() => mmBubble('📝 Brouillon de lieu restauré · « Recommencer » pour repartir de zéro'), 400);
     }
   }
   renderStep(); initMM();
@@ -8342,7 +8341,6 @@ function batTab(tab, btn) {
 function batQFilter(filter, btn) {
   document.querySelectorAll('#bat-panel-quetes .pmkt-filter-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  mmBubble('Filtre : ' + filter.replace('_', ' '));
 }
 
 /* ══════════════════════════════════════════════════
