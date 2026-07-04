@@ -246,6 +246,7 @@ function creerOpenSolDetail(nomSol) {
       </div>
       <p style="font-size:.73rem;color:var(--ink);line-height:1.6;margin-bottom:1rem">${s.desc}</p>
       ${avantagesHtml}
+      ${typeof solRegenHTML==='function'&&solRegenHTML(s.nom)?`<div style="margin-bottom:1.1rem">${solRegenHTML(s.nom)}</div>`:''}
       ${budgetHtml}
       ${typeof iciFicheSolutionHTML==='function'?iciFicheSolutionHTML(s.nom,s.ind):''}
       ${typeof iciCorrespondancesHTML==='function'?iciCorrespondancesHTML(s):''}

@@ -1390,6 +1390,42 @@ function showScreen(id) {
 }
 
 /* ─── DATA ─── */
+/* ─── En quoi chaque solution est régénérative (section des fiches solution).
+   Régénératif = qui rend au vivant plus qu'il ne prélève : boucles refermées,
+   sols et biodiversité restaurés, économie et liens locaux renforcés. ─── */
+const SOLS_REGEN = {
+  'Récupération eau de pluie': "Au lieu de puiser dans l'eau potable, le lieu referme son cycle de l'eau : la pluie est captée, utilisée pour l'arrosage et le nettoyage, puis rendue au sol. On prélève moins sur la ressource commune, et le jardin y gagne.",
+  'Phytoépuration': "Les eaux usées cessent d'être un déchet : filtrées par les plantes, elles redeviennent une ressource pour le sol et créent un espace de biodiversité. Le lieu répare son cycle de l'eau au lieu de le dégrader.",
+  'Toilettes sèches': "La boucle des nutriments se referme : ce qui partait à l'égout devient, après compostage, de la fertilité rendue à la terre. Et des dizaines de milliers de litres d'eau potable sont épargnés chaque année.",
+  'Panneaux solaires PV': "Le lieu devient producteur d'une énergie propre et locale qui remplace des énergies fossiles. Ce qu'il génère au-delà de ses besoins profite au réseau et au territoire.",
+  'Chauffe-eau solaire': "L'eau chaude vient directement du soleil, une ressource inépuisable, plutôt que de combustibles qui s'épuisent et réchauffent le climat. Le bâtiment travaille avec son environnement, pas contre lui.",
+  'Isolation paille': "La paille est un matériau vivant, local et renouvelable qui stocke du carbone dans les murs pour des décennies. Elle rémunère l'agriculture d'à côté plutôt que l'industrie pétrochimique.",
+  'Toiture végétalisée': "Le toit devient un morceau de nature rendu au vivant : il abrite insectes et oiseaux, retient l'eau de pluie et rafraîchit le bâtiment. Une surface morte redevient un écosystème.",
+  'Réemploi matériaux': "Chaque matériau réemployé évite une extraction et une fabrication neuves : la valeur déjà produite continue de circuler. Le chantier nourrit une filière locale du réemploi au lieu d'alimenter la décharge.",
+  'Jardin permaculture': "On cultive en imitant la nature : le sol n'est jamais nu, la matière organique le nourrit, et sa fertilité augmente d'année en année au lieu de s'épuiser. Le jardin produit en régénérant.",
+  'Potager en buttes': "Les buttes recréent un sol vivant qui s'auto-fertilise : le bois et la matière organique enfouis nourrissent les cultures pendant des années. Plus on cultive, plus le sol s'enrichit.",
+  'Compostage partagé': "Les déchets organiques du quartier redeviennent la fertilité des jardins : la boucle de la matière se referme localement. Et autour du composteur, du lien social se crée.",
+  'Haie champêtre': "La haie est un refuge et un corridor pour la faune : oiseaux, pollinisateurs et auxiliaires des cultures y reviennent. Elle stocke du carbone, protège le sol du vent et fait revivre le paysage.",
+  'Mare écologique': "Une mare, c'est tout un écosystème qui renaît : libellules, amphibiens, oiseaux et plantes aquatiques s'y installent seuls en quelques mois. Le lieu redonne un habitat que le territoire avait perdu.",
+  'Repair café': "Réparer ensemble prolonge la vie des objets, évite l'extraction de nouvelles ressources et transmet des savoir-faire qui se perdaient. On régénère à la fois la matière et le lien social.",
+  'AMAP circuit court': "L'argent de l'alimentation retourne aux paysans d'à côté et sécurise une agriculture qui prend soin des sols. Le lieu régénère l'économie nourricière de son territoire.",
+  'Toiture & murs végétalisés': "Les surfaces minérales redeviennent vivantes : elles accueillent la biodiversité, retiennent l'eau de pluie et rafraîchissent le bâtiment comme la rue. Le bâti rend au vivant la place qu'il avait prise.",
+  'Canopée & îlots de fraîcheur': "Planter des arbres, c'est installer une climatisation vivante qui s'améliore avec le temps : ombre, évaporation, sol vivant, refuge pour la faune. Chaque année qui passe, le service rendu grandit.",
+  'Ombrières & pergolas bioclimatiques': "On compose avec le soleil et les saisons au lieu de les subir : ombre l'été, lumière l'hiver, zéro énergie consommée. Végétalisées, les pergolas deviennent des supports de vie.",
+  'Rafraîchissement passif du bâti': "Le bâtiment se rafraîchit grâce aux phénomènes naturels (ventilation nocturne, inertie, évaporation) plutôt qu'avec une climatisation qui réchauffe la ville. Moins d'énergie prélevée, plus de confort durable.",
+  'Désimperméabilisation des sols': "Sous le bitume, le sol était mort ; ouvert à nouveau, il respire, absorbe la pluie et accueille la vie. C'est un acte régénératif au sens propre : rendre un sol au vivant."
+};
+
+// Encadré « En quoi est-ce régénératif ? » (sans marges externes : à poser par l'appelant).
+function solRegenHTML(nom) {
+  const txt = SOLS_REGEN[nom];
+  if (!txt) return '';
+  return `<div style="background:linear-gradient(135deg,rgba(46,155,97,.08),rgba(74,140,92,.04));border:1px solid rgba(46,155,97,.25);border-left:3px solid var(--fern);border-radius:.75rem;padding:.75rem .9rem">
+    <div style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--fern);margin-bottom:.3rem">🌱 En quoi est-ce régénératif ?</div>
+    <div style="font-size:.7rem;color:var(--ink);line-height:1.6">${txt}</div>
+  </div>`;
+}
+
 const SOLS=[
   {nom:'Récupération eau de pluie',cat:'eau',cplx:'facile',impact:'−18 000 L/an',co2:0,tok:50,img:'💧',
    desc:'Système de collecte des eaux pluviales via les gouttières, stockées dans une cuve enterrée ou aérienne (500 à 5 000 L). L\'eau récupérée couvre l\'arrosage, les sanitaires et le nettoyage, réduisant la consommation d\'eau potable de 40 à 60%. Solution simple, sans permis, amortie en 2 à 4 ans selon l\'usage.',
@@ -3249,6 +3285,9 @@ function bddDetail(s){
       </div>
     </div>
 
+    <!-- ③bis En quoi c'est régénératif -->
+    ${typeof solRegenHTML==='function'&&solRegenHTML(s.nom)?`<div style="margin:1rem 1.4rem 0">${solRegenHTML(s.nom)}</div>`:''}
+
     <!-- ④ Métriques secondaires -->
     <div style="margin:1rem 1.4rem 0;display:grid;grid-template-columns:repeat(2,1fr);gap:.55rem">
       <div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:.85rem;padding:.75rem .85rem">
@@ -4440,6 +4479,9 @@ function showSolDetail(nom){
         <div style="font-family:'Satoshi', sans-serif;font-size:.9rem;font-weight:700;color:#2a6090">${s.co2}t/an</div>
       </div>`:''}
     </div>
+
+    <!-- En quoi c'est régénératif -->
+    ${typeof solRegenHTML==='function'&&solRegenHTML(nom)?`<div style="margin-bottom:1rem">${solRegenHTML(nom)}</div>`:''}
 
     <!-- Méta -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;margin-bottom:1rem">
