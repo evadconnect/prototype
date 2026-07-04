@@ -88,12 +88,24 @@ function devaShowUnread() {
   badge.style.animation = 'devaBadgePop .3s cubic-bezier(.17,.67,.42,1.4) both';
 }
 
+// Met en forme un message de Deva : on échappe d'abord le HTML (anti-XSS),
+// PUIS on convertit un Markdown minimal (gras, italique, code) en balises.
+function devaFormat(text) {
+  let s = escapeHtml(text);
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');   // **gras**
+  s = s.replace(/__([^_]+)__/g, '<strong>$1</strong>');       // __gras__
+  s = s.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');             // *italique*
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');            // `code`
+  s = s.replace(/\n/g, '<br>');
+  return s;
+}
+
 function devaAddMessage(role, text) {
   const container = document.getElementById('deva-chat-messages');
   const el = document.createElement('div');
   el.className = 'deva-msg deva-msg-' + role;
   if (role === 'deva') {
-    el.innerHTML = `<div class="deva-msg-sender">Deva</div>${escapeHtml(text).replace(/\n/g,'<br>')}`;
+    el.innerHTML = `<div class="deva-msg-sender">Deva</div>${devaFormat(text)}`;
     devaShowUnread();
   } else {
     el.textContent = text;
