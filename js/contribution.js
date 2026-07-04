@@ -73,10 +73,15 @@ function ctbRemovePlan(btn){
   });
 }
 
-function openContribModal(){
-  const m = document.getElementById('contrib-modal');
-  m.style.display = 'flex';
-  // Populate lieu chips
+// Initialise l'écran « Proposer une solution » : peuple les puces de lieux et
+// réinitialise tous les champs. Appelé par showScreen('contribuer').
+function initContribuer(){
+  // Remet le formulaire visible (masque l'éventuel écran de succès précédent)
+  const form = document.getElementById('contrib-form');
+  const success = document.getElementById('contrib-success');
+  if(form) form.style.display = 'block';
+  if(success) success.style.display = 'none';
+  // Puces de types de lieux
   const cc = document.getElementById('ctb-lieux-chips');
   if(cc && !cc.children.length && typeof TYPES_LIEU !== 'undefined'){
     TYPES_LIEU.forEach(t=>{
@@ -93,27 +98,31 @@ function openContribModal(){
       };
       cc.appendChild(btn);
     });
+  } else if(cc){
+    // Réinitialise l'état des puces déjà présentes
+    cc.querySelectorAll('button').forEach(b=>{
+      b.dataset.active='0'; b.style.background='transparent'; b.style.color='var(--moss)'; b.style.borderColor='rgba(46,102,66,.2)';
+    });
   }
   // Reset listes dynamiques
   ['ctb-mat-list','ctb-plan-list','ctb-avant-list','ctb-ind-list'].forEach(id => {
     const el = document.getElementById(id); if (el) el.innerHTML = '';
   });
-  ['ctb-mat-input','ctb-plan-ic','ctb-plan-titre','ctb-plan-desc','ctb-avant-input','ctb-ind-input','ctb-regen','ctb-emoji','ctb-co2'].forEach(id => {
+  // Reset champs texte
+  ['ctb-nom','ctb-desc','ctb-impact','ctb-cout-min','ctb-cout-max','ctb-prenom','ctb-email',
+   'ctb-quete-nom','ctb-quete-duree','ctb-quete-nb','ctb-quete-impact',
+   'ctb-mat-input','ctb-plan-ic','ctb-plan-titre','ctb-plan-desc','ctb-avant-input','ctb-ind-input','ctb-regen','ctb-emoji','ctb-co2'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
+  const catEl = document.getElementById('ctb-cat'); if(catEl) catEl.value = '';
+  const cplxEl = document.getElementById('ctb-cplx'); if(cplxEl) cplxEl.value = '';
   if (typeof ctbRemovePhoto === 'function') ctbRemovePhoto();
-  // Reset error
-  document.getElementById('ctb-error').style.display='none';
-  // Animate in
-  requestAnimationFrame(()=>{
-    document.getElementById('contrib-modal-box').style.transform='translateY(0)';
-  });
+  const err = document.getElementById('ctb-error'); if(err) err.style.display='none';
 }
 
-function closeContribModal(){
-  document.getElementById('contrib-modal-box').style.transform='translateY(100%)';
-  setTimeout(()=>{ document.getElementById('contrib-modal').style.display='none'; }, 320);
-}
+// Alias historique (la Bibliothèque et d'anciens appels peuvent l'utiliser).
+function openContribModal(){ if (typeof showScreen === 'function') showScreen('contribuer'); }
+function closeContribModal(){ if (typeof showScreen === 'function') showScreen('bdd'); }
 
 function submitContrib(){
   const nom   = document.getElementById('ctb-nom').value.trim();
@@ -124,22 +133,19 @@ function submitContrib(){
   if(!nom||!cat||!cplx||!desc){
     err.textContent = 'Merci de remplir les champs obligatoires (Nom, Catégorie, Complexité et Description).';
     err.style.display='block';
+    err.scrollIntoView({behavior:'smooth', block:'center'});
     return;
   }
   err.style.display='none';
-  // Confirmation visuelle
-  const box = document.getElementById('contrib-modal-box');
-  box.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 2rem;gap:1.1rem;text-align:center">
-    <div style="width:64px;height:64px;border-radius:50%;background:rgba(74,140,92,.12);display:flex;align-items:center;justify-content:center;font-size:2rem">✦</div>
-    <div style="font-family:'Satoshi', sans-serif;font-size:1.3rem;font-weight:900;color:var(--ink)">Merci pour ta contribution !</div>
-    <div style="font-size:.8rem;color:var(--moss);line-height:1.6;max-width:280px">Ta solution <strong>${nom}</strong> a bien été envoyée. L'équipe EVAD la vérifiera et te contactera si besoin.</div>
-    <button onclick="closeContribModal()" style="margin-top:.5rem;padding:.7rem 1.8rem;border-radius:.8rem;border:none;background:var(--forest);color:white;font-size:.85rem;font-weight:700;cursor:pointer;font-family:inherit">Fermer</button>
-  </div>`;
+  // Bascule vers l'écran de succès (le formulaire reste en DOM pour la prochaine fois).
+  const form = document.getElementById('contrib-form');
+  const success = document.getElementById('contrib-success');
+  const txt = document.getElementById('contrib-success-txt');
+  if(txt) txt.innerHTML = `Ta solution <strong>${nom}</strong> a bien été envoyée. L'équipe EVAD la vérifiera et te contactera si besoin.`;
+  if(form) form.style.display = 'none';
+  if(success) success.style.display = 'block';
+  const main = document.querySelector('.main'); if(main) main.scrollTo(0,0);
 }
-
-document.getElementById('contrib-modal').addEventListener('click',function(e){
-  if(e.target===this) closeContribModal();
-});
 
 /* ── Modal détail solution (depuis créer lieu étape 4) ── */
 function creerOpenSolDetail(nomSol) {

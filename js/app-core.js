@@ -1374,6 +1374,7 @@ function showScreen(id) {
   if (!WIZARD_SCREENS.includes(id)) navWizardClear();
 
   if(id==='bdd'){ initBDD(); setTimeout(bddUpdateContext, 50); }
+  if(id==='contribuer' && typeof initContribuer === 'function') initContribuer();
   if(id==='creer') initCreer();
   const _dfh = document.getElementById('deva-fiche-hint'); if (_dfh) _dfh.style.display = (id==='creer') ? 'block' : 'none';
   if(id==='semeur') { semeurTab('apercu', document.getElementById('stab-apercu')); }
