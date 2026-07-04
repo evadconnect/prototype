@@ -2523,20 +2523,6 @@
   <div id="contrib-form" style="padding:1.6rem 1.4rem 2.8rem">
     <div style="max-width:600px;margin:0 auto;display:flex;flex-direction:column;gap:1rem">
 
-      <!-- Coup de main de Deva -->
-      <div style="background:linear-gradient(135deg,rgba(1,130,98,.08),rgba(74,140,92,.04));border:1px solid rgba(1,130,98,.22);border-radius:.9rem;padding:.95rem 1.05rem">
-        <div style="display:flex;align-items:center;gap:.55rem;margin-bottom:.55rem">
-          <div style="width:30px;height:30px;border-radius:50%;background:var(--forest);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden"><img src="Deva.png" alt="Deva" style="width:100%;height:100%;border-radius:50%;object-fit:cover"></div>
-          <div>
-            <div style="font-size:.82rem;font-weight:800;color:var(--ink);line-height:1.15">Deva peut t'aider à remplir</div>
-            <div style="font-size:.68rem;color:var(--moss);opacity:.78;line-height:1.35">Décris ton idée en quelques mots, je pré-remplis le reste. Tu pourras tout modifier.</div>
-          </div>
-        </div>
-        <textarea id="ctb-deva-idee" rows="2" placeholder="Ex : Un poulailler collectif pour valoriser les restes de cuisine du tiers-lieu…" style="width:100%;box-sizing:border-box;padding:.6rem .8rem;border-radius:.7rem;border:1.5px solid rgba(46,102,66,.2);font-size:.8rem;color:var(--ink);outline:none;font-family:inherit;background:white;resize:vertical;line-height:1.5"></textarea>
-        <div id="ctb-deva-hint" style="font-size:.7rem;color:var(--moss);margin-top:.4rem;min-height:1rem;display:none"></div>
-        <button id="ctb-deva-btn" onclick="ctbDevaFill()" style="margin-top:.55rem;width:100%;padding:.62rem;border-radius:.7rem;border:none;background:var(--forest);color:#fff;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit">✨ Deva remplit pour moi</button>
-      </div>
-
       <!-- Emoji + Nom -->
       <div style="display:flex;gap:.6rem">
         <div style="width:64px;flex-shrink:0">
@@ -2755,7 +2741,7 @@
 
 
 <script src="js/store.js?v=56"></script>
-<script src="js/app-core.js?v=73"></script>
+<script src="js/app-core.js?v=74"></script>
 
 <script
   src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -2971,7 +2957,7 @@
 <script src="js/quetes.js?v=60"></script>
 <script src="js/ici.js?v=56"></script>
 
-<script src="js/contribution.js?v=62"></script>
+<script src="js/contribution.js?v=63"></script>
 
 <!-- Modal détail solution (créer lieu step 4) -->
 <div id="creer-sol-detail-modal" style="display:none;position:fixed;inset:0;z-index:10010;background:rgba(13,43,34,.6);backdrop-filter:blur(6px);align-items:flex-end;justify-content:center;" onclick="if(event.target===this)creerCloseSolDetail()">

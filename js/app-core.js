@@ -1376,7 +1376,15 @@ function showScreen(id) {
   if(id==='bdd'){ initBDD(); setTimeout(bddUpdateContext, 50); }
   if(id==='contribuer' && typeof initContribuer === 'function') initContribuer();
   if(id==='creer') initCreer();
-  const _dfh = document.getElementById('deva-fiche-hint'); if (_dfh) _dfh.style.display = (id==='creer') ? 'block' : 'none';
+  const _dfh = document.getElementById('deva-fiche-hint');
+  if (_dfh) {
+    const _showHint = (id==='creer' || id==='contribuer');
+    _dfh.style.display = _showHint ? 'block' : 'none';
+    if (id==='contribuer') {
+      const _t = document.getElementById('deva-fiche-hint-txt');
+      if (_t) _t.innerHTML = "Besoin d'aide pour décrire ta solution ? Clique-moi, j'ai des idées 🌱";
+    }
+  }
   if(id==='semeur') { semeurTab('apercu', document.getElementById('stab-apercu')); }
   if(id==='carte') setTimeout(initRealMap, 80);
 
