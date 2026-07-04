@@ -834,6 +834,11 @@ function svgSemeurLieux(svg, c, ca) {
 
 /* ─── ONGLETS FICHE LIEU ─── */
 function openLieuModal() {
+  // La fiche lit cData : si l'assistant a été réinitialisé (rechargement de
+  // page…), on repart du dernier lieu publié pour afficher les infos saisies.
+  if ((!cData.nom || !cData.desc) && typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom) {
+    Object.assign(cData, myLieuData);
+  }
   const m = document.getElementById('lieu-modal');
   m.style.display = 'block';
   document.body.style.overflow = 'hidden';
@@ -5199,6 +5204,15 @@ const TYPE_IC={tiers:'🌿',ferme:'🌾',ecolieu:'🏡',fablab:'⚙️',habitat:
 
 // Instantané du dernier lieu créé par l'utilisateur (pour l'onglet « Fiche lieu »)
 let myLieuData = null;
+
+// Réhydratation : au chargement, on restaure le dernier lieu publié depuis le
+// store, sinon la fiche lieu est vide après un simple rechargement de page.
+try {
+  if (window.store) {
+    const _rows = store.all('lieux');
+    if (_rows.length) myLieuData = Object.assign({}, _rows[_rows.length - 1]);
+  }
+} catch (e) {}
 
 async function createLieuOnMap(){
   const nom = cData.nom || 'Nouveau lieu';
