@@ -15,6 +15,31 @@ function ctbAddMat(){ _ctbAddSimple('ctb-mat-input', 'ctb-mat-list'); }
 function ctbAddAvantage(){ _ctbAddSimple('ctb-avant-input', 'ctb-avant-list'); }
 function ctbAddInd(){ _ctbAddSimple('ctb-ind-input', 'ctb-ind-list'); }
 
+/* ── Image de couverture (aperçu local, prête à envoyer avec la proposition) ── */
+let ctbPhotoData = '';
+function ctbPhotoChange(input){
+  const file = input.files && input.files[0];
+  if(!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    ctbPhotoData = e.target.result;
+    const zone = document.getElementById('ctb-photo-zone');
+    if(zone) zone.style.display = 'none';
+    const prev = document.getElementById('ctb-photo-preview');
+    if(prev) prev.innerHTML = `<div style="position:relative">
+      <img src="${ctbPhotoData}" alt="Image de couverture de la solution" style="width:100%;height:150px;border-radius:.85rem;display:block;object-fit:cover">
+      <button type="button" onclick="ctbRemovePhoto()" title="Retirer l'image" style="position:absolute;top:.5rem;right:.5rem;width:26px;height:26px;border-radius:50%;background:rgba(14,26,18,.75);color:white;border:none;cursor:pointer;font-size:.72rem;line-height:1">✕</button>
+    </div>`;
+  };
+  reader.readAsDataURL(file);
+}
+function ctbRemovePhoto(){
+  ctbPhotoData = '';
+  const input = document.getElementById('ctb-photo-input'); if(input) input.value = '';
+  const prev = document.getElementById('ctb-photo-preview'); if(prev) prev.innerHTML = '';
+  const zone = document.getElementById('ctb-photo-zone'); if(zone) zone.style.display = '';
+}
+
 function ctbAddPlan(){
   const ic    = document.getElementById('ctb-plan-ic').value.trim() || '▶';
   const titre = document.getElementById('ctb-plan-titre').value.trim();
@@ -76,6 +101,7 @@ function openContribModal(){
   ['ctb-mat-input','ctb-plan-ic','ctb-plan-titre','ctb-plan-desc','ctb-avant-input','ctb-ind-input','ctb-regen','ctb-emoji','ctb-co2'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
+  if (typeof ctbRemovePhoto === 'function') ctbRemovePhoto();
   // Reset error
   document.getElementById('ctb-error').style.display='none';
   // Animate in

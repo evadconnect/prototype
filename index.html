@@ -2753,6 +2753,22 @@
         </div>
       </div>
 
+      <!-- Image de couverture -->
+      <div>
+        <label style="font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--moss);opacity:.7;display:block;margin-bottom:.35rem">Image de couverture</label>
+        <input id="ctb-photo-input" type="file" accept="image/*" style="display:none" onchange="ctbPhotoChange(this)">
+        <div id="ctb-photo-zone" onclick="document.getElementById('ctb-photo-input').click()"
+          ondragover="event.preventDefault();this.style.borderColor='var(--fern)';this.style.background='rgba(74,140,92,.08)'"
+          ondragleave="this.style.borderColor='rgba(46,102,66,.3)';this.style.background='rgba(246,250,247,.6)'"
+          ondrop="event.preventDefault();this.style.borderColor='rgba(46,102,66,.3)';this.style.background='rgba(246,250,247,.6)';if(event.dataTransfer.files.length){document.getElementById('ctb-photo-input').files=event.dataTransfer.files;ctbPhotoChange(document.getElementById('ctb-photo-input'));}"
+          style="border:1.5px dashed rgba(46,102,66,.3);border-radius:.85rem;padding:1.1rem;text-align:center;cursor:pointer;background:rgba(246,250,247,.6);transition:border-color .15s,background .15s">
+          <div style="font-size:1.2rem;margin-bottom:.2rem">📷</div>
+          <div style="font-size:.72rem;font-weight:600;color:var(--forest)">Déposer une photo de la solution</div>
+          <div style="font-size:.62rem;color:var(--moss);opacity:.6;margin-top:.15rem">Clique ou glisse une image ici · elle illustrera la fiche dans la Bibliothèque</div>
+        </div>
+        <div id="ctb-photo-preview"></div>
+      </div>
+
       <!-- Catégorie + Complexité -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
         <div>
@@ -2932,7 +2948,7 @@
   </div>
 </div>
 
-<script src="js/contribution.js?v=58"></script>
+<script src="js/contribution.js?v=59"></script>
 
 <!-- Modal détail solution (créer lieu step 4) -->
 <div id="creer-sol-detail-modal" style="display:none;position:fixed;inset:0;z-index:10010;background:rgba(13,43,34,.6);backdrop-filter:blur(6px);align-items:flex-end;justify-content:center;" onclick="if(event.target===this)creerCloseSolDetail()">
