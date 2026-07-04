@@ -233,7 +233,7 @@ function initContribuer(){
     const el = document.getElementById(id); if (el) el.innerHTML = '';
   });
   // Reset champs texte
-  ['ctb-nom','ctb-desc','ctb-impact','ctb-cout-min','ctb-cout-max','ctb-prenom','ctb-email',
+  ['ctb-nom','ctb-desc','ctb-impact','ctb-cout-min','ctb-cout-max','ctb-prenom','ctb-email','ctb-source',
    'ctb-quete-nom','ctb-quete-duree','ctb-quete-nb','ctb-quete-impact',
    'ctb-mat-input','ctb-plan-ic','ctb-plan-titre','ctb-plan-desc','ctb-avant-input','ctb-ind-input','ctb-regen','ctb-emoji','ctb-co2'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
