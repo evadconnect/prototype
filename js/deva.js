@@ -93,7 +93,7 @@ function devaAddMessage(role, text) {
   const el = document.createElement('div');
   el.className = 'deva-msg deva-msg-' + role;
   if (role === 'deva') {
-    el.innerHTML = `<div class="deva-msg-sender">✦ Deva</div>${escapeHtml(text).replace(/\n/g,'<br>')}`;
+    el.innerHTML = `<div class="deva-msg-sender">Deva</div>${escapeHtml(text).replace(/\n/g,'<br>')}`;
     devaShowUnread();
   } else {
     el.textContent = text;
