@@ -166,8 +166,9 @@ function evadFeedbackEnsureDom(){
   }
 }
 
-/* ─── Pièce jointe du retour (image redimensionnée ou fichier, gardée en dataURL) ─── */
-let evadFeedbackFile = null; // { nom, type, data }
+/* ─── Pièce jointe du retour (image redimensionnée ou fichier, gardée en Blob
+   pour l'upload vers Supabase Storage + un aperçu pour l'image). ─── */
+let evadFeedbackFile = null; // { nom, type, blob, preview }
 
 function evadFeedbackHandleFile(file){
   if (!file) return;
@@ -179,15 +180,17 @@ function evadFeedbackHandleFile(file){
   }
   if (hint) hint.textContent = '';
   if (file.type.startsWith('image/')){
-    _evadFeedbackResizeImage(file, 1400, dataUrl => { evadFeedbackFile = {nom:file.name, type:file.type, data:dataUrl}; _evadFeedbackRenderFile(); });
+    _evadFeedbackResizeImage(file, 1400, (blob, dataUrl) => {
+      evadFeedbackFile = {nom:file.name, type:'image/jpeg', blob:blob, preview:dataUrl};
+      _evadFeedbackRenderFile();
+    });
   } else {
-    const reader = new FileReader();
-    reader.onload = e => { evadFeedbackFile = {nom:file.name, type:file.type||'fichier', data:e.target.result}; _evadFeedbackRenderFile(); };
-    reader.readAsDataURL(file);
+    evadFeedbackFile = {nom:file.name, type:file.type||'application/octet-stream', blob:file, preview:null};
+    _evadFeedbackRenderFile();
   }
 }
 
-// Redimensionne une image (max côté = maxDim) pour alléger l'envoi.
+// Redimensionne une image (max côté = maxDim) → Blob JPEG + dataURL d'aperçu.
 function _evadFeedbackResizeImage(file, maxDim, cb){
   const reader = new FileReader();
   reader.onload = e => {
@@ -197,9 +200,11 @@ function _evadFeedbackResizeImage(file, maxDim, cb){
       if (Math.max(w, h) > maxDim){ const s = maxDim / Math.max(w, h); w = Math.round(w*s); h = Math.round(h*s); }
       const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      try { cb(canvas.toDataURL('image/jpeg', 0.85)); } catch(err){ cb(e.target.result); }
+      let dataUrl;
+      try { dataUrl = canvas.toDataURL('image/jpeg', 0.85); } catch(err){ dataUrl = e.target.result; }
+      canvas.toBlob(blob => cb(blob || file, dataUrl), 'image/jpeg', 0.85);
     };
-    img.onerror = () => cb(e.target.result);
+    img.onerror = () => cb(file, e.target.result);
     img.src = e.target.result;
   };
   reader.readAsDataURL(file);
@@ -210,11 +215,11 @@ function _evadFeedbackRenderFile(){
   const dz = document.getElementById('evad-feedback-drop');
   if (!prev || !evadFeedbackFile) return;
   if (dz) dz.style.display = 'none';
-  const isImg = (evadFeedbackFile.type||'').startsWith('image/');
+  const isImg = !!evadFeedbackFile.preview;
   prev.innerHTML =
     '<div style="display:flex;align-items:center;gap:.6rem;border:1px solid rgba(46,102,66,.18);border-radius:12px;padding:.5rem .6rem;background:rgba(246,250,247,.6)">'
     + (isImg
-        ? '<img src="'+evadFeedbackFile.data+'" alt="Aperçu de la pièce jointe" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0">'
+        ? '<img src="'+evadFeedbackFile.preview+'" alt="Aperçu de la pièce jointe" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0">'
         : '<div style="width:44px;height:44px;border-radius:8px;background:rgba(46,102,66,.1);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">📄</div>')
     + '<div style="flex:1;min-width:0;font-size:.74rem;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+evadFeedbackFile.nom+'</div>'
     + '<button type="button" onclick="evadFeedbackRemoveFile()" title="Retirer" style="flex-shrink:0;background:none;border:none;color:var(--moss);cursor:pointer;font-size:.85rem;line-height:1">✕</button>'
@@ -226,6 +231,25 @@ function evadFeedbackRemoveFile(){
   const fi = document.getElementById('evad-feedback-file-input'); if (fi) fi.value = '';
   const prev = document.getElementById('evad-feedback-file-preview'); if (prev) prev.innerHTML = '';
   const dz = document.getElementById('evad-feedback-drop'); if (dz) dz.style.display = '';
+}
+
+/* Upload la pièce jointe vers Supabase Storage (bucket public), renvoie l'URL publique. */
+async function _evadFeedbackUpload(cfg){
+  const bucket = cfg.bucket || 'feedback';
+  const safe = (evadFeedbackFile.nom || 'fichier').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(-50);
+  const path = Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '-' + safe;
+  const base = cfg.url.replace(/\/+$/, '');
+  const r = await fetch(base + '/storage/v1/object/' + bucket + '/' + path, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + cfg.anonKey,
+      'apikey': cfg.anonKey,
+      'Content-Type': evadFeedbackFile.type || 'application/octet-stream'
+    },
+    body: evadFeedbackFile.blob
+  });
+  if (!r.ok) throw new Error('storage HTTP ' + r.status);
+  return base + '/storage/v1/object/public/' + bucket + '/' + path;
 }
 
 function openAmelioration(){
@@ -252,7 +276,8 @@ function closeAmelioration(){
 const EVAD_FEEDBACK_SUPABASE = {
   url: 'https://lmhhrccmgebztioesmik.supabase.co',
   anonKey: 'sb_publishable_M_1-SinRmo1T8exi8_gkvw_RTiHznag',  // clé publishable (publique, OK dans le front)
-  table: 'feedback'
+  table: 'feedback',
+  bucket: 'feedback'   // bucket Storage public pour les pièces jointes
 };
 
 async function submitAmelioration(){
@@ -274,12 +299,6 @@ async function submitAmelioration(){
     role: (typeof currentRole !== 'undefined' ? currentRole : null),
     page: (location.hash || location.pathname || '')
   };
-  // Pièce jointe facultative (nécessite les colonnes piece_jointe/piece_jointe_nom
-  // dans la table Supabase `feedback` ; sinon l'envoi bascule en secours local).
-  if (evadFeedbackFile && evadFeedbackFile.data){
-    row.piece_jointe = evadFeedbackFile.data;
-    row.piece_jointe_nom = evadFeedbackFile.nom;
-  }
   // Secours local : ne jamais perdre un retour (hors-ligne, ou Supabase non configuré).
   const saveLocal = () => {
     try {
@@ -304,6 +323,21 @@ async function submitAmelioration(){
   hintEl.style.color = 'var(--moss)';
   hintEl.textContent = 'Envoi en cours…';
   if (sendBtn) sendBtn.disabled = true;
+  // Pièce jointe : d'abord l'upload vers le Storage, puis on garde l'URL dans le retour.
+  if (evadFeedbackFile && evadFeedbackFile.blob){
+    try {
+      hintEl.textContent = 'Envoi de la pièce jointe…';
+      row.piece_jointe = await _evadFeedbackUpload(cfg);
+      row.piece_jointe_nom = evadFeedbackFile.nom;
+      hintEl.textContent = 'Envoi en cours…';
+    } catch(e){
+      saveLocal();
+      hintEl.style.color = 'var(--terracotta)';
+      hintEl.textContent = 'La pièce jointe n\'a pas pu être envoyée. Réessaie, ou envoie sans fichier.';
+      if (sendBtn) sendBtn.disabled = false;
+      return;
+    }
+  }
   try {
     const r = await fetch(cfg.url.replace(/\/+$/, '') + '/rest/v1/' + cfg.table, {
       method: 'POST',
