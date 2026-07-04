@@ -1,8 +1,9 @@
-function ctbAddMat(){
-  const inp = document.getElementById('ctb-mat-input');
+// Ajoute une ligne simple (puce + texte + retrait) à une liste dynamique du formulaire.
+function _ctbAddSimple(inputId, listId){
+  const inp = document.getElementById(inputId);
   const val = inp.value.trim();
   if(!val) return;
-  const list = document.getElementById('ctb-mat-list');
+  const list = document.getElementById(listId);
   const row = document.createElement('div');
   row.style.cssText = 'display:flex;align-items:center;gap:.5rem;padding:.38rem .6rem;border-radius:.6rem;background:rgba(46,102,66,.05);border:1px solid rgba(46,102,66,.1)';
   row.innerHTML = `<div style="width:5px;height:5px;border-radius:50%;background:var(--fern);flex-shrink:0"></div><span style="flex:1;font-size:.75rem;color:var(--ink)">${val}</span><button onclick="this.parentElement.remove()" style="border:none;background:none;cursor:pointer;color:var(--moss);opacity:.45;font-size:.75rem;padding:0;line-height:1">✕</button>`;
@@ -10,6 +11,9 @@ function ctbAddMat(){
   inp.value = '';
   inp.focus();
 }
+function ctbAddMat(){ _ctbAddSimple('ctb-mat-input', 'ctb-mat-list'); }
+function ctbAddAvantage(){ _ctbAddSimple('ctb-avant-input', 'ctb-avant-list'); }
+function ctbAddInd(){ _ctbAddSimple('ctb-ind-input', 'ctb-ind-list'); }
 
 function ctbAddPlan(){
   const ic    = document.getElementById('ctb-plan-ic').value.trim() || '▶';
@@ -66,12 +70,12 @@ function openContribModal(){
     });
   }
   // Reset listes dynamiques
-  document.getElementById('ctb-mat-list').innerHTML  = '';
-  document.getElementById('ctb-plan-list').innerHTML = '';
-  document.getElementById('ctb-mat-input').value     = '';
-  document.getElementById('ctb-plan-ic').value       = '';
-  document.getElementById('ctb-plan-titre').value    = '';
-  document.getElementById('ctb-plan-desc').value     = '';
+  ['ctb-mat-list','ctb-plan-list','ctb-avant-list','ctb-ind-list'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.innerHTML = '';
+  });
+  ['ctb-mat-input','ctb-plan-ic','ctb-plan-titre','ctb-plan-desc','ctb-avant-input','ctb-ind-input','ctb-regen','ctb-emoji','ctb-co2'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
   // Reset error
   document.getElementById('ctb-error').style.display='none';
   // Animate in
