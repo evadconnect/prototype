@@ -3930,7 +3930,6 @@ function renderStep(){
         <div id="creer-espace-empty" style="padding:1rem;text-align:center;font-size:.72rem;color:var(--moss);opacity:.5;border:1px dashed rgba(46,102,66,.2);border-radius:var(--r)">Aucun espace ajouté, clique sur "+ Ajouter un espace"</div>
       </div>`;
     creerRenderEspaces();
-    mmBubble('Étape 3 · Décris tes espaces pour organiser les activités et solutions');
   } else if(cStep===3){
     // Temps d'attente : Deva « cherche » les solutions dans la bibliothèque
     // avant de les révéler (rejoué à chaque clic sur « Générer les solutions »).
@@ -4507,7 +4506,6 @@ function initMM(){
   document.getElementById('mm-nodes').innerHTML='';
   document.getElementById('mm-svg').innerHTML='';
   mmAdd('c',cData.nom||'Mon lieu',mmW()/2,mmH()/2,'center');
-  mmBubble('Nomme ton lieu et choisis son type…');
 }
 
 function mmAdd(id,label,x,y,cls,col,bg){
@@ -4599,7 +4597,6 @@ function mmEspaces(){
     mmLine(cx,cy,x,y,e.c+'88');
     mmAdd('e-'+eid,e.ic+' '+e.l,x,y,'espace',e.c,e.bg);
   });
-  if(cData.espaces.length>0)mmBubble(cData.espaces.length+' espace'+(cData.espaces.length>1?'s':'')+' sélectionné'+(cData.espaces.length>1?'s':'')+' → choisis les activités');
 }
 
 const MM_DOMAINE_STYLE = {
@@ -4633,7 +4630,6 @@ function mmEspacesData() {
     mmLine(cx, cy, x, y, style.c+'88');
     mmAdd('ed-'+i, ic+' '+esp.nom, x, y, 'espace', style.c, style.bg);
   });
-  mmBubble(data.length+' espace'+(data.length>1?'s':'')+' ajouté'+(data.length>1?'s':'')+' → continue vers les activités');
 }
 
 function mmActivites(){
@@ -4654,9 +4650,6 @@ function mmActivites(){
       mmAdd('a-'+eid+'-'+j,act,sx,sy,'sol',e.c,e.bg);
     });
   });
-  const total=cData.activites.length;
-  if(total>0)mmBubble(total+' activité'+(total>1?'s':'')+' · prêt à générer le plan →');
-  else if(esps.length>0)mmBubble('Sélectionne des activités pour chaque espace');
 }
 
 function devaPickSols(esps){
@@ -4768,7 +4761,6 @@ function genMM(espItems){
       });
     },i*220);
   });
-  setTimeout(()=>mmBubble(picked.length+' solution'+(picked.length>1?'s':'')+' proposée'+(picked.length>1?'s':'')+' · Clique pour sélectionner'),items.length*220+500);
 }
 
 /* Sous-nœuds ICI sous une solution sélectionnée (mind map de création).
@@ -4834,8 +4826,6 @@ function mmRefreshSolsStep4() {
       mmIciNodes(sol.nom, sx, sy, solDomId);
     });
   });
-  const total = Object.values(cData.solsByEspace).flat().length;
-  mmBubble(total + ' solution' + (total!==1?'s':'') + ' assignée' + (total!==1?'s':'') + ' · continue pour publier →');
 }
 
 /* ─── Pan du canvas mind map ─── */
