@@ -1017,37 +1017,23 @@ function lieuRenderQuetes() {
   const box = document.getElementById('lieu-quetes-list');
   if (!box) return;
 
-  const solutions  = cData.solutions  || [];
-  const espaces    = cData.espacesData || [];
-
-  // ── 1. Quêtes depuis les solutions sélectionnées ──
-  const solQuetes = solutions.map(nom => {
-    const sol = SOLS.find(s => s.nom === nom);
-    if (!sol || !sol.quete) return null;
-    return { ...sol.quete, source: nom, sourceIc: sol.img || '✦', sourceCat: sol.cat };
-  }).filter(Boolean);
-
-  // ── 2. Quêtes depuis les espaces (ESPS) – dédupliquées par titre ──
+  // Plus de quêtes générées automatiquement : on affiche celles que le
+  // Pilote a réellement créées et publiées.
+  if (typeof syncPiloteQuetesFromLieu === 'function') { try { syncPiloteQuetesFromLieu(); } catch (e) {} }
+  const _lieuNom = (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom) || cData.nom || 'Mon lieu';
+  const solQuetes = (typeof PILOTE_QUETES_DEMO !== 'undefined' ? PILOTE_QUETES_DEMO : [])
+    .filter(q => q.statut === 'ouverte')
+    .map(q => ({ titre: q.titre, duree: q.duree, nb: q.nb, impact_quete: q.impact, source: _lieuNom, sourceIc: q.sourceIc || '⚡', sourceCat: null, tok: q.graines || 50 }));
   const espQuetes = [];
-  const seenTitles = new Set(solQuetes.map(q => q.titre));
-  espaces.forEach(esp => {
-    const meta = ESPS.find(e => e.id === esp.eid);
-    if (!meta || !meta.quetes) return;
-    meta.quetes.forEach(q => {
-      if (seenTitles.has(q.titre)) return;
-      seenTitles.add(q.titre);
-      espQuetes.push({ ...q, impact_quete: q.impact, source: esp.nom || meta.l, sourceIc: meta.ic || '📦', sourceCat: null, fromEspace: true, espCol: meta.c });
-    });
-  });
 
   const total = solQuetes.length + espQuetes.length;
 
   if (!total) {
-    box.innerHTML = `<div class="acteur-section-title">⚡ Quêtes proposées</div>
+    box.innerHTML = `<div class="acteur-section-title">⚡ Quêtes du lieu</div>
       <div style="padding:2rem 1rem;text-align:center;border:1.5px dashed rgba(46,102,66,.18);border-radius:var(--r-lg)">
         <div style="font-size:1.4rem;margin-bottom:.5rem">⚡</div>
-        <div style="font-size:.75rem;font-weight:600;color:var(--ink);margin-bottom:.25rem">Aucune quête générée</div>
-        <div style="font-size:.65rem;color:var(--moss);opacity:.6">Sélectionnez des solutions et des espaces lors de la création du lieu pour générer des quêtes.</div>
+        <div style="font-size:.75rem;font-weight:600;color:var(--ink);margin-bottom:.25rem">Aucune quête publiée pour l'instant</div>
+        <div style="font-size:.65rem;color:var(--moss);opacity:.6">Le Pilote crée et publie ses quêtes depuis son tableau de bord (onglet Quêtes).</div>
       </div>`;
     return;
   }
@@ -1061,7 +1047,7 @@ function lieuRenderQuetes() {
   // ── Rendu d'une carte quête ──
   function queteCard(q, idx) {
     const col   = q.fromEspace ? (q.espCol || '#4a8c5c') : (CAT_COLORS[q.sourceCat] || '#4a8c5c');
-    const tokensEst = q.fromEspace ? 80 : 120;
+    const tokensEst = q.tok || 50;
     return `
     <div style="background:white;border:1.5px solid ${col}28;border-left:3px solid ${col};border-radius:var(--r-lg);padding:.85rem 1rem;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 4px 14px ${col}18'" onmouseout="this.style.boxShadow=''">
       <div style="display:flex;align-items:flex-start;gap:.6rem">
@@ -1083,10 +1069,9 @@ function lieuRenderQuetes() {
     </div>`;
   }
 
-  let html = `<div class="acteur-section-title">⚡ Quêtes proposées · <span style="font-weight:400;opacity:.65">${total} quête${total > 1 ? 's' : ''} générée${total > 1 ? 's' : ''}</span></div>`;
+  let html = `<div class="acteur-section-title">⚡ Quêtes du lieu · <span style="font-weight:400;opacity:.65">${total} en ligne</span></div>`;
 
   if (solQuetes.length) {
-    html += `<div style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.55;text-transform:uppercase;letter-spacing:.1em;margin:.25rem 0 .5rem">Issues des solutions</div>`;
     html += `<div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:1.1rem">${solQuetes.map((q,i) => queteCard(q,i)).join('')}</div>`;
   }
 
@@ -5537,12 +5522,11 @@ function mapShowNewLieu() {
 
   const _imp = (typeof evadImpactData === 'function') ? evadImpactData() : { vadance: 0, vadite: 0, taux: 0 };
 
-  // Build quêtes from solutions
-  const quetes = solutions.map(nom => {
-    const sol = typeof SOLS !== 'undefined' ? SOLS.find(s => s.nom === nom) : null;
-    if (!sol || !sol.quete) return null;
-    return { ...sol.quete, source: nom, sourceIc: sol.img || '✦', cat: sol.cat, tok: sol.tok || 50 };
-  }).filter(Boolean);
+  // Quêtes réellement en ligne (créées et publiées par le Pilote)
+  if (typeof syncPiloteQuetesFromLieu === 'function') { try { syncPiloteQuetesFromLieu(); } catch (e) {} }
+  const quetes = (typeof PILOTE_QUETES_DEMO !== 'undefined' ? PILOTE_QUETES_DEMO : [])
+    .filter(q => q.statut === 'ouverte')
+    .map(q => ({ titre: q.titre, duree: q.duree, nb: q.nb, impact_quete: q.impact, cat: null, tok: q.graines || 50 }));
 
   // FN_TO_ESPS for domain color mapping
   const _FN_TO_ESPS = {cuisine:'cuisine',cafe:'cafe',cantine:'cafe',coworking:'bureau',reunion:'bureau',atelier:'atelier',fablab:'fablab',scene:'salle',expo:'salle',boutique:'boutique',biblio:'salle',formation:'salle',jardin:'jardin',serre:'serre',compost:'jardin',hebergement:'dortoir',sport:'salle',meditation:'salle',stockage:'bureau',autre:'cafe'};
@@ -5610,7 +5594,7 @@ function mapShowNewLieu() {
       </div>` : ''}
 
       ${quetes.length ? `
-      <div style="font-size:.62rem;font-weight:700;color:var(--moss);opacity:.55;text-transform:uppercase;letter-spacing:.1em;margin:0 .85rem .4rem">⚡ Quêtes proposées · ${quetes.length}</div>
+      <div style="font-size:.62rem;font-weight:700;color:var(--moss);opacity:.55;text-transform:uppercase;letter-spacing:.1em;margin:0 .85rem .4rem">⚡ Quêtes en ligne · ${quetes.length}</div>
       <div style="display:flex;flex-direction:column;gap:.35rem;margin:0 .85rem .8rem">
         ${quetes.map(q => {
           const CAT_COL = {eau:'#2a7cb8',electricite:'#b08800',construction:'#8b6914',alimentaire:'#4a8c5c',dechets:'#2e9970',biodiversite:'#3a7a3a',social:'#7a5a9a'};
@@ -6088,6 +6072,31 @@ function batBuildQuetesFromProfile() {
       dates: ['Samedi · 9h–17h', 'Dimanche · 9h–13h'], _matched: matched, matchedSkills: matchedSkills
     });
   });
+  // Quêtes créées à la main par le Pilote (sans solution associée) et publiées.
+  (typeof PILOTE_QUETES_DEMO !== 'undefined' ? PILOTE_QUETES_DEMO : [])
+    .filter(q => q.custom && q.statut === 'ouverte')
+    .forEach(q => {
+      const lieuNom = ((typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom) || (typeof cData !== 'undefined' && cData && cData.nom) || 'Lieu EVAD');
+      const lieuVille = ((typeof myLieuData !== 'undefined' && myLieuData && (myLieuData.localisation || myLieuData.ville)) || 'Bordeaux');
+      const text = (q.titre + ' ' + (q.impact || '')).toLowerCase();
+      const matchedSkills = skills.filter(sk => (BAT_SKILL_KW[sk] || []).some(k => text.includes(k)));
+      BAT_QUETES.push({
+        id: 0, type: (q.sourceIc || '⚡') + ' Quête',
+        titre: q.titre, match: Math.min(99, 70 + (matchedSkills.length ? 20 : 0)),
+        lieu: lieuNom, pilote: lieuNom, ville: lieuVille,
+        desc: q.titre, impact: q.impact || '',
+        plan: [], materiel: [],
+        preuve: 'Photos de l\'action réalisée + indicateurs mesurés.',
+        apprendre: q.titre,
+        duree: q.duree || '1 journée',
+        places: '0/' + (parseInt(q.nb, 10) || 6),
+        etape_actuelle: 1, etapes: 4,
+        etapeLabels: ['Lancement', 'Préparation', 'Réalisation', 'Certification'],
+        tokens: q.graines || 50, co2: 0, esrs: [],
+        financement: { objectif: 0, montant: 0, semeur: null },
+        equipe: [], dates: [], _matched: matchedSkills.length > 0, matchedSkills: matchedSkills
+      });
+    });
   BAT_QUETES.sort((a, b) => b.match - a.match);
   BAT_QUETES.forEach((q, i) => { q.id = i; });
 }
@@ -7957,9 +7966,15 @@ function semBuildQuetesAFinancer() {
     economie:['réemploi','repair','recycl','matériaux','circul'],
     habitat:['isolation','paille','toiture','construction','bois']
   };
+  // Seules les quêtes réellement publiées par un Pilote sont proposées au financement.
+  if (typeof syncPiloteQuetesFromLieu === 'function') { try { syncPiloteQuetesFromLieu(); } catch (e) {} }
+  const publishedSols = (typeof PILOTE_QUETES_DEMO !== 'undefined')
+    ? new Set(PILOTE_QUETES_DEMO.filter(q => q.statut === 'ouverte').map(q => q.source))
+    : new Set();
   MAP_PLACES.forEach((l, li) => {
     const sols = (l.fiche && l.fiche.solutions) || [];
     sols.forEach((nom, j) => {
+      if (!publishedSols.has(nom)) return;
       const sol = SOLS.find(s => s.nom === nom);
       if (!sol || !sol.quete) return;
       const text = (nom + ' ' + (sol.cat || '') + ' ' + sol.quete.titre).toLowerCase();
@@ -7991,6 +8006,32 @@ function semBuildQuetesAFinancer() {
       });
     });
   });
+  // Quêtes créées à la main par le Pilote et publiées.
+  (typeof PILOTE_QUETES_DEMO !== 'undefined' ? PILOTE_QUETES_DEMO : [])
+    .filter(q => q.custom && q.statut === 'ouverte')
+    .forEach(q => {
+      const lieuNom = (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom) || 'Mon lieu';
+      const lieuVille = (typeof myLieuData !== 'undefined' && myLieuData && (myLieuData.localisation || myLieuData.ville)) || 'Bordeaux';
+      const tok = q.graines || 50;
+      const objectif = 1500 + tok * 18;
+      SEM_QUETES.push({
+        type: q.sourceIc || '⚡', titre: q.titre,
+        lieu: lieuNom, pilote: lieuNom, ville: lieuVille,
+        desc: q.titre, impact: q.impact || '',
+        esrs: [], graines: tok, objectif, montant: 0,
+        urgence: 'normal', aligned: false,
+        plan: [], materiel: [],
+        preuve: 'Photos de l\'action réalisée + indicateurs mesurés.',
+        apprendre: q.titre,
+        duree: q.duree || '1 journée',
+        places: '0/' + (parseInt(q.nb, 10) || 6),
+        etape_actuelle: 1, etapes: 4,
+        etapeLabels: ['Lancement', 'Préparation', 'Réalisation', 'Certification'],
+        tokens: tok, co2: 0,
+        financement: { objectif, montant: 0, semeur: null },
+        equipe: [], dates: []
+      });
+    });
   SEM_QUETES.sort((a, b) =>
     (b.aligned - a.aligned)
     || ((b.urgence === 'urgent') - (a.urgence === 'urgent'))
