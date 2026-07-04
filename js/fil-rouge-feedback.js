@@ -128,6 +128,14 @@ function evadFeedbackEnsureDom(){
   +     '</select>'
   +     '<label style="display:block;font-size:.72rem;font-weight:700;color:var(--moss);margin-bottom:.35rem">Ton idée</label>'
   +     '<textarea id="evad-feedback-text" rows="4" placeholder="Écris ton idée ici, simplement…" style="width:100%;padding:.7rem .8rem;border-radius:12px;border:1px solid rgba(46,102,66,.2);font-family:\'Satoshi\',sans-serif;font-size:.85rem;line-height:1.5;color:var(--ink);resize:vertical"></textarea>'
+  +     '<label style="display:block;font-size:.72rem;font-weight:700;color:var(--moss);margin:.9rem 0 .35rem">Ajouter une capture ou un fichier <span style="font-weight:500;opacity:.7">(facultatif)</span></label>'
+  +     '<input id="evad-feedback-file-input" type="file" accept="image/*,.pdf,.txt,.doc,.docx" style="display:none">'
+  +     '<div id="evad-feedback-drop" style="border:1.5px dashed rgba(46,102,66,.25);border-radius:12px;padding:.8rem;text-align:center;cursor:pointer;background:rgba(246,250,247,.6);transition:border-color .15s,background .15s">'
+  +       '<div style="font-size:1.15rem;margin-bottom:.1rem">📎</div>'
+  +       '<div style="font-size:.72rem;font-weight:600;color:var(--forest)">Glisse une image ou un fichier, ou clique</div>'
+  +       '<div style="font-size:.62rem;color:var(--moss);opacity:.6;margin-top:.1rem">Capture d\'écran, photo, PDF… (max 5 Mo)</div>'
+  +     '</div>'
+  +     '<div id="evad-feedback-file-preview" style="margin-top:.5rem"></div>'
   +     '<div id="evad-feedback-hint" style="font-size:.7rem;color:var(--terracotta);margin-top:.4rem;height:1rem"></div>'
   +     '<div style="display:flex;align-items:center;justify-content:flex-end;gap:.6rem;margin-top:.5rem">'
   +       '<button onclick="closeAmelioration()" style="background:none;border:none;color:var(--moss);font-size:.8rem;font-weight:600;cursor:pointer;padding:.5rem .6rem">Annuler</button>'
@@ -142,6 +150,82 @@ function evadFeedbackEnsureDom(){
   +   '</div>'
   + '</div>';
   document.body.appendChild(wrap);
+
+  // Zone de dépôt : clic + glisser-déposer.
+  const dz = document.getElementById('evad-feedback-drop');
+  const fi = document.getElementById('evad-feedback-file-input');
+  if (dz && fi){
+    dz.addEventListener('click', () => fi.click());
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor='var(--fern)'; dz.style.background='rgba(74,140,92,.08)'; });
+    dz.addEventListener('dragleave', () => { dz.style.borderColor='rgba(46,102,66,.25)'; dz.style.background='rgba(246,250,247,.6)'; });
+    dz.addEventListener('drop', e => {
+      e.preventDefault(); dz.style.borderColor='rgba(46,102,66,.25)'; dz.style.background='rgba(246,250,247,.6)';
+      if (e.dataTransfer.files && e.dataTransfer.files.length) evadFeedbackHandleFile(e.dataTransfer.files[0]);
+    });
+    fi.addEventListener('change', () => { if (fi.files && fi.files.length) evadFeedbackHandleFile(fi.files[0]); });
+  }
+}
+
+/* ─── Pièce jointe du retour (image redimensionnée ou fichier, gardée en dataURL) ─── */
+let evadFeedbackFile = null; // { nom, type, data }
+
+function evadFeedbackHandleFile(file){
+  if (!file) return;
+  const hint = document.getElementById('evad-feedback-hint');
+  const MAX = 5 * 1024 * 1024; // 5 Mo pour les fichiers non-image (les images sont redimensionnées)
+  if (!file.type.startsWith('image/') && file.size > MAX){
+    if (hint){ hint.style.color='var(--terracotta)'; hint.textContent='Ce fichier est trop lourd (max 5 Mo).'; }
+    return;
+  }
+  if (hint) hint.textContent = '';
+  if (file.type.startsWith('image/')){
+    _evadFeedbackResizeImage(file, 1400, dataUrl => { evadFeedbackFile = {nom:file.name, type:file.type, data:dataUrl}; _evadFeedbackRenderFile(); });
+  } else {
+    const reader = new FileReader();
+    reader.onload = e => { evadFeedbackFile = {nom:file.name, type:file.type||'fichier', data:e.target.result}; _evadFeedbackRenderFile(); };
+    reader.readAsDataURL(file);
+  }
+}
+
+// Redimensionne une image (max côté = maxDim) pour alléger l'envoi.
+function _evadFeedbackResizeImage(file, maxDim, cb){
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (Math.max(w, h) > maxDim){ const s = maxDim / Math.max(w, h); w = Math.round(w*s); h = Math.round(h*s); }
+      const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      try { cb(canvas.toDataURL('image/jpeg', 0.85)); } catch(err){ cb(e.target.result); }
+    };
+    img.onerror = () => cb(e.target.result);
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function _evadFeedbackRenderFile(){
+  const prev = document.getElementById('evad-feedback-file-preview');
+  const dz = document.getElementById('evad-feedback-drop');
+  if (!prev || !evadFeedbackFile) return;
+  if (dz) dz.style.display = 'none';
+  const isImg = (evadFeedbackFile.type||'').startsWith('image/');
+  prev.innerHTML =
+    '<div style="display:flex;align-items:center;gap:.6rem;border:1px solid rgba(46,102,66,.18);border-radius:12px;padding:.5rem .6rem;background:rgba(246,250,247,.6)">'
+    + (isImg
+        ? '<img src="'+evadFeedbackFile.data+'" alt="Aperçu de la pièce jointe" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0">'
+        : '<div style="width:44px;height:44px;border-radius:8px;background:rgba(46,102,66,.1);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">📄</div>')
+    + '<div style="flex:1;min-width:0;font-size:.74rem;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+evadFeedbackFile.nom+'</div>'
+    + '<button type="button" onclick="evadFeedbackRemoveFile()" title="Retirer" style="flex-shrink:0;background:none;border:none;color:var(--moss);cursor:pointer;font-size:.85rem;line-height:1">✕</button>'
+    + '</div>';
+}
+
+function evadFeedbackRemoveFile(){
+  evadFeedbackFile = null;
+  const fi = document.getElementById('evad-feedback-file-input'); if (fi) fi.value = '';
+  const prev = document.getElementById('evad-feedback-file-preview'); if (prev) prev.innerHTML = '';
+  const dz = document.getElementById('evad-feedback-drop'); if (dz) dz.style.display = '';
 }
 
 function openAmelioration(){
@@ -150,6 +234,7 @@ function openAmelioration(){
   document.getElementById('evad-feedback-thanks').style.display = 'none';
   document.getElementById('evad-feedback-text').value = '';
   document.getElementById('evad-feedback-hint').textContent = '';
+  if (typeof evadFeedbackRemoveFile === 'function') evadFeedbackRemoveFile();
   document.getElementById('evad-feedback').style.display = 'block';
   setTimeout(() => { const t = document.getElementById('evad-feedback-text'); if (t) t.focus(); }, 60);
 }
@@ -189,6 +274,12 @@ async function submitAmelioration(){
     role: (typeof currentRole !== 'undefined' ? currentRole : null),
     page: (location.hash || location.pathname || '')
   };
+  // Pièce jointe facultative (nécessite les colonnes piece_jointe/piece_jointe_nom
+  // dans la table Supabase `feedback` ; sinon l'envoi bascule en secours local).
+  if (evadFeedbackFile && evadFeedbackFile.data){
+    row.piece_jointe = evadFeedbackFile.data;
+    row.piece_jointe_nom = evadFeedbackFile.nom;
+  }
   // Secours local : ne jamais perdre un retour (hors-ligne, ou Supabase non configuré).
   const saveLocal = () => {
     try {
