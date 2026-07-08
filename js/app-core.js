@@ -4650,6 +4650,7 @@ function mmH(){return document.getElementById('mm-nodes').parentElement.offsetHe
 
 function initMM(){
   if (window.mmPanReset) window.mmPanReset();
+  window._mmGen = (window._mmGen || 0) + 1;   // annule les timers d'un rendu précédent
   document.getElementById('mm-nodes').innerHTML='';
   document.getElementById('mm-svg').innerHTML='';
   mmAdd('c',cData.nom||'Mon lieu',mmW()/2,mmH()/2,'center');
@@ -4734,7 +4735,8 @@ function mmCenter(){
 }
 
 function mmEspaces(){
-  document.querySelectorAll('[id^="mn-e-"],[id^="mn-a-"]').forEach(e=>e.remove());
+  window._mmGen = (window._mmGen || 0) + 1;   // annule les timers d'un rendu précédent (genMM)
+  document.querySelectorAll('[id^="mn-e-"],[id^="mn-a-"],[id^="mn-sol-"],[id^="mn-ici-"]').forEach(e=>e.remove());
   document.getElementById('mm-svg').innerHTML='';
   const W=mmW(),H=mmH(),cx=W/2,cy=H/2;
   cData.espaces.forEach((eid,i)=>{
@@ -4762,7 +4764,9 @@ const MM_DOMAINE_STYLE = {
 };
 
 function mmEspacesData() {
+  window._mmGen = (window._mmGen || 0) + 1;   // annule les timers d'un rendu précédent (genMM)
   document.querySelectorAll('[id^="mn-ed-"]').forEach(e => e.remove());
+  document.querySelectorAll('[id^="mn-e-"],[id^="mn-sol-"],[id^="mn-ici-"]').forEach(e => e.remove());
   document.getElementById('mm-svg').innerHTML = '';
   const data = cData.espacesData;
   if (!data.length) return;
@@ -4854,6 +4858,11 @@ function genMM(espItems){
   if (window.mmPanReset) window.mmPanReset();
   document.getElementById('mm-nodes').innerHTML='';
   document.getElementById('mm-svg').innerHTML='';
+  // Jeton de génération : les nœuds sont ajoutés en différé (setTimeout) pour
+  // l'animation ; si un autre rendu du mind map survient entre-temps (ex. clic
+  // « Retour »), les timers de CE rendu doivent s'annuler pour ne pas dédoubler.
+  window._mmGen = (window._mmGen || 0) + 1;
+  const _gen = window._mmGen;
   const W=mmW(),H=mmH(),cx=W/2,cy=H/2;
   mmAdd('c',cData.nom||'Mon lieu',cx,cy,'center');
 
@@ -4886,6 +4895,7 @@ function genMM(espItems){
     const re=Math.min(W,H)*.22; const ex=cx+re*Math.cos(a),ey=cy+re*Math.sin(a);
     const sols=byEsp[i]||[];
     setTimeout(()=>{
+      if (_gen !== window._mmGen) return;   // rendu périmé (on a changé d'étape)
       mmLine(cx,cy,ex,ey,col+'99',false,'mn-c','mn-e-'+i);
       mmAdd('e-'+i,label,ex,ey,'espace',col,bg).style.cursor='grab';
       sols.forEach((sol,j)=>{
@@ -4894,6 +4904,7 @@ function genMM(espItems){
         const isSel=cData.solutions.includes(sol.nom);
         const solDomId='mn-sol-'+i+'-'+j;
         setTimeout(()=>{
+          if (_gen !== window._mmGen) return;   // rendu périmé
           mmLine(ex,ey,sx,sy,col+'55',true,'mn-e-'+i,solDomId);
           const sc=isSel?col:'rgba(130,130,130,.55)';
           const sb=isSel?bg:'rgba(130,130,130,.05)';
