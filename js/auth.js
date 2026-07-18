@@ -9,13 +9,58 @@ function openAuthModal(){
   m.style.display='flex';
 }
 
-// Désactivé en démo : pas de modal « Créer un compte ».
-function openSignupModal(){ /* no-op (démo) */ }
+function openSignupModal(){
+  _authMode = 'signup';
+  openAuthModal();
+  _authMode = 'signup';
+  document.getElementById('auth-profil-title').textContent = 'Créer un compte';
+  document.getElementById('auth-profil-sub').textContent = 'Choisis ton rôle EVAD pour commencer.';
+}
 
-function authSubmit(){
-  closeAuthModal();
-  const roleMap = { pilote:'lieu', batisseur:'batisseur', semeur:'semeur' };
-  showScreen(roleMap[_authSelectedRole] || 'batisseur');
+async function authSubmit(){
+  const client = window.evadSupabase;
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errorBox = document.getElementById('auth-error');
+  const btn = document.getElementById('auth-submit-btn');
+  errorBox.style.display = 'none';
+  if (!client) return authShowError('Connexion Supabase indisponible.');
+  if (!email || password.length < 6) return authShowError('Saisis un email et un mot de passe de 6 caractères minimum.');
+  btn.disabled = true;
+  btn.textContent = 'Patiente…';
+  try {
+    const result = _authMode === 'signup'
+      ? await client.auth.signUp({ email, password, options: { data: { role: _authSelectedRole || 'batisseur' } } })
+      : await client.auth.signInWithPassword({ email, password });
+    if (result.error) throw result.error;
+    if (_authMode === 'signup' && !result.data.session) {
+      authShowError('Compte créé. Vérifie ton email pour confirmer ton inscription.');
+      return;
+    }
+    const role = result.data.user?.user_metadata?.role || _authSelectedRole || 'batisseur';
+    currentRole = role;
+    closeAuthModal();
+    showScreen(({ pilote:'lieu', batisseur:'batisseur', semeur:'semeur' })[role] || 'batisseur');
+  } catch (e) {
+    authShowError(e.message || 'Connexion impossible.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = _authMode === 'signup' ? 'Créer mon compte' : 'Se connecter';
+  }
+}
+
+function authShowError(message){
+  const box = document.getElementById('auth-error');
+  box.textContent = message;
+  box.style.display = 'block';
+}
+
+function authToggleMode(){
+  _authMode = _authMode === 'login' ? 'signup' : 'login';
+  document.querySelector('#auth-connexion-modal h2').textContent = _authMode === 'signup' ? 'Créer un compte' : 'Se connecter';
+  document.getElementById('auth-submit-btn').textContent = _authMode === 'signup' ? 'Créer mon compte' : 'Se connecter';
+  document.getElementById('auth-mode-btn').textContent = _authMode === 'signup' ? 'Déjà inscrit ? Se connecter' : "Pas encore de compte ? S'inscrire";
+  document.getElementById('auth-error').style.display = 'none';
 }
 
 function selectAuthProfil(role,ic,name,desc){
