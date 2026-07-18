@@ -2740,7 +2740,9 @@
 
 
 
-<script src="js/store.js?v=56"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js?v=1"></script>
+<script src="js/store.js?v=57"></script>
 <script src="js/app-core.js?v=75"></script>
 
 <script
@@ -2835,12 +2837,14 @@
     <h2 style="font-family:'Satoshi',sans-serif;font-size:1.6rem;font-weight:700;color:#0d2b22;margin:0 0 .35rem">Se connecter</h2>
     <p style="font-size:.82rem;color:#3d6b5a;margin:0 0 1.4rem;line-height:1.4;font-family:'Satoshi',sans-serif">Connecte-toi pour continuer ton parcours EVAD.</p>
     <div style="margin-bottom:.75rem">
-      <input type="email" placeholder="Adresse email" style="width:100%;box-sizing:border-box;padding:.85rem 1.1rem;border:1.5px solid rgba(1,130,98,.2);border-radius:.75rem;font-size:.92rem;outline:none;transition:border-color .2s;font-family:'Satoshi',sans-serif;color:#0d2b22" onfocus="this.style.borderColor='#018262'" onblur="this.style.borderColor='rgba(1,130,98,.2)'">
+      <input id="auth-email" type="email" placeholder="Adresse email" style="width:100%;box-sizing:border-box;padding:.85rem 1.1rem;border:1.5px solid rgba(1,130,98,.2);border-radius:.75rem;font-size:.92rem;outline:none;transition:border-color .2s;font-family:'Satoshi',sans-serif;color:#0d2b22" onfocus="this.style.borderColor='#018262'" onblur="this.style.borderColor='rgba(1,130,98,.2)'">
     </div>
     <div style="margin-bottom:1.25rem">
-      <input type="password" placeholder="Mot de passe" style="width:100%;box-sizing:border-box;padding:.85rem 1.1rem;border:1.5px solid rgba(1,130,98,.2);border-radius:.75rem;font-size:.92rem;outline:none;transition:border-color .2s;font-family:'Satoshi',sans-serif;color:#0d2b22" onfocus="this.style.borderColor='#018262'" onblur="this.style.borderColor='rgba(1,130,98,.2)'">
+      <input id="auth-password" type="password" minlength="6" placeholder="Mot de passe" style="width:100%;box-sizing:border-box;padding:.85rem 1.1rem;border:1.5px solid rgba(1,130,98,.2);border-radius:.75rem;font-size:.92rem;outline:none;transition:border-color .2s;font-family:'Satoshi',sans-serif;color:#0d2b22" onfocus="this.style.borderColor='#018262'" onblur="this.style.borderColor='rgba(1,130,98,.2)'">
     </div>
-    <button onclick="authSubmit()" style="width:100%;padding:1rem;border:none;border-radius:100px;background:#018262;color:white;font-size:1rem;font-weight:600;cursor:pointer;transition:background .18s;font-family:'Satoshi',sans-serif" onmouseover="this.style.background='#005c44'" onmouseout="this.style.background='#018262'">Se connecter</button>
+    <div id="auth-error" style="display:none;margin-bottom:.8rem;color:#a83232;font-size:.76rem"></div>
+    <button id="auth-submit-btn" onclick="authSubmit()" style="width:100%;padding:1rem;border:none;border-radius:100px;background:#018262;color:white;font-size:1rem;font-weight:600;cursor:pointer;transition:background .18s;font-family:'Satoshi',sans-serif" onmouseover="this.style.background='#005c44'" onmouseout="this.style.background='#018262'">Se connecter</button>
+    <button onclick="authToggleMode()" id="auth-mode-btn" style="width:100%;margin-top:.7rem;padding:.5rem;border:none;background:transparent;color:#018262;cursor:pointer;font-family:inherit">Pas encore de compte ? S'inscrire</button>
   </div>
 </div>
 
