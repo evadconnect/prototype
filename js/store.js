@@ -26,6 +26,8 @@
 
   var NS = 'evad';
   var VERSION = 1;                              // bump = migration de schéma
+  var remoteTables = ['lieux', 'batisseurs', 'semeurs'];
+  var currentUserId = null;
   function keyOf(table) { return NS + ':v' + VERSION + ':' + table; }
   function draftKey(kind) { return NS + ':v' + VERSION + ':draft:' + kind; }
 
@@ -59,6 +61,51 @@
     catch (e) { return false; }
   }
 
+  function remoteRow(table, row) {
+    var base = { id: row.id, user_id: currentUserId, donnees: row };
+    if (table === 'lieux') return Object.assign(base, {
+      nom: row.nom || 'Nouveau lieu', type: row.type || null,
+      description: row.description || row.desc || null,
+      localisation: row.localisation || null,
+      latitude: row.lat == null ? null : row.lat,
+      longitude: row.lng == null ? null : row.lng,
+      statut: row.statut || 'publie'
+    });
+    if (table === 'batisseurs') return Object.assign(base, {
+      prenom: row.prenom || null, nom: row.nom || null, ville: row.ville || null,
+      bio: row.bio || null, competences: row.skills || row.competences || [],
+      disponibilites: row.disponibilites || []
+    });
+    if (table === 'semeurs') return Object.assign(base, {
+      nom: row.nom || null, type_organisation: row.type || null,
+      localisation: row.localisation || null,
+      budget_min: row.budgetMin || null, budget_max: row.budgetMax || null,
+      axes_impact: row.selectedAxes || []
+    });
+    return row;
+  }
+
+  function pushRemote(table, row) {
+    if (!global.evadSupabase || !currentUserId || remoteTables.indexOf(table) < 0) return;
+    global.evadSupabase.from(table).upsert(remoteRow(table, row)).then(function (res) {
+      if (res.error) console.error('Synchronisation Supabase (' + table + ') :', res.error.message);
+    });
+  }
+
+  async function hydrateRemote() {
+    if (!global.evadSupabase || !currentUserId) return;
+    for (var i = 0; i < remoteTables.length; i++) {
+      var table = remoteTables[i];
+      var res = await global.evadSupabase.from(table).select('*');
+      if (res.error) { console.error('Lecture Supabase (' + table + ') :', res.error.message); continue; }
+      var rows = (res.data || []).map(function (r) {
+        return Object.assign({}, r.donnees || {}, r, { id: r.id });
+      });
+      write(table, rows);
+    }
+    global.dispatchEvent(new CustomEvent('evad:supabase-ready'));
+  }
+
   var store = {
     uuid: uuid,
     now: nowISO,
@@ -82,6 +129,7 @@
       row.updated_at = nowISO();
       rows.push(row);
       write(table, rows);
+      pushRemote(table, row);
       return row;
     },
 
@@ -91,6 +139,7 @@
         if (rows[i].id === id) {
           rows[i] = Object.assign({}, rows[i], patch, { id: id, updated_at: nowISO() });
           write(table, rows);
+          pushRemote(table, rows[i]);
           return rows[i];
         }
       }
@@ -139,4 +188,15 @@
 
   global.store = store;
   global.EvadStore = store;   // alias
+
+  if (global.evadSupabase) {
+    global.evadSupabase.auth.getSession().then(function (r) {
+      currentUserId = r.data.session && r.data.session.user ? r.data.session.user.id : null;
+      if (currentUserId) hydrateRemote();
+    });
+    global.evadSupabase.auth.onAuthStateChange(function (_event, session) {
+      currentUserId = session && session.user ? session.user.id : null;
+      if (currentUserId) setTimeout(hydrateRemote, 0);
+    });
+  }
 })(window);
