@@ -26,7 +26,7 @@
 
   var NS = 'evad';
   var VERSION = 1;                              // bump = migration de schéma
-  var remoteTables = ['lieux', 'batisseurs', 'semeurs'];
+  var remoteTables = ['lieux'];
   var currentUserId = null;
   function keyOf(table) { return NS + ':v' + VERSION + ':' + table; }
   function draftKey(kind) { return NS + ':v' + VERSION + ':draft:' + kind; }
@@ -62,7 +62,11 @@
   }
 
   function remoteRow(table, row) {
-    var base = { id: row.id, user_id: currentUserId, donnees: row };
+    var base = {
+      id: row.id,
+      user_id: currentUserId || null,
+      donnees: row
+    };
     if (table === 'lieux') return Object.assign(base, {
       nom: row.nom || 'Nouveau lieu', type: row.type || null,
       description: row.description || row.desc || null,
@@ -86,7 +90,7 @@
   }
 
   function pushRemote(table, row) {
-    if (!global.evadSupabase || !currentUserId || remoteTables.indexOf(table) < 0) return;
+    if (!global.evadSupabase || remoteTables.indexOf(table) < 0) return;
     global.evadSupabase.from(table).upsert(remoteRow(table, row)).then(function (res) {
       if (res.error) console.error('Synchronisation Supabase (' + table + ') :', res.error.message);
     });
