@@ -1,113 +1,308 @@
-/* ─────────────────────────────────────────────────────────────────────────
-   EVAD · store.js — couche d'accès aux données, PRÊTE POUR SUPABASE.
-
-   Aujourd'hui : tout est persisté en localStorage avec la forme exacte des
-   futures tables. Demain : on remplace l'implémentation interne de ce module
-   par des appels Supabase ; l'API publique (window.store) reste identique, donc
-   le reste de l'app ne change pas et on ne « recommence pas les tables ».
-
-   API générique (1:1 avec Supabase : from(table).insert/.update/.select/...):
-     store.all(table)              -> []                 (select *)
-     store.get(table, id)          -> row | null         (select … where id)
-     store.where(table, pred)      -> []                 (select … where …)
-     store.insert(table, obj)      -> row (id+timestamps)
-     store.update(table, id, patch)-> row | null
-     store.upsert(table, obj)      -> row
-     store.remove(table, id)       -> void
-     store.clearTable(table)       -> void
-
-   Brouillons de fiches en cours (1 par type : 'lieu' | 'batisseur' | 'semeur') :
-     store.saveDraft(kind, data) / store.loadDraft(kind) / store.clearDraft(kind)
-
-   Tables cibles (le schéma) : voir store.TABLES.
-   ───────────────────────────────────────────────────────────────────────── */
+/* EVAD · store.js
+   Stockage local + synchronisation de la table lieux avec Supabase.
+*/
 (function (global) {
   'use strict';
 
   var NS = 'evad';
-  var VERSION = 1;                              // bump = migration de schéma
+  var VERSION = 1;
+
+  // Pour le moment, seule la table lieux est synchronisée avec Supabase.
   var remoteTables = ['lieux'];
   var currentUserId = null;
-  function keyOf(table) { return NS + ':v' + VERSION + ':' + table; }
-  function draftKey(kind) { return NS + ':v' + VERSION + ':draft:' + kind; }
 
-  // Schéma cible : ces collections deviendront les tables Supabase.
+  function keyOf(table) {
+    return NS + ':v' + VERSION + ':' + table;
+  }
+
+  function draftKey(kind) {
+    return NS + ':v' + VERSION + ':draft:' + kind;
+  }
+
+  // Les autres collections continuent temporairement à fonctionner localement.
   var TABLES = [
-    'lieux',          // porteurs de lieu (Pilote)
-    'batisseurs',     // contributeurs
-    'semeurs',        // financeurs
-    'quetes',         // missions rattachées à un lieu/solution
-    'candidatures',   // jointure batisseur × quete
-    'financements',   // jointure semeur × quete/projet
-    'graines_tx',     // mouvements de graines (gain / dépense)
-    'offres_mkt',     // offres marketplace (pilote / semeur)
-    'reseau_posts',   // fil du réseau
+    'lieux',
+    'batisseurs',
+    'semeurs',
+    'quetes',
+    'candidatures',
+    'financements',
+    'graines_tx',
+    'offres_mkt',
+    'reseau_posts'
   ];
 
   function uuid() {
-    if (global.crypto && typeof global.crypto.randomUUID === 'function') {
+    if (
+      global.crypto &&
+      typeof global.crypto.randomUUID === 'function'
+    ) {
       return global.crypto.randomUUID();
     }
-    return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+
+    return (
+      'id-' +
+      Date.now().toString(36) +
+      '-' +
+      Math.random().toString(36).slice(2, 10)
+    );
   }
-  function nowISO() { return new Date().toISOString(); }
+
+  function nowISO() {
+    return new Date().toISOString();
+  }
 
   function read(table) {
-    try { return JSON.parse(global.localStorage.getItem(keyOf(table)) || '[]') || []; }
-    catch (e) { return []; }
-  }
-  function write(table, rows) {
-    try { global.localStorage.setItem(keyOf(table), JSON.stringify(rows)); return true; }
-    catch (e) { return false; }
+    try {
+      return (
+        JSON.parse(
+          global.localStorage.getItem(keyOf(table)) || '[]'
+        ) || []
+      );
+    } catch (e) {
+      return [];
+    }
   }
 
-  function remoteRow(table, row) {
-    var base = {
+  function write(table, rows) {
+    try {
+      global.localStorage.setItem(
+        keyOf(table),
+        JSON.stringify(rows)
+      );
+
+      return true;
+    } catch (e) {
+      console.error('Erreur localStorage :', e);
+      return false;
+    }
+  }
+
+  /*
+   * Transformation des informations du prototype
+   * vers les colonnes de la table Supabase lieux.
+   *
+   * Toutes les informations complètes sont également
+   * conservées dans la colonne donnees au format JSON.
+   */
+  function remoteLieuRow(row) {
+    var latitude =
+      row.lat !== undefined && row.lat !== ''
+        ? Number(row.lat)
+        : null;
+
+    var longitude =
+      row.lng !== undefined && row.lng !== ''
+        ? Number(row.lng)
+        : null;
+
+    // Éviter d'envoyer NaN dans Supabase.
+    if (!Number.isFinite(latitude)) {
+      latitude = null;
+    }
+
+    if (!Number.isFinite(longitude)) {
+      longitude = null;
+    }
+
+    return {
       id: row.id,
       user_id: currentUserId || null,
-      donnees: row
+
+      nom:
+        row.nom ||
+        row.name ||
+        'Nouveau lieu',
+
+      type:
+        row.type ||
+        row.typeLieu ||
+        null,
+
+      description:
+        row.description ||
+        row.desc ||
+        row.bio ||
+        null,
+
+      localisation:
+        row.localisation ||
+        row.ville ||
+        row.adresse ||
+        null,
+
+      latitude: latitude,
+      longitude: longitude,
+
+      statut:
+        row.statutPublication ||
+        row.publicationStatus ||
+        'publie',
+
+      // Copie complète du formulaire.
+      donnees: row,
+
+      created_at:
+        row.created_at ||
+        nowISO(),
+
+      updated_at: nowISO()
     };
-    if (table === 'lieux') return Object.assign(base, {
-      nom: row.nom || 'Nouveau lieu', type: row.type || null,
-      description: row.description || row.desc || null,
-      localisation: row.localisation || null,
-      latitude: row.lat == null ? null : row.lat,
-      longitude: row.lng == null ? null : row.lng,
-      statut: row.statut || 'publie'
-    });
-    if (table === 'batisseurs') return Object.assign(base, {
-      prenom: row.prenom || null, nom: row.nom || null, ville: row.ville || null,
-      bio: row.bio || null, competences: row.skills || row.competences || [],
-      disponibilites: row.disponibilites || []
-    });
-    if (table === 'semeurs') return Object.assign(base, {
-      nom: row.nom || null, type_organisation: row.type || null,
-      localisation: row.localisation || null,
-      budget_min: row.budgetMin || null, budget_max: row.budgetMax || null,
-      axes_impact: row.selectedAxes || []
-    });
-    return row;
   }
 
-  function pushRemote(table, row) {
-    if (!global.evadSupabase || remoteTables.indexOf(table) < 0) return;
-    global.evadSupabase.from(table).upsert(remoteRow(table, row)).then(function (res) {
-      if (res.error) console.error('Synchronisation Supabase (' + table + ') :', res.error.message);
-    });
-  }
-
-  async function hydrateRemote() {
-    if (!global.evadSupabase || !currentUserId) return;
-    for (var i = 0; i < remoteTables.length; i++) {
-      var table = remoteTables[i];
-      var res = await global.evadSupabase.from(table).select('*');
-      if (res.error) { console.error('Lecture Supabase (' + table + ') :', res.error.message); continue; }
-      var rows = (res.data || []).map(function (r) {
-        return Object.assign({}, r.donnees || {}, r, { id: r.id });
-      });
-      write(table, rows);
+  /*
+   * Création d'un nouveau lieu dans Supabase.
+   *
+   * On utilise insert et non upsert afin que la politique
+   * RLS publique d'insertion soit suffisante.
+   */
+  function insertLieuRemote(row) {
+    if (!global.evadSupabase) {
+      console.error(
+        "Supabase n'est pas initialisé."
+      );
+      return;
     }
-    global.dispatchEvent(new CustomEvent('evad:supabase-ready'));
+
+    var payload = remoteLieuRow(row);
+
+    global.evadSupabase
+      .from('lieux')
+      .insert(payload)
+      .then(function (result) {
+        if (result.error) {
+          console.error(
+            'Erreur sauvegarde Supabase du lieu :',
+            result.error
+          );
+          return;
+        }
+
+        console.log(
+          '✅ Lieu sauvegardé dans Supabase :',
+          payload.nom
+        );
+
+        global.dispatchEvent(
+          new CustomEvent('evad:lieu-saved', {
+            detail: payload
+          })
+        );
+      })
+      .catch(function (error) {
+        console.error(
+          'Erreur réseau Supabase :',
+          error
+        );
+      });
+  }
+
+  /*
+   * Mise à jour distante.
+   *
+   * Une modification distante nécessite une politique RLS
+   * supplémentaire. Pour le moment, on conserve la modification
+   * localement et on ne bloque pas le prototype.
+   */
+  function updateLieuRemote(row) {
+    if (!global.evadSupabase) {
+      return;
+    }
+
+    var payload = remoteLieuRow(row);
+
+    global.evadSupabase
+      .from('lieux')
+      .update({
+        nom: payload.nom,
+        type: payload.type,
+        description: payload.description,
+        localisation: payload.localisation,
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        statut: payload.statut,
+        donnees: payload.donnees,
+        updated_at: payload.updated_at
+      })
+      .eq('id', payload.id)
+      .then(function (result) {
+        if (result.error) {
+          console.warn(
+            'Modification enregistrée localement, mais pas encore dans Supabase :',
+            result.error.message
+          );
+          return;
+        }
+
+        console.log(
+          '✅ Lieu mis à jour dans Supabase'
+        );
+      });
+  }
+
+  /*
+   * Lecture des lieux publiés.
+   */
+  async function hydrateRemote() {
+    if (!global.evadSupabase) {
+      return;
+    }
+
+    try {
+      var result = await global.evadSupabase
+        .from('lieux')
+        .select('*')
+        .order('created_at', {
+          ascending: true
+        });
+
+      if (result.error) {
+        console.error(
+          'Erreur lecture des lieux :',
+          result.error.message
+        );
+        return;
+      }
+
+      var remoteRows = (result.data || []).map(
+        function (row) {
+          return Object.assign(
+            {},
+            row.donnees || {},
+            row,
+            {
+              id: row.id,
+              lat: row.latitude,
+              lng: row.longitude
+            }
+          );
+        }
+      );
+
+      /*
+       * Ne pas effacer les données locales si Supabase
+       * ne retourne encore aucun lieu.
+       */
+      if (remoteRows.length > 0) {
+        write('lieux', remoteRows);
+      }
+
+      global.dispatchEvent(
+        new CustomEvent(
+          'evad:supabase-ready',
+          {
+            detail: {
+              lieux: remoteRows
+            }
+          }
+        )
+      );
+    } catch (error) {
+      console.error(
+        'Erreur de récupération Supabase :',
+        error
+      );
+    }
   }
 
   var store = {
@@ -115,92 +310,219 @@
     now: nowISO,
     TABLES: TABLES,
 
-    all: function (table) { return read(table); },
+    all: function (table) {
+      return read(table);
+    },
 
     get: function (table, id) {
       var rows = read(table);
-      for (var i = 0; i < rows.length; i++) if (rows[i].id === id) return rows[i];
+
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i].id === id) {
+          return rows[i];
+        }
+      }
+
       return null;
     },
 
-    where: function (table, pred) { return read(table).filter(pred); },
+    where: function (table, predicate) {
+      return read(table).filter(predicate);
+    },
 
-    insert: function (table, obj) {
+    insert: function (table, object) {
       var rows = read(table);
-      var row = Object.assign({}, obj);
-      if (!row.id) row.id = uuid();
-      if (!row.created_at) row.created_at = nowISO();
+      var row = Object.assign({}, object);
+
+      if (!row.id) {
+        row.id = uuid();
+      }
+
+      if (!row.created_at) {
+        row.created_at = nowISO();
+      }
+
       row.updated_at = nowISO();
+
       rows.push(row);
       write(table, rows);
-      pushRemote(table, row);
+
+      /*
+       * Seuls les lieux sont envoyés dans Supabase.
+       */
+      if (table === 'lieux') {
+        insertLieuRemote(row);
+      }
+
       return row;
     },
 
     update: function (table, id, patch) {
       var rows = read(table);
+
       for (var i = 0; i < rows.length; i++) {
         if (rows[i].id === id) {
-          rows[i] = Object.assign({}, rows[i], patch, { id: id, updated_at: nowISO() });
+          rows[i] = Object.assign(
+            {},
+            rows[i],
+            patch,
+            {
+              id: id,
+              updated_at: nowISO()
+            }
+          );
+
           write(table, rows);
-          pushRemote(table, rows[i]);
+
+          if (table === 'lieux') {
+            updateLieuRemote(rows[i]);
+          }
+
           return rows[i];
         }
       }
+
       return null;
     },
 
-    upsert: function (table, obj) {
-      if (obj && obj.id && store.get(table, obj.id)) return store.update(table, obj.id, obj);
-      return store.insert(table, obj);
+    upsert: function (table, object) {
+      if (
+        object &&
+        object.id &&
+        store.get(table, object.id)
+      ) {
+        return store.update(
+          table,
+          object.id,
+          object
+        );
+      }
+
+      return store.insert(
+        table,
+        object
+      );
     },
 
     remove: function (table, id) {
-      write(table, read(table).filter(function (r) { return r.id !== id; }));
+      var rows = read(table).filter(
+        function (row) {
+          return row.id !== id;
+        }
+      );
+
+      write(table, rows);
     },
 
-    clearTable: function (table) { write(table, []); },
+    clearTable: function (table) {
+      write(table, []);
+    },
 
-    // ── Brouillons (fiche en cours, non publiée) ──
     saveDraft: function (kind, data) {
       try {
-        global.localStorage.setItem(draftKey(kind), JSON.stringify({ data: data, updated_at: nowISO() }));
+        global.localStorage.setItem(
+          draftKey(kind),
+          JSON.stringify({
+            data: data,
+            updated_at: nowISO()
+          })
+        );
+
         return true;
-      } catch (e) { return false; }
-    },
-    loadDraft: function (kind) {
-      try {
-        var raw = JSON.parse(global.localStorage.getItem(draftKey(kind)) || 'null');
-        return raw ? raw.data : null;
-      } catch (e) { return null; }
-    },
-    clearDraft: function (kind) {
-      try { global.localStorage.removeItem(draftKey(kind)); } catch (e) {}
+      } catch (e) {
+        return false;
+      }
     },
 
-    // ── Debug ──
+    loadDraft: function (kind) {
+      try {
+        var raw = JSON.parse(
+          global.localStorage.getItem(
+            draftKey(kind)
+          ) || 'null'
+        );
+
+        return raw
+          ? raw.data
+          : null;
+      } catch (e) {
+        return null;
+      }
+    },
+
+    clearDraft: function (kind) {
+      try {
+        global.localStorage.removeItem(
+          draftKey(kind)
+        );
+      } catch (e) {}
+    },
+
+    refreshLieux: function () {
+      return hydrateRemote();
+    },
+
     _dump: function () {
-      var out = {};
-      TABLES.forEach(function (t) { out[t] = read(t); });
-      return out;
+      var output = {};
+
+      TABLES.forEach(function (table) {
+        output[table] = read(table);
+      });
+
+      return output;
     },
+
     _reset: function () {
-      TABLES.forEach(function (t) { write(t, []); });
-      ['lieu', 'batisseur', 'semeur'].forEach(function (k) { store.clearDraft(k); });
-    },
+      TABLES.forEach(function (table) {
+        write(table, []);
+      });
+
+      [
+        'lieu',
+        'batisseur',
+        'semeur'
+      ].forEach(function (kind) {
+        store.clearDraft(kind);
+      });
+    }
   };
 
   global.store = store;
-  global.EvadStore = store;   // alias
+  global.EvadStore = store;
 
+  /*
+   * Récupération de la session Supabase si elle existe.
+   */
   if (global.evadSupabase) {
-    global.evadSupabase.auth.getSession().then(function (r) {
-      currentUserId = r.data.session && r.data.session.user ? r.data.session.user.id : null;
-      if (currentUserId) hydrateRemote();
-    });
-    global.evadSupabase.auth.onAuthStateChange(function (_event, session) {
-      currentUserId = session && session.user ? session.user.id : null;
-      if (currentUserId) setTimeout(hydrateRemote, 0);
-    });
+    global.evadSupabase.auth
+      .getSession()
+      .then(function (result) {
+        currentUserId =
+          result.data &&
+          result.data.session &&
+          result.data.session.user
+            ? result.data.session.user.id
+            : null;
+
+        hydrateRemote();
+      });
+
+    global.evadSupabase.auth.onAuthStateChange(
+      function (_event, session) {
+        currentUserId =
+          session && session.user
+            ? session.user.id
+            : null;
+
+        setTimeout(
+          hydrateRemote,
+          0
+        );
+      }
+    );
+  } else {
+    console.error(
+      "Le client Supabase n'est pas disponible."
+    );
   }
 })(window);
