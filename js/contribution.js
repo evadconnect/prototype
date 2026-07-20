@@ -17,9 +17,11 @@ function ctbAddInd(){ _ctbAddSimple('ctb-ind-input', 'ctb-ind-list'); }
 
 /* ── Image de couverture (aperçu local, prête à envoyer avec la proposition) ── */
 let ctbPhotoData = '';
+let ctbPhotoFile = null;   // fichier brut, uploadé vers le Storage à l'envoi
 function ctbPhotoChange(input){
   const file = input.files && input.files[0];
   if(!file || !file.type.startsWith('image/')) return;
+  ctbPhotoFile = file;
   const reader = new FileReader();
   reader.onload = e => {
     ctbPhotoData = e.target.result;
@@ -35,6 +37,7 @@ function ctbPhotoChange(input){
 }
 function ctbRemovePhoto(){
   ctbPhotoData = '';
+  ctbPhotoFile = null;
   const input = document.getElementById('ctb-photo-input'); if(input) input.value = '';
   const prev = document.getElementById('ctb-photo-preview'); if(prev) prev.innerHTML = '';
   const zone = document.getElementById('ctb-photo-zone'); if(zone) zone.style.display = '';
@@ -124,11 +127,53 @@ function initContribuer(){
 function openContribModal(){ if (typeof showScreen === 'function') showScreen('contribuer'); }
 function closeContribModal(){ if (typeof showScreen === 'function') showScreen('bdd'); }
 
-function submitContrib(){
-  const nom   = document.getElementById('ctb-nom').value.trim();
+/* ── Envoi des propositions de solution vers Supabase ──────────────────────
+   Insertion REST directe dans la table `contributions_solution`, même mécanique
+   que le feedback (clé publishable publique + RLS « insert » pour le rôle anon).
+   Les données structurées (matériel, plan, avantages, quête…) partent dans une
+   colonne JSON `details`. L'image de couverture est uploadée dans le bucket
+   Storage `contributions`. Repli localStorage si l'envoi échoue. ── */
+const EVAD_CONTRIB_SUPABASE = {
+  url: 'https://lmhhrccmgebztioesmik.supabase.co',
+  anonKey: 'sb_publishable_M_1-SinRmo1T8exi8_gkvw_RTiHznag',
+  table: 'contributions_solution',
+  bucket: 'contributions'
+};
+
+// Récupère le texte de chaque puce d'une liste dynamique (matériel, avantages…).
+function _ctbListValues(listId){
+  const el = document.getElementById(listId);
+  if(!el) return [];
+  return Array.from(el.querySelectorAll('span')).map(s => s.textContent.trim()).filter(Boolean);
+}
+// Types de lieux sélectionnés (puces actives).
+function _ctbSelectedLieux(){
+  const cc = document.getElementById('ctb-lieux-chips');
+  if(!cc) return [];
+  return Array.from(cc.querySelectorAll('button')).filter(b => b.dataset.active === '1').map(b => b.dataset.val);
+}
+function _ctbVal(id){ const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+function _ctbNum(id){ const v = _ctbVal(id); return v === '' ? null : Number(v); }
+
+// Upload de l'image de couverture dans le Storage, renvoie l'URL publique.
+async function _ctbUploadPhoto(cfg){
+  const base = cfg.url.replace(/\/+$/, '');
+  const safe = (ctbPhotoFile.name || 'image').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(-50);
+  const path = Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '-' + safe;
+  const r = await fetch(base + '/storage/v1/object/' + cfg.bucket + '/' + path, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + cfg.anonKey, 'apikey': cfg.anonKey, 'Content-Type': ctbPhotoFile.type || 'image/jpeg' },
+    body: ctbPhotoFile
+  });
+  if(!r.ok) throw new Error('storage HTTP ' + r.status);
+  return base + '/storage/v1/object/public/' + cfg.bucket + '/' + path;
+}
+
+async function submitContrib(){
+  const nom   = _ctbVal('ctb-nom');
   const cat   = document.getElementById('ctb-cat').value;
   const cplx  = document.getElementById('ctb-cplx').value;
-  const desc  = document.getElementById('ctb-desc').value.trim();
+  const desc  = _ctbVal('ctb-desc');
   const err   = document.getElementById('ctb-error');
   if(!nom||!cat||!cplx||!desc){
     err.textContent = 'Merci de remplir les champs obligatoires (Nom, Catégorie, Complexité et Description).';
@@ -137,14 +182,89 @@ function submitContrib(){
     return;
   }
   err.style.display='none';
-  // Bascule vers l'écran de succès (le formulaire reste en DOM pour la prochaine fois).
-  const form = document.getElementById('contrib-form');
-  const success = document.getElementById('contrib-success');
-  const txt = document.getElementById('contrib-success-txt');
-  if(txt) txt.innerHTML = `Ta solution <strong>${nom}</strong> a bien été envoyée. L'équipe EVAD la vérifiera et te contactera si besoin.`;
-  if(form) form.style.display = 'none';
-  if(success) success.style.display = 'block';
-  const main = document.querySelector('.main'); if(main) main.scrollTo(0,0);
+
+  // Ligne principale + données structurées dans `details`.
+  const row = {
+    emoji:       _ctbVal('ctb-emoji'),
+    nom:         nom,
+    categorie:   cat,
+    complexite:  cplx === '' ? null : Number(cplx),
+    description: desc,
+    impact:      _ctbVal('ctb-impact'),
+    cout_min:    _ctbNum('ctb-cout-min'),
+    cout_max:    _ctbNum('ctb-cout-max'),
+    prenom:      _ctbVal('ctb-prenom'),
+    email:       _ctbVal('ctb-email'),
+    source:      _ctbVal('ctb-source'),
+    image:       null,
+    page:        (location.hash || location.pathname || ''),
+    details: {
+      lieux:       _ctbSelectedLieux(),
+      regen:       _ctbVal('ctb-regen'),
+      co2:         _ctbNum('ctb-co2'),
+      materiel:    _ctbListValues('ctb-mat-list'),
+      avantages:   _ctbListValues('ctb-avant-list'),
+      indicateurs: _ctbListValues('ctb-ind-list'),
+      plan: Array.from(document.querySelectorAll('#ctb-plan-list > div')).map(r => ({
+        titre: (r.querySelector('div > div:first-child') || {}).textContent || '',
+        desc:  (r.querySelector('div > div:nth-child(2)')  || {}).textContent || ''
+      })),
+      quete: {
+        nom:    _ctbVal('ctb-quete-nom'),
+        duree:  _ctbVal('ctb-quete-duree'),
+        nb:     _ctbVal('ctb-quete-nb'),
+        impact: _ctbVal('ctb-quete-impact')
+      }
+    }
+  };
+
+  const showSuccess = () => {
+    const form = document.getElementById('contrib-form');
+    const success = document.getElementById('contrib-success');
+    const txt = document.getElementById('contrib-success-txt');
+    if(txt) txt.innerHTML = `Ta solution <strong>${nom}</strong> a bien été envoyée. L'équipe EVAD la vérifiera et te contactera si besoin.`;
+    if(form) form.style.display = 'none';
+    if(success) success.style.display = 'block';
+    const main = document.querySelector('.main'); if(main) main.scrollTo(0,0);
+  };
+  const saveLocal = () => {
+    try {
+      const all = JSON.parse(localStorage.getItem('evad_contributions') || '[]');
+      all.push(row);
+      localStorage.setItem('evad_contributions', JSON.stringify(all));
+    } catch(e){}
+  };
+
+  const cfg = EVAD_CONTRIB_SUPABASE;
+  const sendBtn = document.getElementById('ctb-send');
+  if(!cfg.url || !cfg.anonKey){ saveLocal(); showSuccess(); return; }
+
+  if(sendBtn){ sendBtn.disabled = true; sendBtn.textContent = 'Envoi en cours…'; }
+  try {
+    if(ctbPhotoFile){
+      try { row.image = await _ctbUploadPhoto(cfg); }
+      catch(e){ /* image optionnelle : on continue sans elle */ }
+    }
+    const r = await fetch(cfg.url.replace(/\/+$/, '') + '/rest/v1/' + cfg.table, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': cfg.anonKey,
+        'Authorization': 'Bearer ' + cfg.anonKey,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(row)
+    });
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    showSuccess();
+  } catch(e){
+    saveLocal();
+    err.textContent = "L'envoi n'a pas fonctionné. Ta proposition est gardée sur cet appareil : réessaie dans un instant.";
+    err.style.display = 'block';
+    err.scrollIntoView({behavior:'smooth', block:'center'});
+  } finally {
+    if(sendBtn){ sendBtn.disabled = false; sendBtn.textContent = 'Envoyer ma proposition'; }
+  }
 }
 
 /* ── Modal détail solution (depuis créer lieu étape 4) ── */
