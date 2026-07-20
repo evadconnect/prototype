@@ -276,7 +276,7 @@ function closeAmelioration(){
 const EVAD_FEEDBACK_SUPABASE = {
   url: 'https://lmhhrccmgebztioesmik.supabase.co',
   anonKey: 'sb_publishable_M_1-SinRmo1T8exi8_gkvw_RTiHznag',  // clé publishable (publique, OK dans le front)
-  table: 'feedback',
+  table: 'feedback_prototype',
   bucket: 'feedback'   // bucket Storage public pour les pièces jointes
 };
 
