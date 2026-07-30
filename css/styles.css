@@ -3189,7 +3189,7 @@ body {
 /* Bandeau « Reprendre ma session » (brouillon détecté) */
 .sp-resume {
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  width: 100%; margin: 0 auto 22px;
+  width: 100%; margin: 18px auto 0;
   padding: 13px 16px;
   background: #fff;
   border: 1.5px solid rgba(1,130,98,0.35);
@@ -3221,10 +3221,23 @@ body {
   text-align: center;
   font-family: 'Satoshi', sans-serif;
   font-size: 0.78rem; font-weight: 600; color: #018262;
-  margin: 8px auto 0;
-  display: flex; align-items: center; justify-content: center; gap: 6px;
+  margin: 20px auto 0;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
 }
-.sp-deva-ic { font-size: 0.95rem; }
+.sp-deva-avatar {
+  width: 30px; height: 30px; flex-shrink: 0;
+  object-fit: contain; object-position: bottom;
+  transform: scaleX(-1) rotate(10deg);
+  filter: drop-shadow(0 2px 4px rgba(1,130,98,0.25));
+}
+/* Question d'accroche en haut de chaque carte profil */
+.sp-card-q {
+  font-family: 'Satoshi', sans-serif;
+  font-size: 0.78rem; font-weight: 700; color: #018262;
+  line-height: 1.3; min-height: 2em;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+}
 .sp-pill {
   display: inline-flex;
   align-items: center;
@@ -3835,10 +3848,12 @@ body {
   .sp-sep { margin-bottom: 12px; }
   .sp-help { font-size: 0.74rem; margin-bottom: 12px; }
   .sp-portails { gap: 8px; }
-  .sp-card { padding: 14px 6px; gap: 8px; border-radius: 13px; }
+  .sp-card { padding: 12px 5px 14px; gap: 7px; border-radius: 13px; }
+  .sp-card-q { font-size: 0.68rem; min-height: 2.6em; }
   .sp-icon { width: 42px; height: 42px; font-size: 1.25rem; border-radius: 11px; }
   .sp-name-card { font-size: 0.8rem; line-height: 1.2; }
   .sp-desc, .sp-badge { display: none; }
   .sp-reassure { font-size: 0.68rem; }
   .sp-deva { font-size: 0.74rem; }
+  .sp-deva-avatar { width: 26px; height: 26px; }
 }
