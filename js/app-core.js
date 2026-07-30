@@ -3894,31 +3894,10 @@ function renderDevaSearching(c, opts){
   }, 720);
 }
 
-// Aide de Deva pendant la création de lieu : ouvre le chatbot et lui pose une
-// question contextuelle selon l'étape en cours et les données déjà saisies.
-function devaAideCreer(){
-  const nom = cData.nom ? '« ' + cData.nom + ' »' : 'mon lieu';
-  const typeLbl = (typeof TYPES_LIEU !== 'undefined' ? (TYPES_LIEU.find(x => x.id === cData.type) || {}).l : '');
-  const t = typeLbl ? nom + ' (' + typeLbl + ')' : nom;
-  const prompts = {
-    0: 'Je crée ' + t + ' sur EVAD. Aide-moi à bien le nommer et à choisir le bon type de lieu.',
-    1: 'Je remplis la fiche de ' + t + '. Aide-moi à rédiger une description claire et engageante, et dis-moi quelles infos comptent le plus.',
-    2: 'Pour ' + t + ', quels espaces physiques décrire (nom, fonction) ? Donne-moi des exemples adaptés à ce type de lieu.',
-    3: 'Deva a présélectionné des solutions pour ' + t + '. Aide-moi à choisir les plus pertinentes et explique-moi leur impact (les ICI).'
-  };
-  const q = prompts[cStep] || ('Aide-moi à créer ' + t + ' sur EVAD.');
-  const open = (typeof devaChatOpen !== 'undefined') ? devaChatOpen : false;
-  if (!open && typeof devaToggleChat === 'function') devaToggleChat();
-  const input = document.getElementById('deva-chat-input');
-  if (input) input.value = q;
-  setTimeout(() => { if (typeof devaSubmit === 'function') devaSubmit(); }, open ? 60 : 360);
-}
-
-// Clic sur la pastille Deva : aide contextuelle en création de lieu, sinon ouvre le chat.
+// Clic sur la pastille Deva : ouvre simplement le chat. L'utilisateur pose
+// lui-même sa question (plus d'envoi automatique de message scripté).
 function devaPillClick(){
-  const cr = document.getElementById('screen-creer');
-  if (cr && cr.classList.contains('active') && typeof devaAideCreer === 'function') devaAideCreer();
-  else if (typeof devaToggleChat === 'function') devaToggleChat();
+  if (typeof devaToggleChat === 'function') devaToggleChat();
 }
 
 // État « rempli » du lieu, pour détecter ce que l'utilisateur vient d'ajouter.
