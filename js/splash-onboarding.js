@@ -251,5 +251,43 @@ function goBackToLinktree() {
   });
   const overlay = document.getElementById('sp-ob-overlay');
   if (overlay) { overlay.style.display = 'none'; overlay.classList.remove('visible'); }
+  splashInitResume(); // rafraîchit le bouton « Reprendre » (un brouillon a pu être créé entre-temps)
 }
+
+// ── « Reprendre ma session » : si un brouillon (fiche lieu / bâtisseur /
+// semeur) a été commencé lors d'une visite précédente, on propose d'y revenir
+// directement, sans repasser par le choix de profil ni l'onboarding.
+const SPLASH_DRAFTS = [
+  { kind: 'lieu',      role: 'pilote',    label: 'Pilote' },
+  { kind: 'batisseur', role: 'batisseur', label: 'Bâtisseur' },
+  { kind: 'semeur',    role: 'semeur',    label: 'Semeur' }
+];
+function splashDetectDraft() {
+  let best = null;
+  SPLASH_DRAFTS.forEach(d => {
+    let ts = 0;
+    try {
+      const raw = JSON.parse(localStorage.getItem('evad:v1:draft:' + d.kind) || 'null');
+      if (raw && raw.data) ts = Date.parse(raw.updated_at || '') || 1;
+    } catch (e) {}
+    if (ts && (!best || ts > best.ts)) best = Object.assign({ ts }, d);
+  });
+  return best;
+}
+function splashInitResume() {
+  const btn = document.getElementById('sp-resume');
+  if (!btn) return;
+  const d = splashDetectDraft();
+  if (!d) { btn.style.display = 'none'; return; }
+  btn._role = d.role;
+  btn.innerHTML = '↩&nbsp; Reprendre ma session <span class="sp-resume-sub">(' + d.label + ')</span>';
+  btn.style.display = 'flex';
+}
+function splashResumeClick() {
+  const btn = document.getElementById('sp-resume');
+  splashRole = (btn && btn._role) ? btn._role : 'pilote';
+  spObFinish(); // ferme le splash, applique le rôle et ouvre l'écran de création où le brouillon se restaure
+}
+if (document.readyState !== 'loading') splashInitResume();
+else document.addEventListener('DOMContentLoaded', splashInitResume);
 
