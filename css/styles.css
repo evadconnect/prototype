@@ -3420,6 +3420,21 @@ body {
 #sp-ob-overlay.visible { opacity:1 !important; }
 .sp-ob-dot.sp-ob-active { width:26px !important; border-radius:100px !important; }
 
+/* Onboarding (tunnel de profil) sur mobile : le panneau gauche faisait 480px
+   fixes et le panneau visuel de droite tombait à 0px. On empile en une seule
+   colonne pleine largeur et on masque le schéma décoratif (le contenu se suffit). */
+@media (max-width: 760px) {
+  #sp-ob-overlay > div { display: block !important; height: 100dvh !important; width: 100vw !important; }
+  #sp-ob-left {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    height: 100dvh !important;
+    flex-shrink: 1 !important;
+    padding: 1.5rem 1.25rem calc(1.4rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  #sp-ob-right { display: none !important; }
+}
+
 /* === bloc style (lignes 3999-4120 de l'original) === */
 @keyframes panelIn {
   from { opacity:0; transform:translateX(12px); }

@@ -9,7 +9,7 @@ const OB_STEP2 = {
   type: 'cycle',
   steps: [
     { num: '🎯', title: 'La Vadance, la promesse', text: 'Le score d\'impact projeté d\'un lieu, sur 100. Calculé sur les valeurs prévues (le plan). Il sert à mobiliser la communauté et à convaincre les financeurs.' },
-    { num: '✅', title: 'La Vadité, la preuve', text: 'L\'impact réellement prouvé et vérifié. Chaque donnée est décotée selon son niveau de preuve : déclaré, documenté, validé par les pairs, audité. C\'est ce que reçoit le financeur.' },
+    { num: '✅', title: 'La Vadité, la preuve', text: 'L\'impact réellement prouvé et vérifié. Chaque donnée compte selon son niveau de preuve : déclaré, documenté, validé par les pairs, audité. C\'est ce que reçoit le financeur.' },
     { num: '⚖️', title: 'L\'indice de confiance', text: 'Vadité ÷ Vadance : la capacité d\'un lieu à transformer ses promesses en preuves. L\'indicateur anti-greenwashing d\'EVAD.' }
   ]
 };
@@ -39,8 +39,8 @@ const OB_DATA = {
         steps: [
           { num: '1', title: 'Publie ton lieu & tes quêtes', text: 'Décris ton projet, ses espaces, sa phase. Propose des missions à fort impact.' },
           { num: '2', title: 'Les Bâtisseurs s\'engagent', text: 'Ils rejoignent tes quêtes, contribuent en compétences et génèrent des preuves vérifiables.' },
-          { num: '3', title: 'Les Semeurs financent', text: 'Entreprises et fondations financent des projets contre des preuves d\'impact certifiés ESRS.' },
-          { num: '4', title: 'La Vadance progresse', text: 'Chaque preuve certifiée fait progresser ton lieu et débloque de nouveaux financements.' }
+          { num: '3', title: 'Les Semeurs financent', text: 'Entreprises et fondations soutiennent ton projet en échange de preuves d\'impact fiables.' },
+          { num: '4', title: 'Ton impact progresse', text: 'Chaque preuve validée fait grandir ton lieu et débloque de nouveaux financements.' }
         ]
       },
       OB_STEP2
@@ -70,7 +70,7 @@ const OB_DATA = {
         steps: [
           { num: '1', title: 'Crée ta fiche et profil de compétences', text: 'Décris tes savoir-faire, ta dispo et ta zone d\'action. Deva te recommande les lieux compatibles.' },
           { num: '2', title: 'Rejoins une quête sur la carte', text: 'Filtre par compétence, date ou lieu. Engage-toi en un clic et coordonne avec le Pilote.' },
-          { num: '3', title: 'Certifie ta contribution', text: 'Photo, mesure, témoignage pair. La preuve est vérifiée et publiée sur la blockchain légère EVAD.' },
+          { num: '3', title: 'Certifie ta contribution', text: 'Photo, mesure ou témoignage : ta preuve est vérifiée, puis enregistrée de façon infalsifiable.' },
           { num: '4', title: 'Reçois et dépense tes graines', text: 'Échange tes graines contre des avantages locaux : paniers, stages, hébergements, formations.' }
         ]
       },
@@ -100,8 +100,8 @@ const OB_DATA = {
         },
         steps: [
           { num: '1', title: 'Crée ta fiche financeur', text: 'Décris tes critères ESG, secteurs prioritaires et enveloppe disponible. Deva te suggère les lieux compatibles.' },
-          { num: '2', title: 'Sélectionne et engage un lieu', text: 'Définis les jalons avec le Pilote. Les ƒ sont bloqués jusqu\'à validation de chaque étape.' },
-          { num: '3', title: 'Suivi des jalons & preuves', text: 'Chaque jalon est validé par les Bâtisseurs + oracle EVAD. Preuve NFT générée automatiquement.' },
+          { num: '2', title: 'Sélectionne et engage un lieu', text: 'Définis les étapes avec le Pilote. Les fonds sont débloqués au fil des étapes validées.' },
+          { num: '3', title: 'Suivi des étapes & preuves', text: 'Chaque étape est validée par les Bâtisseurs et vérifiée par EVAD, avec une preuve d\'impact infalsifiable générée automatiquement.' },
           { num: '4', title: 'Rapport d\'impact ESRS exportable', text: 'Un rapport complet et auditable est généré à la clôture, intégrable directement dans ton CSRD.' }
         ]
       },
