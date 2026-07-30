@@ -3289,15 +3289,21 @@ function bddEspaceDetail(esp){
 let _bddDetailTab = 'solution';
 function bddSwitchTab(tab, btn){
   _bddDetailTab = tab;
-  document.querySelectorAll('.bdd-detail-tab').forEach(b=>b.classList.remove('active'));
+  // On limite l'effet à la fiche contenant le bouton cliqué (Bibliothèque OU modale).
+  const scope = (btn && btn.closest && btn.closest('.sol-fiche')) || document;
+  scope.querySelectorAll('.bdd-detail-tab').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
-  const sol = document.getElementById('bdd-tab-solution');
-  const que = document.getElementById('bdd-tab-quete');
+  const sol = scope.querySelector('.bdd-panel-solution');
+  const que = scope.querySelector('.bdd-panel-quete');
   if(sol) sol.style.display = tab==='solution' ? 'block' : 'none';
   if(que) que.style.display = tab==='quete'    ? 'block' : 'none';
 }
 
-function bddDetail(s){
+// Rendu unifié d'une fiche solution (Bibliothèque ET modale de création).
+// opts.context : 'biblio' (défaut) ou 'modal' (masque les CTA de navigation).
+function solFicheHTML(s, opts){
+  opts = opts || {};
+  const showCTAs = (opts.context || 'biblio') !== 'modal';
   const cv=CATS[s.cat]||{c:'#666',bg:'#eee',l:'Autre'};
   const cplxMeta={
     facile:{c:'#2e6020',bg:'rgba(74,140,92,.12)',bar:1,label:'Facile'},
@@ -3329,8 +3335,8 @@ function bddDetail(s){
 
   // (plan & materiel now rendered inline via SOLS_INDICATORS in the Quête tab)
 
-  document.getElementById('bdd-detail').innerHTML=`
-  <div style="padding-bottom:2rem">
+  return `
+  <div class="sol-fiche" style="padding-bottom:2rem">
 
     <!-- ① HERO avec image -->
     <div style="position:relative;overflow:hidden;min-height:200px">
@@ -3354,7 +3360,7 @@ function bddDetail(s){
     </div>
 
     <!-- PANNEAU SOLUTION -->
-    <div id="bdd-tab-solution">
+    <div class="bdd-panel-solution">
 
     <!-- ② KPI Impact (hero metric) -->
     <div style="margin:1.1rem 1.4rem 0;background:white;border:1.5px solid rgba(74,140,92,.2);border-radius:1rem;padding:1rem 1.2rem;display:flex;align-items:center;gap:1rem;box-shadow:0 2px 12px rgba(46,102,66,.07)">
@@ -3411,15 +3417,15 @@ function bddDetail(s){
     </div>
 
     <!-- ⑧ CTA -->
-    <div style="margin:1.2rem 1.4rem 0;display:flex;gap:.6rem">
+    ${showCTAs ? `<div style="margin:1.2rem 1.4rem 0;display:flex;gap:.6rem">
       <button class="btn btn-primary" style="flex:1;padding:.7rem" onclick="showScreen('creer')">+ Ajouter à mon lieu</button>
-      <button class="btn btn-ghost" style="padding:.7rem .9rem;font-size:.75rem" onclick="bddSwitchTab('quete',document.querySelectorAll('.bdd-detail-tab')[1])">⚡ Quête</button>
-    </div>
+      <button class="btn btn-ghost" style="padding:.7rem .9rem;font-size:.75rem" onclick="bddSwitchTab('quete',this.closest('.sol-fiche').querySelectorAll('.bdd-detail-tab')[1])">⚡ Quête</button>
+    </div>` : ''}
 
     </div><!-- fin bdd-tab-solution -->
 
     <!-- PANNEAU QUÊTE -->
-    <div id="bdd-tab-quete" style="display:none;padding-bottom:2rem">
+    <div class="bdd-panel-quete" style="display:none;padding-bottom:2rem">
 
       <!-- Hero quête -->
       <div style="margin:1.1rem 1.4rem 0;background:linear-gradient(135deg,#0e2a1a,#1a4a2e);border-radius:1rem;padding:1.3rem 1.4rem;position:relative;overflow:hidden">
@@ -3495,14 +3501,16 @@ function bddDetail(s){
       })()}
 
       <!-- CTA -->
-      <div style="margin:1.2rem 1.4rem 0;display:flex;gap:.6rem">
+      ${showCTAs ? `<div style="margin:1.2rem 1.4rem 0;display:flex;gap:.6rem">
         <button class="btn btn-primary" style="flex:1;padding:.75rem;font-size:.88rem" onclick="showScreen('quete')">✅ Rejoindre cette quête</button>
-      </div>
+      </div>` : ''}
 
     </div><!-- fin bdd-tab-quete -->
 
   </div>`;
 }
+// Fiche de la Bibliothèque : rend la fiche partagée dans le panneau latéral.
+function bddDetail(s){ const el=document.getElementById('bdd-detail'); if(el) el.innerHTML = solFicheHTML(s, {context:'biblio'}); }
 
 function toggleDevaPanel(){const p=document.getElementById('deva-panel');p.style.display=p.style.display==='none'?'flex':'none';}
 
