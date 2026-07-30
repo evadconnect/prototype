@@ -5218,10 +5218,8 @@ const DEVA_TOUR_STEPS = [
   { screen: 'pilote', tab: 'fiche', title: 'Ta fiche lieu ✏️', text: 'Tu peux compléter et enrichir ton lieu ici à tout moment : plus c\'est précis, plus ta Vadance est juste.' },
   { screen: 'pilote', tab: 'marketplace', title: 'Ta marketplace 🛖', text: 'Dépose ici tes <b>biens et services payables en graines</b> (paniers, ateliers, hébergement, prêt de matériel…). Les bâtisseurs et membres du réseau viennent les échanger chez toi : l\'économie regen circule.' },
   // ── Explore l'écosystème EVAD ──
-  { screen: 'gestion', title: 'La gestion de projet 🗂', text: 'Découpe ton lieu en tâches concrètes et suis l\'avancement, étape par étape.' },
   { screen: 'reseau', title: 'Le réseau 🌍', text: 'Le fil de la communauté EVAD : publie tes quêtes, suis les autres lieux, trouve des bâtisseurs.' },
   { screen: 'bdd', title: 'La bibliothèque 📚', text: 'Un catalogue de solutions, d\'indicateurs (ICI) et de ressources pour t\'inspirer et enrichir ton lieu.' },
-  { screen: 'modelisation', title: 'La modélisation 🧊', text: 'Visualise la structure de ton lieu : ses espaces, ses ressources et leurs flux.' },
   { screen: 'marketplace', title: 'La marketplace 🛖', text: 'Propose des biens et services payables en graines, et dépense les tiens chez les autres lieux : l\'économie regen circule.' },
   // ── Fin ──
   { screen: 'pilote', tab: 'apercu', title: 'À toi de jouer ! 🌿', text: 'C\'est tout pour la visite. Une question ? Je suis toujours là, en bas à gauche. Bonne exploration !' },

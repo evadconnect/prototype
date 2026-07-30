@@ -138,14 +138,8 @@
     <div class="nav-item" data-screen="pilote" data-roles="pilote" onclick="showScreen('pilote')">
       <span class="nav-icon">📊</span> Tableau de bord
     </div>
-    <div class="nav-item" data-screen="gestion" data-roles="pilote" onclick="showScreen('gestion')">
-      <span class="nav-icon">🗂</span> Gestion de projet
-    </div>
     <div class="nav-item" data-screen="quete" data-roles="batisseur" onclick="showScreen('quete')">
       <span class="nav-icon">📊</span> Tableau de bord
-    </div>
-    <div class="nav-item" data-screen="gestion" data-roles="batisseur" onclick="showScreen('gestion')">
-      <span class="nav-icon">🗂</span> Gestion de projet
     </div>
     <div class="nav-item" data-screen="semeur" data-roles="semeur" onclick="showScreen('semeur')">
       <span class="nav-icon">📊</span> Tableau de bord
@@ -159,9 +153,6 @@
     </div>
     <div class="nav-item" data-screen="bdd" onclick="showScreen('bdd')">
       <span class="nav-icon">📚</span> Bibliothèque
-    </div>
-    <div class="nav-item" data-screen="modelisation" onclick="showScreen('modelisation')">
-      <span class="nav-icon">🧊</span> Modélisation
     </div>
     <div class="nav-item" data-screen="marketplace" onclick="showScreen('marketplace')">
       <span class="nav-icon">🛖</span> Marketplace
@@ -1524,49 +1515,6 @@
 
 </div><!-- /screen-pilote -->
 
-<!-- ═══ ÉCRAN : GESTION DE PROJET (compte.evad.org) ═══ -->
-<div class="screen" id="screen-gestion">
-  <div class="topbar">
-    <div>
-      <div class="topbar-title">🗂 Gestion de projet</div>
-      <div class="topbar-sub">Pilote ton projet sur compte.evad.org</div>
-    </div>
-    <div class="topbar-actions">
-      <a href="https://compte.evad.org" target="_blank" rel="noopener" class="btn btn-ghost" style="display:flex;align-items:center;gap:.4rem;text-decoration:none">↗ Ouvrir dans un onglet</a>
-    </div>
-  </div>
-  <div style="max-width:760px;margin:0 auto;padding:2rem 1.5rem 2.5rem">
-
-    <div style="text-align:center;margin-bottom:1.8rem">
-      <div style="font-family:'Satoshi', sans-serif;font-size:1.4rem;font-weight:900;color:var(--ink);margin-bottom:.3rem">Ton espace de gestion de projet</div>
-      <div style="font-size:.82rem;color:var(--moss);opacity:.8;line-height:1.5;max-width:480px;margin:0 auto">Tout ce dont ton projet a besoin, réuni dans un seul espace sécurisé sur <strong>compte.evad.org</strong>. Clique sur une application pour l'ouvrir.</div>
-    </div>
-
-    <!-- Bouton central de connexion -->
-    <div style="display:flex;justify-content:center;margin-bottom:1.8rem">
-      <a href="https://compte.evad.org" target="_blank" rel="noopener" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:.6rem;text-decoration:none;padding:.85rem 1.8rem;font-size:.9rem;font-weight:700;border-radius:100px;box-shadow:0 8px 22px rgba(1,130,98,.25)">
-        Aller sur le compte EVAD
-      </a>
-    </div>
-
-    <!-- Grille des applications Nextcloud (générée par renderNcApps) -->
-    <div id="nc-apps-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.9rem"></div>
-
-    <!-- Pieds de page -->
-    <div style="display:flex;flex-wrap:wrap;gap:.8rem;justify-content:space-between;margin-top:1.6rem">
-      <div style="display:inline-flex;align-items:center;gap:.5rem;background:white;border:1px solid rgba(46,102,66,.12);border-radius:100px;padding:.5rem 1rem;font-size:.78rem;color:var(--ink)">
-        <span style="width:13px;height:13px;border-radius:50%;background:#0082c9;flex-shrink:0"></span> Propulsé par <span style="color:#0082c9;font-weight:700">Nextcloud</span>
-      </div>
-      <div style="display:inline-flex;align-items:center;gap:.5rem;background:white;border:1px solid rgba(46,102,66,.12);border-radius:100px;padding:.5rem 1rem;font-size:.78rem">
-        🇫🇷 <span style="color:var(--forest);font-weight:600">Hébergement souverain</span>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<script src="js/data-nextcloud.js?v=56"></script>
-
 <!-- ═══ ÉCRAN : RÉSEAU (réseau social solarpunk) ═══ -->
 <div class="screen" id="screen-reseau">
   <div class="topbar">
@@ -1622,125 +1570,6 @@
         <button onclick="mmBubble('➕ Proposer un nouveau cercle de parole')" style="background:rgba(46,102,66,.08);color:var(--forest);border:none;border-radius:100px;padding:.4rem .85rem;font-size:.7rem;font-weight:700;cursor:pointer;flex-shrink:0">+ Créer</button>
       </div>
       <div id="reseau-cercles" style="display:flex;flex-direction:column;gap:.8rem"></div>
-    </div>
-
-  </div>
-</div>
-
-<!-- ════════════════════ SCREEN : MODÉLISATION (jumeau numérique / Luanti) ════════════════════ -->
-<div class="screen" id="screen-modelisation">
-  <div class="topbar">
-    <div>
-      <div class="topbar-title">🧊 Modélisation</div>
-      <div class="topbar-sub">Le miroir vivant de ton lieu : visualise tes espaces, tes flux et ta maturité en 3D, et fais évoluer ta maquette en parallèle du réel.</div>
-    </div>
-  </div>
-
-  <div style="max-width:940px;margin:0 auto;padding:1.4rem 1.2rem 3rem">
-
-    <!-- ░░ HERO ░░ -->
-    <div style="position:relative;overflow:hidden;border-radius:24px;background:linear-gradient(135deg,#013f30,#018262 70%);color:#fff;padding:2rem 1.8rem;margin-bottom:1.6rem;box-shadow:0 18px 40px -18px rgba(1,130,98,.6)">
-      <div style="position:absolute;inset:0;opacity:.12;background-image:linear-gradient(rgba(255,255,255,.6) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.6) 1px,transparent 1px);background-size:26px 26px"></div>
-      <div style="position:relative">
-        <div style="display:inline-flex;align-items:center;gap:.4rem;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:.3rem .8rem;font-size:.68rem;font-weight:700;letter-spacing:.02em;margin-bottom:.9rem">⛏ Propulsé par Luanti · le « Minecraft » libre & open-source</div>
-        <h2 style="font-size:1.7rem;font-weight:800;line-height:1.2;margin-bottom:.6rem;max-width:620px">Vois ton lieu prendre forme,<br>avant même de poser une pierre</h2>
-        <p style="font-size:.9rem;line-height:1.6;opacity:.92;max-width:600px;margin-bottom:1.3rem">Ta fiche lieu et les solutions repérées par Deva se transforment en un <strong>monde 3D habitable</strong>. Promène-toi dans tes espaces, regarde tes flux circulaires boucler d'un espace à l'autre, et vois l'état de chaque impact s'afficher au-dessus des installations. Pas une pelletée de terre déplacée : juste ton projet, rendu lisible et partageable.</p>
-        <div style="display:flex;gap:.7rem;flex-wrap:wrap">
-          <button onclick="mmBubble('🧊 Lancement de l\'éditeur de modélisation Luanti… (démo)')" style="background:var(--cream);color:var(--forest);border:none;border-radius:100px;padding:.7rem 1.4rem;font-size:.82rem;font-weight:800;cursor:pointer;box-shadow:0 6px 16px -6px rgba(0,40,30,.45)">🧊 Lancer la modélisation</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ░░ 3 PILIERS ░░ -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-bottom:1.8rem">
-      <div style="background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:18px;padding:1.3rem 1.2rem">
-        <div style="width:46px;height:46px;border-radius:12px;background:rgba(1,130,98,.1);display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:.8rem">🏗</div>
-        <div style="font-size:.98rem;font-weight:800;color:var(--ink);margin-bottom:.35rem">Mettre en monde</div>
-        <div style="font-size:.8rem;line-height:1.55;color:var(--moss)">Tes espaces et les solutions de ta bibliothèque deviennent des blocs que tu places et déplaces. Une maquette accessible à tous, sans logiciel de pro : un diagramme qu'on peut habiter, pas un plan d'architecte.</div>
-      </div>
-      <div style="background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:18px;padding:1.3rem 1.2rem">
-        <div style="width:46px;height:46px;border-radius:12px;background:rgba(240,176,50,.16);display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:.8rem">🔄</div>
-        <div style="font-size:.98rem;font-weight:800;color:var(--ink);margin-bottom:.35rem">Explorer les flux</div>
-        <div style="font-size:.8rem;line-height:1.55;color:var(--moss)">Marche le long des boucles : quand un espace produit ce qu'un autre consomme, le chemin entre les deux devient visible. Ton économie circulaire, tu la vois tourner. La maturité de chaque espace (de l'idée à l'opérationnel) se lit d'un coup d'œil.</div>
-      </div>
-      <div style="background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:18px;padding:1.3rem 1.2rem">
-        <div style="width:46px;height:46px;border-radius:12px;background:rgba(58,110,140,.14);display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:.8rem">📊</div>
-        <div style="font-size:.98rem;font-weight:800;color:var(--ink);margin-bottom:.35rem">Lire tes impacts</div>
-        <div style="font-size:.8rem;line-height:1.55;color:var(--moss)">Chaque solution posée affiche l'indicateur que ton lieu suit, déclaré, documenté ou vérifié. Les chiffres viennent de ta Vadance, calculés par EVAD et rendus dans le monde. Le réel et le virtuel parlent la même donnée.</div>
-      </div>
-    </div>
-
-    <!-- ░░ COMMENT ÇA MARCHE, LE JUMEAU NUMÉRIQUE ░░ -->
-    <div style="background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:20px;padding:1.5rem 1.4rem;margin-bottom:1.8rem">
-      <div style="font-size:1.05rem;font-weight:800;color:var(--ink);margin-bottom:.3rem">Le jumeau numérique, étape par étape</div>
-      <div style="font-size:.8rem;color:var(--moss);margin-bottom:1.3rem">Un miroir vivant de ton lieu, que tu fais évoluer en parallèle du réel.</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1rem">
-        <div style="position:relative;padding-left:.2rem">
-          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem"><span style="width:26px;height:26px;border-radius:50%;background:var(--forest);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:800;flex-shrink:0">1</span><span style="font-size:.85rem;font-weight:800;color:var(--ink)">Partir de ta fiche</span></div>
-          <div style="font-size:.76rem;line-height:1.5;color:var(--moss)">Ton lieu, tes espaces et les solutions de Deva génèrent automatiquement le monde. Aucun plan à importer : ce que tu as déjà saisi suffit.</div>
-        </div>
-        <div style="position:relative;padding-left:.2rem">
-          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem"><span style="width:26px;height:26px;border-radius:50%;background:var(--forest);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:800;flex-shrink:0">2</span><span style="font-size:.85rem;font-weight:800;color:var(--ink)">Aménager</span></div>
-          <div style="font-size:.76rem;line-height:1.5;color:var(--moss)">Place et réarrange tes espaces et tes solutions, compare plusieurs dispositions côte à côte, imagine le lieu d'après.</div>
-        </div>
-        <div style="position:relative;padding-left:.2rem">
-          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem"><span style="width:26px;height:26px;border-radius:50%;background:var(--forest);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:800;flex-shrink:0">3</span><span style="font-size:.85rem;font-weight:800;color:var(--ink)">Explorer</span></div>
-          <div style="font-size:.76rem;line-height:1.5;color:var(--moss)">Parcours tes flux, repère les synergies entre espaces, vois où la boucle se ferme et où elle fuit encore.</div>
-        </div>
-        <div style="position:relative;padding-left:.2rem">
-          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem"><span style="width:26px;height:26px;border-radius:50%;background:var(--fern);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:800;flex-shrink:0">4</span><span style="font-size:.85rem;font-weight:800;color:var(--ink)">Décider</span></div>
-          <div style="font-size:.76rem;line-height:1.5;color:var(--moss)">Choisis le meilleur aménagement, puis renvoie-le dans ton tableau de bord : chaque choix devient une quête réelle, prête à mobiliser ta communauté.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ░░ GALERIE EXEMPLES ░░ -->
-    <div style="margin-bottom:1.8rem">
-      <div style="font-size:1.05rem;font-weight:800;color:var(--ink);margin-bottom:.3rem">🧱 Des lieux déjà mis en monde</div>
-      <div style="font-size:.8rem;color:var(--moss);margin-bottom:1.1rem">Des exemples de lieux EVAD rendus dans Luanti : espaces, cultures et installations posés bloc par bloc, à partir de leur fiche.</div>
-      <!-- Image principale -->
-      <div style="position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(46,102,66,.12);box-shadow:0 14px 30px -18px rgba(1,130,98,.55);margin-bottom:.9rem">
-        <img src="img/modelisation/evad-mc-logo.jpg" alt="Le lieu EVAD modélisé dans Luanti" loading="lazy" style="display:block;width:100%;height:auto">
-        <div style="position:absolute;left:0;right:0;bottom:0;padding:1.1rem 1.1rem .85rem;background:linear-gradient(transparent,rgba(1,40,30,.82));color:#fff;font-size:.84rem;font-weight:700;line-height:1.4">📍 La place EVAD, là où se retrouvent les joueurs pour découvrir EVAD : festival en ligne, bibliothèque, monde à +2 degrés, concept EVAD…</div>
-      </div>
-      <!-- Grille -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.9rem">
-        <figure style="margin:0;background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:16px;overflow:hidden">
-          <img src="img/modelisation/evad-mc-hameau.jpg" alt="EVAD&amp;Vous 1ère édition, construction de l'Équipe Bleu" loading="lazy" style="display:block;width:100%;height:160px;object-fit:cover">
-          <figcaption style="padding:.6rem .85rem;font-size:.76rem;font-weight:600;color:var(--ink)">🔵 EVAD&amp;Vous 1ère édition : Équipe Bleu</figcaption>
-        </figure>
-        <figure style="margin:0;background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:16px;overflow:hidden">
-          <img src="img/modelisation/evad-mc-grange.jpg" alt="EVAD&amp;Vous 1ère édition, construction de l'Équipe Rouge" loading="lazy" style="display:block;width:100%;height:160px;object-fit:cover">
-          <figcaption style="padding:.6rem .85rem;font-size:.76rem;font-weight:600;color:var(--ink)">🔴 EVAD&amp;Vous 1ère édition : Équipe Rouge</figcaption>
-        </figure>
-      </div>
-    </div>
-
-    <!-- ░░ POUR LES 3 PROFILS ░░ -->
-    <div style="font-size:1.05rem;font-weight:800;color:var(--ink);margin-bottom:.2rem">Un outil, trois usages</div>
-    <div style="font-size:.8rem;color:var(--moss);margin-bottom:1rem">La modélisation parle à chacun des profils de la communauté EVAD.</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1rem;margin-bottom:1.8rem">
-      <div style="background:#fff;border:1px solid rgba(46,107,71,.2);border-top:4px solid #2e6b47;border-radius:16px;padding:1.2rem 1.1rem">
-        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.6rem"><span style="font-size:1.2rem">🏡</span><span style="font-size:.92rem;font-weight:800;color:#2e6b47">Pilote</span></div>
-        <div style="font-size:.79rem;line-height:1.55;color:var(--moss)">Visualise l'état vivant de ton lieu, sécurise tes choix d'aménagement et présente un projet concret et lisible à tes financeurs comme à tes bâtisseurs.</div>
-      </div>
-      <div style="background:#fff;border:1px solid rgba(240,176,50,.3);border-top:4px solid #c8732a;border-radius:16px;padding:1.2rem 1.1rem">
-        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.6rem"><span style="font-size:1.2rem">🌿</span><span style="font-size:.92rem;font-weight:800;color:#a06c00">Bâtisseur</span></div>
-        <div style="font-size:.79rem;line-height:1.55;color:var(--moss)">Repère-toi dans le lieu en 3D, comprends les flux et ce que chaque quête vient changer, avant de mettre la main à la pâte.</div>
-      </div>
-      <div style="background:#fff;border:1px solid rgba(59,130,180,.25);border-top:4px solid #2563a8;border-radius:16px;padding:1.2rem 1.1rem">
-        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.6rem"><span style="font-size:1.2rem">🌾</span><span style="font-size:.92rem;font-weight:800;color:#2563a8">Semeur</span></div>
-        <div style="font-size:.79rem;line-height:1.55;color:var(--moss)">Vois l'impact d'un lieu s'afficher tel qu'il est, déclaré, documenté ou vérifié, directement dans le monde. Un état lisible vaut mieux qu'une promesse.</div>
-      </div>
-    </div>
-
-    <!-- ░░ POURQUOI LUANTI ░░ -->
-    <div style="display:flex;gap:1rem;align-items:flex-start;background:rgba(1,130,98,.06);border:1px dashed rgba(1,130,98,.3);border-radius:16px;padding:1.2rem 1.3rem">
-      <div style="font-size:1.6rem;flex-shrink:0">⛏</div>
-      <div>
-        <div style="font-size:.9rem;font-weight:800;color:var(--ink);margin-bottom:.3rem">Pourquoi Luanti ?</div>
-        <div style="font-size:.79rem;line-height:1.6;color:var(--moss)">Luanti (ex-Minetest) est un moteur de jeu <strong>libre, gratuit et open-source</strong> de type Minecraft. Il tourne sur du matériel modeste, se modifie sans licence, et son langage de blocs est familier de toute une génération. De quoi faire de la mise en monde un geste collectif et accessible, fidèle à l'esprit des communs d'EVAD.</div>
-      </div>
     </div>
 
   </div>
