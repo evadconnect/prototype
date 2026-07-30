@@ -3307,6 +3307,9 @@ function bddDetail(s){
 
   // Lieux compatibles
   const activeLieu = (typeof cData!=='undefined' && cData.type) ? cData.type : null;
+  const totalTypesLieu = (typeof TYPES_LIEU!=='undefined'?TYPES_LIEU:[]).length || 14;
+  // Quand une solution marche (presque) partout, on évite le mur de pastilles.
+  const universalLieux = (s.lieux||[]).length >= totalTypesLieu - 1;
   const lieuxChips = (s.lieux||[]).map(id=>{
     const tl=(typeof TYPES_LIEU!=='undefined'?TYPES_LIEU:[]).find(t=>t.id===id);
     if(!tl) return '';
@@ -3369,13 +3372,10 @@ function bddDetail(s){
     <!-- ③ Lieux compatibles -->
     <div style="margin:1rem 1.4rem 0;background:rgba(246,250,247,.8);border:1px solid rgba(46,102,66,.12);border-radius:1rem;padding:.85rem 1rem">
       <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--moss);opacity:.55;margin-bottom:.55rem">🏡 Compatible avec</div>
-      <div style="display:flex;flex-wrap:wrap;gap:.35rem">
-        ${lieuxChips||'<span style="font-size:.68rem;color:var(--moss);opacity:.5">Tous types de lieux</span>'}
-      </div>
+      ${universalLieux
+        ? '<div style="font-size:.72rem;color:var(--ink);font-weight:600">✓ Tous les types de lieux</div>'
+        : `<div style="display:flex;flex-wrap:wrap;gap:.35rem">${lieuxChips||'<span style="font-size:.68rem;color:var(--moss);opacity:.5">Tous types de lieux</span>'}</div>`}
     </div>
-
-    <!-- ③bis En quoi c'est régénératif -->
-    ${typeof solRegenHTML==='function'&&solRegenHTML(s.nom)?`<div style="margin:1rem 1.4rem 0">${solRegenHTML(s.nom)}</div>`:''}
 
     <!-- ④ Métriques secondaires -->
     <div style="margin:1rem 1.4rem 0;display:grid;grid-template-columns:repeat(2,1fr);gap:.55rem">
@@ -3393,9 +3393,10 @@ function bddDetail(s){
 
     <!-- ⑤⑥ Dimension régénérative & enjeux de demain -->
     ${(()=>{ const se = (typeof SOLS_ENJEUX!=='undefined' ? SOLS_ENJEUX[s.nom] : null) || {}; let h='';
-      if (se.regen) h += `<div style="margin:1rem 1.4rem 0;background:rgba(74,140,92,.06);border:1px solid rgba(74,140,92,.22);border-radius:1rem;padding:.95rem 1.1rem">
+      const regenTxt = se.regen || (typeof SOLS_REGEN!=='undefined' ? SOLS_REGEN[s.nom] : '');
+      if (regenTxt) h += `<div style="margin:1rem 1.4rem 0;background:rgba(74,140,92,.06);border:1px solid rgba(74,140,92,.22);border-radius:1rem;padding:.95rem 1.1rem">
         <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--fern);font-weight:800;margin-bottom:.4rem">🌱 En quoi c'est une solution régénérative</div>
-        <div style="font-size:.76rem;color:var(--ink);line-height:1.6;opacity:.92">${se.regen}</div>
+        <div style="font-size:.76rem;color:var(--ink);line-height:1.6;opacity:.92">${regenTxt}</div>
       </div>`;
       if (se.enjeux) h += `<div style="margin:1rem 1.4rem 0;background:rgba(200,115,42,.06);border:1px solid rgba(200,115,42,.24);border-radius:1rem;padding:.95rem 1.1rem">
         <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:#a06010;font-weight:800;margin-bottom:.4rem">🌡 À quelle problématique de demain elle répond</div>
