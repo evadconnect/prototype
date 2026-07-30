@@ -5216,11 +5216,11 @@ const DEVA_TOUR_STEPS = [
   { screen: 'pilote', tab: 'quetes', title: 'Tes quêtes ⚡', text: 'Des actions concrètes pour ton lieu. Tu mobilises des bâtisseurs, ils déposent des preuves, et tu les valides.' },
   { screen: 'pilote', tab: 'dossiers', title: 'Ton jardin d\'impact 🌱', text: 'Chaque preuve validée fait pousser tes plantes. Plus tu prouves, plus ton jardin grandit.' },
   { screen: 'pilote', tab: 'fiche', title: 'Ta fiche lieu ✏️', text: 'Tu peux compléter et enrichir ton lieu ici à tout moment : plus c\'est précis, plus ta Vadance est juste.' },
-  { screen: 'pilote', tab: 'marketplace', title: 'Ta marketplace 🛖', text: 'Dépose ici tes <b>biens et services payables en graines</b> (paniers, ateliers, hébergement, prêt de matériel…). Les bâtisseurs et membres du réseau viennent les échanger chez toi : l\'économie regen circule.' },
+  { screen: 'pilote', tab: 'marketplace', title: 'Tes avantages 🛖', text: 'Dépose ici tes <b>biens et services payables en graines</b> (paniers, ateliers, hébergement, prêt de matériel…). Les bâtisseurs et membres du réseau viennent les échanger chez toi : l\'économie regen circule.' },
   // ── Explore l'écosystème EVAD ──
   { screen: 'reseau', title: 'Le réseau 🌍', text: 'Le fil de la communauté EVAD : publie tes quêtes, suis les autres lieux, trouve des bâtisseurs.' },
   { screen: 'bdd', title: 'La bibliothèque 📚', text: 'Un catalogue de solutions, d\'indicateurs (ICI) et de ressources pour t\'inspirer et enrichir ton lieu.' },
-  { screen: 'marketplace', title: 'La marketplace 🛖', text: 'Propose des biens et services payables en graines, et dépense les tiens chez les autres lieux : l\'économie regen circule.' },
+  { screen: 'marketplace', title: 'Les avantages 🛖', text: 'Propose des biens et services payables en graines, et dépense les tiens chez les autres lieux : l\'économie regen circule.' },
   // ── Fin ──
   { screen: 'pilote', tab: 'apercu', title: 'À toi de jouer ! 🌿', text: 'C\'est tout pour la visite. Une question ? Je suis toujours là, en bas à gauche. Bonne exploration !' },
 ];

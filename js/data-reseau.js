@@ -10,44 +10,10 @@ const VADE_PHASES = {
   elever:     {label:'Élever',     letter:'E', color:'#6b5b95'},
 };
 const RESEAU_POSTS = [];
-const RESEAU_CERCLES = [];
-function renderCercles(){
-  const box = document.getElementById('reseau-cercles');
-  if(!box) return;
-  box.innerHTML = RESEAU_CERCLES.map(c=>`
-    <div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:14px;padding:1rem 1.1rem">
-      <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:.55rem">
-        <div style="width:42px;height:42px;border-radius:50%;background:${c.bg};display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0">${c.ic}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:.84rem;font-weight:800;color:var(--ink)">${c.theme}</div>
-          <div style="font-size:.62rem;color:var(--moss);opacity:.65;margin-top:.05rem">👥 ${c.membres} membres&nbsp;·&nbsp;🗣 ${c.seances} séances passées</div>
-        </div>
-        <span style="font-size:.6rem;font-weight:700;color:${c.color};background:${c.bg};border-radius:100px;padding:.22rem .55rem;flex-shrink:0">📹 ${c.format}</span>
-      </div>
-
-      <div style="font-size:.71rem;color:var(--moss);opacity:.85;line-height:1.45;margin-bottom:.6rem">${c.desc}</div>
-
-      <div style="display:flex;flex-wrap:wrap;gap:.45rem;font-size:.61rem;color:var(--moss);opacity:.75;margin-bottom:.6rem">
-        <span>🏡 ${c.mix.p} Pilotes</span><span>·</span><span>🌿 ${c.mix.b} Bâtisseurs</span><span>·</span><span>🌱 ${c.mix.s} Semeurs</span>
-      </div>
-
-      <div style="background:${c.color}0f;border:1px solid ${c.color}26;border-radius:10px;padding:.6rem .75rem;margin-bottom:.7rem">
-        <div style="font-size:.58rem;font-weight:700;color:${c.color};text-transform:uppercase;letter-spacing:.08em;margin-bottom:.2rem">🎯 Prochain sujet</div>
-        <div style="font-size:.74rem;color:var(--ink);font-weight:600;line-height:1.35">${c.sujet}</div>
-        <div style="font-size:.62rem;color:var(--moss);opacity:.7;margin-top:.35rem">🎤 Animé par ${c.anim}&nbsp;·&nbsp;🗓 ${c.next}</div>
-      </div>
-
-      <div style="display:flex;align-items:center;gap:.5rem">
-        <button onclick="mmBubble('📅 Détails du cercle « ${c.theme} », bientôt disponible')" style="background:white;border:1px solid rgba(46,102,66,.22);color:var(--moss);border-radius:100px;padding:.45rem .9rem;font-size:.7rem;font-weight:700;cursor:pointer">Détails</button>
-        <button onclick="mmBubble('🗣 Tu rejoins le cercle « ${c.theme} », rendez-vous ${c.next}')" style="margin-left:auto;background:${c.color};color:white;border:none;border-radius:100px;padding:.45rem 1.1rem;font-size:.7rem;font-weight:700;cursor:pointer">Rejoindre →</button>
-      </div>
-    </div>`).join('');
-}
+// Réseau simplifié : un seul fil d'action (les « cercles de parole » ont été retirés).
 function reseauTab(t, btn){
-  document.getElementById('reseau-view-fil').style.display = t==='fil' ? 'block' : 'none';
-  document.getElementById('reseau-view-cercles').style.display = t==='cercles' ? 'block' : 'none';
-  document.querySelectorAll('.reseau-tab').forEach(b=>{ b.style.color='var(--moss)'; b.style.opacity='.65'; b.style.borderBottomColor='transparent'; });
-  if(btn){ btn.style.color='var(--forest)'; btn.style.opacity='1'; btn.style.borderBottomColor='var(--forest)'; }
+  const fil = document.getElementById('reseau-view-fil');
+  if (fil) fil.style.display = 'block';
 }
 let reseauFilter = 'tout';
 let reseauRegenFilter = 'tout';
@@ -246,6 +212,5 @@ function renderReseau(){
     <div style="font-size:.65rem;opacity:.65;margin-top:.2rem">Pas de défilement sans fin ici, reviens quand tu veux passer à l'action.</div>
   </div>`;
 }
-renderCercles();
 reseauRenderRegenFilters();
 renderReseau();
