@@ -5207,7 +5207,7 @@ function mmBubble(t){
 }
 
 /* ─── Visite guidée Deva (après création du lieu · prototype) ─── */
-const DEVA_TOUR_STEPS = [
+const DEVA_TOUR_PILOTE = [
   { screen: 'carte', title: 'Bravo, ton lieu est sur la carte ! 🗺', text: 'Tu y retrouves tous les lieux de la communauté et leurs quêtes. Je te montre l\'essentiel en quelques secondes ?' },
   // ── Ton tableau de bord ──
   { screen: 'pilote', tab: 'apercu', title: 'Ton tableau de bord', text: 'Tu vois ici où en est ton lieu. Ta <b>Vadance</b>, c\'est ta promesse d\'impact : ce que tu vises.' },
@@ -5224,21 +5224,53 @@ const DEVA_TOUR_STEPS = [
   // ── Fin ──
   { screen: 'pilote', tab: 'apercu', title: 'À toi de jouer ! 🌿', text: 'C\'est tout pour la visite. Une question ? Je suis toujours là, en bas à gauche. Bonne exploration !' },
 ];
+// Visite guidée du Bâtisseur : passe par SON tableau de bord (écran « quete »), pas celui du Pilote.
+const DEVA_TOUR_BATISSEUR = [
+  { screen: 'carte', title: 'Bienvenue sur EVAD ! 🗺', text: 'Voici la carte : repère les lieux et les quêtes ouvertes près de chez toi. Je te montre l\'essentiel ?' },
+  { screen: 'quete', tab: 'apercu', title: 'Ton tableau de bord', text: 'Tu suis ici tes quêtes en cours, tes <b>graines</b> et ta progression, d\'un coup d\'œil.' },
+  { screen: 'quete', tab: 'quetes', title: 'Tes quêtes ⚡', text: 'Rejoins des missions publiées par les Pilotes, agis sur le terrain et dépose tes preuves.' },
+  { screen: 'quete', tab: 'competences', title: 'Tes compétences 🏅', text: 'Décris tes savoir-faire et ta disponibilité : on te proposera les quêtes qui te correspondent.' },
+  { screen: 'quete', tab: 'graines', title: 'Tes avantages 🛖', text: 'Échange les <b>graines</b> gagnées contre des paniers, ateliers, hébergements ou formations près de chez toi.' },
+  { screen: 'reseau', title: 'Le réseau 🌍', text: 'Le fil de la communauté EVAD : suis les lieux, trouve des quêtes et des rencontres.' },
+  { screen: 'bdd', title: 'La bibliothèque 📚', text: 'Un catalogue de solutions et de ressources régénératives pour t\'inspirer.' },
+  { screen: 'quete', tab: 'apercu', title: 'À toi de jouer ! 🌿', text: 'C\'est tout pour la visite. Une question ? Je suis toujours là, en bas à gauche. Bonne exploration !' }
+];
+// Visite guidée du Semeur : passe par SON tableau de bord (écran « semeur »).
+const DEVA_TOUR_SEMEUR = [
+  { screen: 'carte', title: 'Bienvenue sur EVAD ! 🗺', text: 'Voici la carte des lieux régénératifs que tu peux soutenir. Je te montre l\'essentiel ?' },
+  { screen: 'semeur', tab: 'apercu', title: 'Ton tableau de bord', text: 'Tu suis ici tes financements en cours et l\'impact qu\'ils génèrent.' },
+  { screen: 'semeur', tab: 'quetes', title: 'Quêtes à financer ⚡', text: 'Choisis les projets à soutenir. Les fonds se débloquent au fil des étapes validées.' },
+  { screen: 'semeur', tab: 'rse', title: 'RSE / CSRD 📋', text: 'Tes preuves d\'impact, structurées et exportables pour ton reporting extra-financier.' },
+  { screen: 'semeur', tab: 'graines', title: 'Tes échanges 🌱', text: 'Retrouve ici tes contrats et contreparties avec les lieux que tu finances.' },
+  { screen: 'reseau', title: 'Le réseau 🌍', text: 'Le fil de la communauté EVAD : découvre les lieux et leurs avancées.' },
+  { screen: 'bdd', title: 'La bibliothèque 📚', text: 'Le catalogue des solutions et des indicateurs d\'impact (ICI).' },
+  { screen: 'semeur', tab: 'apercu', title: 'À toi de jouer ! 🌿', text: 'C\'est tout pour la visite. Une question ? Je suis toujours là, en bas à gauche. Bonne exploration !' }
+];
+const DEVA_TOURS = { pilote: DEVA_TOUR_PILOTE, batisseur: DEVA_TOUR_BATISSEUR, semeur: DEVA_TOUR_SEMEUR };
+// La visite guidée s'adapte au rôle courant.
+function devaTourSteps() {
+  const r = (typeof currentRole !== 'undefined') ? currentRole : 'pilote';
+  return DEVA_TOURS[r] || DEVA_TOUR_PILOTE;
+}
 function devaTourStart() { devaTourGo(0); }
 function devaTourGo(n) {
-  const steps = DEVA_TOUR_STEPS;
+  const steps = devaTourSteps();
   if (n >= steps.length) { devaTourEnd(); return; }
   window._devaTourStep = Math.max(0, n);
   const s = steps[n];
   if (s.screen && typeof showScreen === 'function') { try { showScreen(s.screen); } catch (e) {} }
-  if (s.tab && s.screen === 'pilote' && typeof piloteTab === 'function') {
-    try { piloteTab(s.tab, document.getElementById('ptab-' + s.tab)); } catch (e) {}
+  if (s.tab) {
+    try {
+      if (s.screen === 'pilote' && typeof piloteTab === 'function') piloteTab(s.tab, document.getElementById('ptab-' + s.tab));
+      else if (s.screen === 'quete' && typeof batTab === 'function') batTab(s.tab, document.getElementById('btab-' + s.tab));
+      else if (s.screen === 'semeur' && typeof semeurTab === 'function') semeurTab(s.tab, document.getElementById('stab-' + s.tab));
+    } catch (e) {}
   }
   setTimeout(devaTourRender, s.tab ? 140 : 60);
 }
 function devaTourRender() {
   const n = window._devaTourStep || 0;
-  const steps = DEVA_TOUR_STEPS;
+  const steps = devaTourSteps();
   const s = steps[n]; if (!s) return;
   const last = n === steps.length - 1;
   // Bulle posée juste au-dessus du pill Deva (position calculée), largeur confortable.

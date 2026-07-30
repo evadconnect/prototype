@@ -38,6 +38,17 @@ function spObFinish() {
     setRole(r, null);
     const screens = { pilote: 'creer', batisseur: 'fiche-bat', semeur: 'fiche-sem' };
     showScreen(screens[r] || 'carte');
+    // Atterrissage en douceur : un premier pas clair selon le rôle, sauf si on
+    // reprend un brouillon (dans ce cas le message « brouillon restauré » suffit).
+    const draftKind = { pilote: 'lieu', batisseur: 'batisseur', semeur: 'semeur' }[r];
+    let hasDraft = false;
+    try { const raw = JSON.parse(localStorage.getItem('evad:v1:draft:' + draftKind) || 'null'); hasDraft = !!(raw && raw.data); } catch (e) {}
+    const firstStep = {
+      pilote: '🌿 Bienvenue ! Commençons simple : donne un nom à ton lieu.',
+      batisseur: '🌿 Bienvenue ! Commence par ton prénom et tes compétences.',
+      semeur: '🌿 Bienvenue ! Commence par le nom de ton organisation.'
+    };
+    if (!hasDraft && firstStep[r] && typeof mmBubble === 'function') setTimeout(() => mmBubble(firstStep[r]), 700);
   }, 500);
 }
 
