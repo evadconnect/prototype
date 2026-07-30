@@ -283,18 +283,3 @@ function creerOpenSolDetail(nomSol) {
 function creerCloseSolDetail() {
   document.getElementById('creer-sol-detail-modal').style.display = 'none';
 }
-
-/* Bascule entre les onglets Solution / Quête de la fiche solution (création de lieu). */
-function creerSolSwitchTab(tab, btn) {
-  document.querySelectorAll('.creer-sol-tab').forEach(b => {
-    const on = btn ? (b === btn) : (b.getAttribute('onclick') || '').includes("'" + tab + "'");
-    b.classList.toggle('active', on);
-    b.style.color = on ? 'var(--forest)' : 'var(--moss)';
-    b.style.opacity = on ? '1' : '.55';
-    b.style.borderBottom = on ? '2px solid var(--forest)' : '2px solid transparent';
-  });
-  const sol = document.getElementById('creer-sol-tab-solution');
-  const que = document.getElementById('creer-sol-tab-quete');
-  if (sol) sol.style.display = tab === 'solution' ? 'block' : 'none';
-  if (que) que.style.display = tab === 'quete' ? 'block' : 'none';
-}
