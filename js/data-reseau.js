@@ -10,6 +10,63 @@ const VADE_PHASES = {
   elever:     {label:'Élever',     letter:'E', color:'#6b5b95'},
 };
 const RESEAU_POSTS = [];
+
+/* ── Synchronisation Supabase ──────────────────────────────────────────────
+   Le fil du Réseau est stocké dans la table `reseau_posts`. On utilise le
+   client global `window.evadSupabase` (initialisé dans supabase-config.js,
+   chargé plus bas dans la page) — d'où l'attente de DOMContentLoaded avant
+   la première hydratation. ── */
+const RESEAU_BUCKET = 'reseau';
+
+// Calcule un texte relatif simple ("à l'instant", "il y a 3 h"...) à partir
+// d'une date ISO issue de Supabase (created_at).
+function reseauRelTime(iso){
+  if(!iso) return 'à l\'instant';
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diffMs / 60000);
+  if(min < 1) return 'à l\'instant';
+  if(min < 60) return 'il y a ' + min + ' min';
+  const h = Math.floor(min / 60);
+  if(h < 24) return 'il y a ' + h + ' h';
+  const j = Math.floor(h / 24);
+  return 'il y a ' + j + ' j';
+}
+
+// Convertit une ligne Supabase (table reseau_posts) vers le format post utilisé par renderReseau().
+function _reseauRowToPost(row){
+  return {
+    id: row.id,
+    profile: row.profile,
+    author: row.author,
+    lieu: row.lieu,
+    time: reseauRelTime(row.created_at),
+    type: row.type,
+    regen: row.regen,
+    text: row.text,
+    cta: row.cta,
+    quest: row.quest || null,
+    img: row.img || null
+  };
+}
+
+// Charge les posts existants depuis Supabase et remplace le fil local.
+async function reseauHydrateRemote(){
+  if(!window.evadSupabase) return;
+  try {
+    const { data, error } = await window.evadSupabase
+      .from('reseau_posts')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if(error){ console.error('Erreur lecture reseau_posts :', error.message); return; }
+    RESEAU_POSTS.length = 0;
+    (data || []).forEach(row => RESEAU_POSTS.push(_reseauRowToPost(row)));
+    renderReseau();
+  } catch(e){
+    console.error('Erreur réseau Supabase (reseau_posts) :', e);
+  }
+}
+document.addEventListener('DOMContentLoaded', reseauHydrateRemote);
+
 // Réseau simplifié : un seul fil d'action (les « cercles de parole » ont été retirés).
 function reseauTab(t, btn){
   const fil = document.getElementById('reseau-view-fil');
@@ -52,10 +109,12 @@ function reseauToggleProx(btn){
 const RF_INP = "width:100%;border:1px solid rgba(46,102,66,.18);background:rgba(46,102,66,.04);border-radius:8px;padding:.55rem .7rem;font-size:.76rem;color:var(--ink);outline:none;font-family:inherit;margin-bottom:.5rem;box-sizing:border-box;";
 let reseauFormType = 'quete';
 let reseauFormRegen = 'activer';
-let reseauFormImg = '';
+let reseauFormImg = '';   // aperçu local (base64), affiché uniquement dans le formulaire
+let reseauFormFile = null; // fichier brut, uploadé vers Storage à la publication
 function reseauFormPhoto(input){
   const file = input.files[0];
   if(!file) return;
+  reseauFormFile = file;
   const reader = new FileReader();
   reader.onload = e => {
     reseauFormImg = e.target.result;
@@ -69,8 +128,19 @@ function reseauFormPhoto(input){
 }
 function reseauRemovePhoto(){
   reseauFormImg = '';
+  reseauFormFile = null;
   const prev = document.getElementById('rf-photo-preview');
   if(prev) prev.innerHTML = '';
+}
+
+// Upload de la photo du post vers le bucket Storage `reseau`, renvoie l'URL publique.
+async function _reseauUploadPhoto(file){
+  const safe = (file.name || 'image').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(-50);
+  const path = Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '-' + safe;
+  const { error } = await window.evadSupabase.storage.from(RESEAU_BUCKET).upload(path, file);
+  if(error) throw error;
+  const { data } = window.evadSupabase.storage.from(RESEAU_BUCKET).getPublicUrl(path);
+  return data.publicUrl;
 }
 function reseauRegenChips(){
   return Object.entries(VADE_PHASES).map(([k,v])=>{
@@ -86,6 +156,7 @@ function reseauOpenForm(type){
   reseauFormType = type;
   reseauFormRegen = type==='quete' ? 'activer' : 'elever';
   reseauFormImg = '';
+  reseauFormFile = null;
   const isQuete = type==='quete';
   const box = document.getElementById('reseau-form');
   box.innerHTML = `
@@ -118,7 +189,7 @@ function reseauCloseForm(){
   const box = document.getElementById('reseau-form');
   if(box){ box.style.display='none'; box.innerHTML=''; }
 }
-function reseauPublish(){
+async function reseauPublish(){
   const v = id => (document.getElementById(id)?.value || '').trim();
   const titre = v('rf-titre'), lieu = v('rf-lieu'), detail = v('rf-detail'), message = v('rf-message');
   if(!titre && !message){ mmBubble('✍️ Ajoute au moins un titre ou un message'); return; }
@@ -136,11 +207,37 @@ function reseauPublish(){
     if(detail) t += ' 🗓 ' + detail;
     post.text = t;
   }
-  if(reseauFormImg) post.img = reseauFormImg;
+  if(reseauFormImg) post.img = reseauFormImg; // aperçu optimiste, remplacé par l'URL Storage une fois envoyé
+
+  // Affichage optimiste immédiat, avant même la réponse de Supabase.
   RESEAU_POSTS.unshift(post);
   reseauCloseForm();
   reseauSetFilter('tout', document.querySelector('.reseau-filter[data-f="tout"]'));
   mmBubble(isQuete ? '⚡ Quête publiée sur le Réseau !' : '🤝 Rencontre proposée sur le Réseau !');
+
+  // Sauvegarde réelle dans Supabase.
+  if(!window.evadSupabase){ console.error("Supabase n'est pas initialisé, post gardé localement seulement."); return; }
+  try {
+    let imgUrl = null;
+    if(reseauFormFile){
+      try { imgUrl = await _reseauUploadPhoto(reseauFormFile); }
+      catch(e){ console.error('Upload photo réseau échoué :', e); } // on continue sans image plutôt que bloquer le post
+    }
+    const row = {
+      profile: post.profile, author: post.author, lieu: post.lieu,
+      type: post.type, regen: post.regen, text: post.text, cta: post.cta,
+      quest: post.quest || null, img: imgUrl
+    };
+    const { data, error } = await window.evadSupabase.from('reseau_posts').insert(row).select().single();
+    if(error) throw error;
+    // Remplace le post optimiste par la version confirmée (id réel + image définitive).
+    const idx = RESEAU_POSTS.indexOf(post);
+    if(idx !== -1) RESEAU_POSTS[idx] = _reseauRowToPost(data);
+    renderReseau();
+  } catch(e){
+    console.error('Erreur sauvegarde reseau_posts :', e);
+    mmBubble('⚠️ Ton post est affiché ici mais n\'a pas pu être enregistré définitivement, réessaie plus tard.');
+  }
 }
 function renderReseau(){
   const feed = document.getElementById('reseau-feed');
