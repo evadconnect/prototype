@@ -64,7 +64,11 @@ function devaToggleChat() {
   devaChatOpen = !devaChatOpen;
   const win = document.getElementById('deva-chat-window');
   win.classList.toggle('open', devaChatOpen);
-  if (devaChatOpen && devaHistory.length === 0) {
+  // Message d'accueil ajouté une seule fois : on se base sur la zone de messages
+  // réellement vide (devaAddMessage n'alimente pas devaHistory, donc s'y fier
+  // dupliquait le « Bonjour » à chaque réouverture).
+  const _msgs = document.getElementById('deva-chat-messages');
+  if (devaChatOpen && _msgs && _msgs.children.length === 0) {
     devaAddMessage('deva', 'Bonjour 🌿 Je suis Deva, l\'esprit régénératif d\'EVAD. Que puis-je faire pour toi aujourd\'hui ?');
   }
   if (devaChatOpen) {
