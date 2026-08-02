@@ -1320,25 +1320,6 @@ function lieuRenderMindmap() {
     }, i * 220);
   });
 
-  // Solutions « Général » : rattachées au centre (tout le lieu).
-  const gSols = ((cData.solsByEspace && cData.solsByEspace.general) || []).map(n => SOLS.find(s => s.nom === n)).filter(Boolean);
-  if (gSols.length) {
-    const gCol = '#2e6b47', gBg = 'rgba(46,107,71,.12)';
-    const rg = Math.min(W, H) * .25 + 100;
-    gSols.forEach((sol, j) => {
-      const ga = (2 * Math.PI / gSols.length) * j - Math.PI / 2 + Math.PI / Math.max(espItems.length, 1);
-      const gx = cx + rg * Math.cos(ga), gy = cy + rg * Math.sin(ga);
-      setTimeout(() => {
-        lieuMmLine(cx, cy, gx, gy, gCol + '44', true);
-        const nd = lieuMmAdd('sol-g-' + j, '🏡 ' + sol.img + ' ' + sol.nom, gx, gy, 'sol', gCol, gBg);
-        nd.style.fontWeight = '600';
-        nd.classList.add('sol-sel');
-        nd.title = (sol.impact || '') + ' · Général (tout le lieu)';
-        nd.style.cursor = 'default';
-      }, espItems.length * 220 + j * 140);
-    });
-  }
-
   renderLieuFluxTable();
 }
 
@@ -4124,8 +4105,7 @@ function renderStep(){
     // solutions à la main : dans ce cas son choix prime.
     const _solsFp=JSON.stringify(espItems.map(({esp})=>[(esp&&esp.nom)||'',(esp&&esp.fonctions&&esp.fonctions[0])||'',(esp&&esp.probleme)||'']));
     if(!cData.solsByEspace || Object.keys(cData.solsByEspace).length===0
-       || (!cData._solsCustomized && cData._solsFingerprint!==_solsFp)
-       || (!cData._solsCustomized && !('general' in cData.solsByEspace))){
+       || (!cData._solsCustomized && cData._solsFingerprint!==_solsFp)){
       cData.solsByEspace={};
       cData._problemeSols={};        // solution → problématique qui l'a fait remonter
       const _seenSols=new Set();   // une solution n'est proposée qu'une seule fois
@@ -4150,17 +4130,6 @@ function renderStep(){
         }
         cData.solsByEspace[idx]=chosen;
       });
-      // Partie « Général » : solutions transversales qui bénéficient à
-      // l'ensemble des espaces (énergie, eau, bâti, adaptation climat).
-      const GENERAL_CATS=['electricite','eau','construction','adaptation'];
-      const gChosen=[];
-      GENERAL_CATS.forEach(cat=>{
-        if(gChosen.length>=3) return;
-        const cand=SOLS.find(s=>s.cat===cat && !_seenSols.has(s.nom)
-          && (!s.lieux || !s.lieux.length || !cData.type || s.lieux.includes(cData.type)));
-        if(cand){ gChosen.push(cand.nom); _seenSols.add(cand.nom); }
-      });
-      cData.solsByEspace.general=gChosen;
       cData._solsFingerprint=_solsFp;
       cData.solutions=[...new Set(Object.values(cData.solsByEspace).flat())];
       // La présélection ajoute des solutions APRÈS le 1er calcul de jauge :
@@ -4230,53 +4199,6 @@ function renderStep(){
         +'</div>';
     }).join('');
 
-    // ── Bloc « Général » : solutions pour l'ensemble des espaces ──
-    const generalHTML=(()=>{
-      const gCol='#2e6b47', gBg='rgba(46,107,71,.1)';
-      const assigned=(cData.solsByEspace&&cData.solsByEspace.general)||[];
-      const isOpen=window._activeEspacePanel==='general';
-      const chips=assigned.length
-        ? assigned.map(nom=>{
-            const safeNom=nom.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-            return '<span style="display:inline-flex;align-items:center;gap:0;border-radius:100px;background:'+gBg+';border:1.5px solid '+gCol+'55;font-size:.65rem;font-weight:600;color:'+gCol+';margin:.15rem;overflow:hidden">'
-              +'<span onclick="creerOpenSolDetail(\''+safeNom+'\')" title="Voir la fiche" style="padding:.22rem .45rem .22rem .6rem;cursor:pointer;display:flex;align-items:center;gap:.28rem">'
-              +'<span>'+nom+'</span>'
-              +'<span style="font-size:.58rem;opacity:.55">↗</span>'
-              +'</span>'
-              +'<span style="width:1px;height:16px;background:'+gCol+'33;flex-shrink:0"></span>'
-              +'<button onclick="creerRemoveSol(\'general\',\''+safeNom+'\')" title="Retirer" style="border:none;background:none;color:'+gCol+';cursor:pointer;font-size:.72rem;line-height:1;padding:.22rem .5rem;opacity:.55;transition:opacity .15s" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'.55\'">✕</button>'
-              +'</span>';
-          }).join('')
-        : '<span style="font-size:.65rem;color:var(--moss);opacity:.4;font-style:italic">Aucune solution</span>';
-      const subTxt=assigned.length
-        ? assigned.length+' solution'+(assigned.length!==1?'s':'')+' pour tout le lieu'
-        : 'Solutions pour l\'ensemble des espaces';
-      const panelHTML=isOpen
-        ? '<div style="padding:.55rem .75rem .75rem;background:rgba(46,102,66,.03);border-top:1px solid rgba(46,102,66,.1)">'
-            +'<div style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem">Bibliothèque · ajouter une solution</div>'
-            +'<div id="creer-bdd-panel-general" style="max-height:200px;overflow-y:auto">'
-            +creerBddPanelHTML('general')
-            +'</div>'
-          +'</div>'
-        : '';
-      return '<div class="creer-esp-block" style="border:1.5px solid rgba(46,107,71,.35)">'
-        +'<div class="creer-esp-header" style="cursor:default;background:rgba(46,107,71,.06)">'
-        +'<span style="font-size:1rem">🏡</span>'
-        +'<div style="flex:1;min-width:0">'
-        +'<div style="font-size:.75rem;font-weight:700;color:var(--ink)">Général · l\'ensemble du lieu</div>'
-        +'<div style="font-size:.6rem;color:var(--forest);opacity:.85">'+subTxt+'</div>'
-        +'</div>'
-        +'</div>'
-        +'<div style="padding:.5rem .75rem .6rem;background:white;display:flex;flex-wrap:wrap;align-items:center;gap:0;border-bottom:1px solid rgba(46,102,66,.07)">'
-        +chips
-        +'</div>'
-        +panelHTML
-        +(isOpen?'':'<div style="padding:.32rem .75rem .45rem;background:white">'
-            +'<button onclick="creerToggleEspacePanel(\'general\')" style="font-size:.63rem;color:var(--moss);background:none;border:none;padding:0;cursor:pointer;font-family:inherit;opacity:.65">+ Ajouter une solution depuis la bibliothèque</button>'
-            +'</div>')
-        +'</div>';
-    })();
-
     // Synergies section
     let synergiesHTML='';
     if(circLinks.length){
@@ -4308,8 +4230,7 @@ function renderStep(){
         +'<div style="font-size:.72rem;font-weight:700;color:var(--ink)">🧩 Solutions proposées</div>'
         +'<div style="margin-left:auto;font-size:.65rem;font-weight:700;background:rgba(1,130,98,.1);color:var(--forest);padding:.1rem .5rem;border-radius:100px">'+totalSols+' solution'+(totalSols!==1?'s':'')+'</div>'
       +'</div>'
-      +'<div style="font-size:.65rem;color:var(--moss);opacity:.75;margin-bottom:.9rem;line-height:1.55">Deva a présélectionné les solutions les plus adaptées : une partie Général pour tout le lieu, puis espace par espace. Retire celles qui ne te conviennent pas ou ajoute-en d\'autres depuis la bibliothèque.</div>'
-      +generalHTML
+      +'<div style="font-size:.65rem;color:var(--moss);opacity:.75;margin-bottom:.9rem;line-height:1.55">Deva a présélectionné les solutions les plus adaptées à chaque espace de ton lieu. Retire celles qui ne te conviennent pas ou ajoute-en d\'autres depuis la bibliothèque.</div>'
       +espacesHTML
       +synergiesHTML;
     const _indicateursPane = (typeof creerStep3IndicateursHTML==='function') ? creerStep3IndicateursHTML() : '';
@@ -4478,9 +4399,8 @@ const CAT_META = {
 
 function creerBddPanelHTML(espIdx){
   const assigned = (cData.solsByEspace && cData.solsByEspace[espIdx]) || [];
-  // Bloc « Général » : toutes les catégories (solutions transversales au lieu).
-  const eid = espIdx==='general' ? null : ((window._creerEspItems && window._creerEspItems[espIdx]?.eid) || 'cafe');
-  const relevantCats = eid ? (EID_CATS[eid] || Object.keys(CAT_META)) : Object.keys(CAT_META);
+  const eid = (window._creerEspItems && window._creerEspItems[espIdx]?.eid) || 'cafe';
+  const relevantCats = EID_CATS[eid] || Object.keys(CAT_META);
 
   // Uniquement les solutions dans les catégories pertinentes pour cet espace
   const available = SOLS.filter(s =>
@@ -4489,9 +4409,6 @@ function creerBddPanelHTML(espIdx){
 
   if (!available.length)
     return '<div style="padding:.65rem;text-align:center;font-size:.68rem;color:var(--moss);opacity:.45;font-style:italic">Toutes les solutions compatibles ont déjà été ajoutées</div>';
-
-  // Clé émise dans les onclick : nombre tel quel, chaîne entre quotes ('general').
-  const idxLit = (typeof espIdx==='number') ? espIdx : "'"+espIdx+"'";
 
   // Grouper par catégorie (ordre EID_CATS)
   let html = '';
@@ -4511,7 +4428,7 @@ function creerBddPanelHTML(espIdx){
         + '<div style="font-size:.57rem;color:var(--moss);opacity:.65">' + (s.impact || '') + '</div>'
         + '</div>'
         + '<button onclick="creerOpenSolDetail(\''+safeNom+'\')" style="flex-shrink:0;padding:.25rem .45rem;border-radius:.45rem;border:1.5px solid rgba(46,102,66,.2);background:transparent;color:var(--forest);font-size:.6rem;cursor:pointer">👁</button>'
-        + '<button onclick="creerAddSol('+idxLit+',\''+safeNom+'\');creerSolRefresh()" style="flex-shrink:0;padding:.25rem .55rem;border-radius:.45rem;border:none;background:var(--forest);color:white;font-size:.6rem;font-weight:700;cursor:pointer">+ Ajouter</button>'
+        + '<button onclick="creerAddSol('+espIdx+',\''+safeNom+'\');creerSolRefresh()" style="flex-shrink:0;padding:.25rem .55rem;border-radius:.45rem;border:none;background:var(--forest);color:white;font-size:.6rem;font-weight:700;cursor:pointer">+ Ajouter</button>'
         + '</div>';
     });
   });
@@ -4990,26 +4907,6 @@ function genMM(espItems){
       });
     },i*220);
   });
-
-  // Solutions « Général » : rattachées au nœud central (elles bénéficient à
-  // l'ensemble des espaces), placées entre les axes des espaces.
-  const gSols=((cData.solsByEspace&&cData.solsByEspace.general)||[]).map(n=>SOLS.find(s=>s.nom===n)).filter(Boolean);
-  if(gSols.length){
-    const gCol='#2e6b47', gBg='rgba(46,107,71,.12)';
-    const rg=Math.min(W,H)*.22+185;
-    gSols.forEach((sol,j)=>{
-      const ga=(2*Math.PI/gSols.length)*j - Math.PI/2 + Math.PI/Math.max(items.length,1);
-      const gx=cx+rg*Math.cos(ga), gy=cy+rg*Math.sin(ga);
-      setTimeout(()=>{
-        if (_gen !== window._mmGen) return;   // rendu périmé
-        mmLine(cx,cy,gx,gy,gCol+'55',true,'mn-c','mn-sol-g-'+j);
-        const nd=mmAdd('sol-g-'+j,'🏡 '+sol.img+' '+sol.nom,gx,gy,'sol',gCol,gBg);
-        nd.style.fontWeight='600'; nd.classList.add('sol-sel');
-        nd.title=(sol.impact||'')+' · Général (tout le lieu)';
-        nd.onclick=()=>{ if(typeof creerOpenSolDetail==='function') creerOpenSolDetail(sol.nom); };
-      }, items.length*220 + j*140);
-    });
-  }
 }
 
 /* Sous-nœuds ICI sous une solution sélectionnée (mind map de création).
@@ -5529,6 +5426,13 @@ async function createLieuOnMap(){
     } catch (e) {
       console.warn('Géocodage impossible, position par défaut utilisée.', e);
     }
+  }
+
+  // Le lat/lng ci-dessus n'existait qu'en mémoire (utilisé pour poser le marqueur
+  // tout de suite) : on le renvoie vers le store/Supabase pour qu'il survive à un
+  // rechargement de page, au lieu de rester à 0/0 dans la base.
+  if (window.store && myLieuData.id) {
+    try { store.update('lieux', myLieuData.id, { lat, lng }); } catch(e) {}
   }
 
   const newPlace = {
@@ -11594,8 +11498,69 @@ function renderFicheFluxTable() {
   table.style.display = 'block';
 }
 
+/* ─── Synchronisation MAP_PLACES ↔ store/Supabase ───────────────────────────
+   MAP_PLACES ne contenait jusqu'ici que les lieux ajoutés en direct pendant
+   la session en cours (voir createLieuOnMap) : au rechargement de la page,
+   il repartait vide même si le lieu existait bien dans Supabase. Cette
+   section le reconstruit à partir de store.all('lieux') (lui-même hydraté
+   depuis Supabase par store.js). ── */
+
+function _lieuRowToMapPlace(row){
+  const typeLabel = (typeof TYPES_LIEU !== 'undefined' && TYPES_LIEU.find(t => t.id === row.type)?.l) || row.type || 'Lieu';
+  const ic = (typeof TYPE_IC !== 'undefined' ? TYPE_IC[row.type] : null) || row.icon || '✦';
+  return {
+    nom: row.nom || 'Lieu sans nom',
+    type: typeLabel,
+    ville: row.localisation || row.ville || 'Nouvelle-Aquitaine',
+    score: row.vadance || 10,
+    quetes: 0,
+    icon: ic,
+    lat: row.lat ?? row.latitude ?? 48.2,
+    lng: row.lng ?? row.longitude ?? -2.8,
+    desc: row.desc || row.description || `${typeLabel} situé à ${row.localisation || 'Nouvelle-Aquitaine'}.`,
+    batisseurs: 0, semeurs: 0, score_trim: '+0',
+    dims: [
+      {l:'Environnement',v:10,c:'var(--fern)'},
+      {l:'Social',v:10,c:'var(--sky)'},
+      {l:'Éco. locale',v:10,c:'var(--amber)'}
+    ],
+    quetes_list: [],
+    besoins: (row.besoins && row.besoins.length) ? row.besoins : ['Premiers bâtisseurs','Financement de départ'],
+    deva: `"${row.nom}" fait partie de la carte EVAD.`
+  };
+}
+
+// Ajoute à MAP_PLACES les lieux du store absents (déduplique par nom, pour ne
+// pas doubler un lieu déjà poussé en direct par createLieuOnMap pendant la
+// session en cours).
+function syncMapPlacesFromStore(){
+  if (!window.store || typeof MAP_PLACES === 'undefined') return;
+  const existingNames = new Set(MAP_PLACES.map(p => p.nom));
+  store.all('lieux').forEach(row => {
+    if (existingNames.has(row.nom)) return;
+    MAP_PLACES.push(_lieuRowToMapPlace(row));
+    existingNames.add(row.nom);
+  });
+}
+
+// Rejoue le rendu (sidebar + marqueurs) une fois les lieux reçus de Supabase.
+window.addEventListener('evad:supabase-ready', function(){
+  syncMapPlacesFromStore();
+  _mapCommunityRendered = false; // force mapRenderCommunity à reparcourir MAP_PLACES
+  const carteScreen = document.getElementById('screen-carte');
+  if (carteScreen && carteScreen.classList.contains('active')) {
+    evadMap = null; // force initRealMap à reconstruire les marqueurs (sinon il s'arrête tôt si déjà initialisée)
+    initRealMap();
+  } else {
+    mapRenderCommunity();
+  }
+});
+
+// Cas où les lieux sont déjà en localStorage au chargement (visite précédente) :
+// pas besoin d'attendre Supabase, on peuple tout de suite.
+syncMapPlacesFromStore();
+
 /* ─── INIT ─── */
 setRole('pilote', null);
 renderProfileContext();
 setTimeout(initRealMap, 120);
-
