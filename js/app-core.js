@@ -2864,8 +2864,13 @@ function mapRenderCommunity() {
   if (_mapCommunityRendered) return;
   _mapCommunityRendered = true;
   const sLieux = document.getElementById('map-section-lieux');
+  if (sLieux) {
+    // Retire toutes les cartes déjà affichées (évite les doublons si cette
+    // fonction est rejouée après une mise à jour Supabase) et le placeholder
+    // "Aucun lieu" — le tout sera reconstruit ci-dessous si besoin.
+    sLieux.querySelectorAll(':scope > div').forEach(el => { if (!el.matches('[style*="text-transform:uppercase"]')) el.remove(); });
+  }
   if (sLieux && MAP_PLACES.length) {
-    sLieux.querySelectorAll(':scope > div').forEach(el => { if (/Aucun/i.test(el.textContent)) el.remove(); });
     MAP_PLACES.forEach((p, idx) => {
       const card = document.createElement('div');
       card.className = 'place-card-mini';
@@ -2889,11 +2894,20 @@ function mapRenderCommunity() {
     });
     const countEl = document.getElementById('map-lieux-count');
     if (countEl) countEl.textContent = `🏡 ${MAP_PLACES.length} Lieu${MAP_PLACES.length>1?'x':''}`;
+  } else if (sLieux) {
+    const ph = document.createElement('div');
+    ph.style.cssText = 'padding:.75rem 1.2rem;font-size:.72rem;color:var(--moss);opacity:.5';
+    ph.textContent = "Aucun lieu pour l'instant";
+    sLieux.appendChild(ph);
+    const countEl = document.getElementById('map-lieux-count');
+    if (countEl) countEl.textContent = '🏡 0 Lieu';
   }
 
   const sBat = document.getElementById('map-section-batisseurs');
+  if (sBat) {
+    sBat.querySelectorAll(':scope > div').forEach(el => { if (!el.matches('[style*="text-transform:uppercase"]')) el.remove(); });
+  }
   if (sBat && MAP_BATISSEURS.length) {
-    sBat.querySelectorAll(':scope > div').forEach(el => { if (/Aucun bâtisseur/i.test(el.textContent)) el.remove(); });
     MAP_BATISSEURS.forEach((b, idx) => {
       const stars = '★'.repeat(b.niveau) + '☆'.repeat(5 - b.niveau);
       const card = document.createElement('div');
@@ -2918,11 +2932,18 @@ function mapRenderCommunity() {
     });
     const batCount = document.getElementById('map-bat-count');
     if (batCount) batCount.textContent = `🌿 ${MAP_BATISSEURS.length} Bâtisseur${MAP_BATISSEURS.length>1?'s':''}`;
+  } else if (sBat) {
+    const ph = document.createElement('div');
+    ph.style.cssText = 'padding:.75rem 1.2rem;font-size:.72rem;color:var(--moss);opacity:.5';
+    ph.textContent = 'Aucun bâtisseur pour l\'instant';
+    sBat.appendChild(ph);
   }
 
   const sSem = document.getElementById('map-section-semeurs');
+  if (sSem) {
+    sSem.querySelectorAll(':scope > div').forEach(el => { if (!el.matches('[style*="text-transform:uppercase"]')) el.remove(); });
+  }
   if (sSem && MAP_SEMEURS.length) {
-    sSem.querySelectorAll(':scope > div').forEach(el => { if (/Aucun semeur/i.test(el.textContent)) el.remove(); });
     MAP_SEMEURS.forEach((s, idx) => {
       const card = document.createElement('div');
       card.className = 'place-card-mini';
@@ -2946,6 +2967,11 @@ function mapRenderCommunity() {
     });
     const semCount = document.getElementById('map-sem-count');
     if (semCount) semCount.textContent = `🌾 ${MAP_SEMEURS.length} Semeur${MAP_SEMEURS.length>1?'s':''}`;
+  } else if (sSem) {
+    const ph = document.createElement('div');
+    ph.style.cssText = 'padding:.75rem 1.2rem;font-size:.72rem;color:var(--moss);opacity:.5';
+    ph.textContent = 'Aucun semeur pour l\'instant';
+    sSem.appendChild(ph);
   }
 }
 
@@ -11541,17 +11567,13 @@ function _lieuRowToMapPlace(row){
   };
 }
 
-// Ajoute à MAP_PLACES les lieux du store absents (déduplique par nom, pour ne
-// pas doubler un lieu déjà poussé en direct par createLieuOnMap pendant la
-// session en cours).
+// Reconstruit entièrement MAP_PLACES à partir de store.all('lieux'), pour que
+// les lieux supprimés dans Supabase disparaissent bien de l'affichage (et pas
+// seulement les nouveaux qui apparaissent).
 function syncMapPlacesFromStore(){
   if (!window.store || typeof MAP_PLACES === 'undefined') return;
-  const existingNames = new Set(MAP_PLACES.map(p => p.nom));
-  store.all('lieux').forEach(row => {
-    if (existingNames.has(row.nom)) return;
-    MAP_PLACES.push(_lieuRowToMapPlace(row));
-    existingNames.add(row.nom);
-  });
+  MAP_PLACES.length = 0;
+  store.all('lieux').forEach(row => MAP_PLACES.push(_lieuRowToMapPlace(row)));
 }
 
 // Rejoue le rendu (sidebar + marqueurs) une fois les lieux reçus de Supabase.
