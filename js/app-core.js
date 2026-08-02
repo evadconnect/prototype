@@ -10846,16 +10846,27 @@ function batDashImg(input, key) {
   reader.readAsDataURL(file);
 }
 
-function creerLogo(input) {
+// Upload du logo vers le bucket Storage `lieux` : seule l'URL publique est
+// gardée dans cData.logo (jamais l'image en base64), pour ne pas saturer le
+// quota localStorage ni gonfler inutilement la colonne `donnees` en base.
+async function creerLogo(input) {
   const file = input.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    cData.logo = e.target.result;
-    const preview = document.getElementById('creer-logo-preview');
-    if (preview) { preview.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover">`; }
-  };
-  reader.readAsDataURL(file);
+  // Aperçu immédiat via une URL locale légère (pas de base64 stocké nulle part).
+  const preview = document.getElementById('creer-logo-preview');
+  const localUrl = URL.createObjectURL(file);
+  if (preview) { preview.innerHTML = `<img src="${localUrl}" style="width:100%;height:100%;object-fit:cover">`; }
+  if (!window.evadSupabase) { console.warn("Supabase n'est pas initialisé, logo non sauvegardé."); return; }
+  try {
+    const safe = (file.name || 'logo').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(-50);
+    const path = Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '-' + safe;
+    const { error } = await window.evadSupabase.storage.from('lieux').upload(path, file);
+    if (error) throw error;
+    const { data } = window.evadSupabase.storage.from('lieux').getPublicUrl(path);
+    cData.logo = data.publicUrl;
+  } catch (e) {
+    console.warn('Upload logo échoué, le lieu sera créé sans logo persistant.', e);
+  }
 }
 
 function creerDocs(input) {
