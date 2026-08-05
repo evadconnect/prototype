@@ -4274,7 +4274,8 @@ function renderStep(){
       +espacesHTML
       +synergiesHTML;
     const _indicateursPane = (typeof creerStep3IndicateursHTML==='function') ? creerStep3IndicateursHTML() : '';
-    window._creerS3Panes = { solutions: _solutionsPane, indicateurs: _indicateursPane };
+    const _quetesPane = (typeof creerStep3QuetesHTML==='function') ? creerStep3QuetesHTML() : '';
+    window._creerS3Panes = { solutions: _solutionsPane, indicateurs: _indicateursPane, quetes: _quetesPane };
     const _tab = window._creerStep3Tab || 'solutions';
     const _tabBtn = (id,label)=>{
       const on = _tab===id;
@@ -4283,9 +4284,10 @@ function renderStep(){
     c.innerHTML=''
       +'<div id="creer-s3-tabs" style="display:flex;gap:.4rem;margin-bottom:.8rem">'
         +_tabBtn('solutions','🧩 Solutions')
+        +_tabBtn('quetes','⚡ Quêtes')
         +_tabBtn('indicateurs','📊 Indicateurs')
       +'</div>'
-      +'<div id="creer-s3-pane">'+(_tab==='indicateurs'?_indicateursPane:_solutionsPane)+'</div>';
+      +'<div id="creer-s3-pane">'+(_tab==='indicateurs'?_indicateursPane:(_tab==='quetes'?_quetesPane:_solutionsPane))+'</div>';
 
     genMM(espItems);
     mmDrawCircularLinks(espItems, circLinks);
@@ -4346,7 +4348,47 @@ function creerStep3IndicateursHTML(){
   return html;
 }
 
-/* Bascule entre les onglets « Solutions » et « Indicateurs » sans redessiner le mind map. */
+/* Onglet « Quêtes » de l'étape 3 : l'aperçu des quêtes portées par les
+   solutions sélectionnées (l'action concrète que rejoindront les Bâtisseurs). */
+function creerStep3QuetesHTML(){
+  const selSols = cData.solutions || [];
+  const quetes = [];
+  if (typeof SOLS !== 'undefined') {
+    selSols.forEach(sn => {
+      const sol = SOLS.find(s => s.nom === sn);
+      if (sol && sol.quete) quetes.push({ sol: sol, q: sol.quete });
+    });
+  }
+  const total = quetes.length;
+  let html = ''
+    + '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem">'
+      + '<div style="font-size:.72rem;font-weight:700;color:var(--ink)">⚡ Quêtes proposées</div>'
+      + '<div style="margin-left:auto;font-size:.65rem;font-weight:700;background:rgba(1,130,98,.1);color:var(--forest);padding:.1rem .5rem;border-radius:100px">'+total+' quête'+(total!==1?'s':'')+'</div>'
+    + '</div>'
+    + '<div style="font-size:.65rem;color:var(--moss);opacity:.75;margin-bottom:.9rem;line-height:1.55">Chaque solution propose une quête : l\'action concrète que les Bâtisseurs pourront rejoindre. Tu les retrouveras dans « Mes quêtes » pour les publier.</div>';
+  if (!total) {
+    return html + '<div style="padding:1rem;text-align:center;font-size:.7rem;color:var(--moss);opacity:.55;border:1px dashed rgba(46,102,66,.2);border-radius:var(--r)">Aucune quête pour l\'instant — ajoute des solutions qui portent une quête.</div>';
+  }
+  quetes.forEach(function(item){
+    const sol = item.sol, q = item.q;
+    const ic = sol.img || '⚡';
+    html += '<div style="background:white;border:1px solid rgba(46,102,66,.14);border-left:3px solid var(--amber);border-radius:var(--r);padding:.55rem .7rem;margin-bottom:.4rem">'
+      + '<div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.3rem">'
+        + '<span style="font-size:.9rem">'+ic+'</span>'
+        + '<span style="font-size:.74rem;font-weight:700;color:var(--ink);line-height:1.2;flex:1">'+(q.titre||'Quête')+'</span>'
+      + '</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:.5rem;font-size:.62rem;color:var(--moss);opacity:.85">'
+        + (q.duree ? '<span>⏱ '+q.duree+'</span>' : '')
+        + (q.nb ? '<span>👥 '+q.nb+'</span>' : '')
+        + (q.impact_quete ? '<span style="color:var(--fern);font-weight:600">🌿 '+q.impact_quete+'</span>' : '')
+      + '</div>'
+      + '<div style="font-size:.56rem;color:var(--moss);opacity:.5;margin-top:.3rem">issue de « '+sol.nom+' »</div>'
+    + '</div>';
+  });
+  return html;
+}
+
+/* Bascule entre les onglets « Solutions » / « Indicateurs » / « Quêtes » sans redessiner le mind map. */
 function creerStep3Tab(tab){
   window._creerStep3Tab = tab;
   const pane = document.getElementById('creer-s3-pane');
