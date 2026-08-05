@@ -33,6 +33,18 @@ function genPassword() {
   return randomBytes(12).toString('base64').replace(/[+/=]/g, '').slice(0, 12);
 }
 
+// Profils autorisés d'une inscription : colonne `roles` (liste ou texte
+// "pilote,batisseur") si renseignée, sinon repli sur le champ `role`.
+function parseRoles(row) {
+  const valid = ['pilote', 'batisseur', 'semeur'];
+  let list = [];
+  if (Array.isArray(row.roles)) list = row.roles;
+  else if (typeof row.roles === 'string' && row.roles.trim()) list = row.roles.split(/[,;]/);
+  list = list.map(function (s) { return String(s).trim().toLowerCase(); }).filter(function (r) { return valid.indexOf(r) !== -1; });
+  if (!list.length) list = [ valid.indexOf(row.role) !== -1 ? row.role : 'batisseur' ];
+  return list.filter(function (r, i) { return list.indexOf(r) === i; }); // dédup
+}
+
 // Appel REST/Auth Supabase avec la clé service_role.
 function sb(path, opts = {}) {
   return fetch(SUPABASE_URL + path, {
@@ -125,7 +137,7 @@ export default async function handler(req, res) {
     // 1. Inscrits approuvés (pas encore de compte)
     const listRes = await sb(
       '/rest/v1/inscription_beta?statut=eq.' + encodeURIComponent('approuvé') +
-      '&select=id,email,prenom,nom,role,role_label'
+      '&select=id,email,prenom,nom,role,role_label,roles'
     );
     const rows = await listRes.json();
     if (!Array.isArray(rows)) {
@@ -142,6 +154,7 @@ export default async function handler(req, res) {
       if (!email) { results.push({ id: row.id, ok: false, error: 'email vide' }); continue; }
 
       const password = genPassword();
+      const roles = parseRoles(row);
 
       // 2. Créer le compte
       const createRes = await sb('/auth/v1/admin/users', {
@@ -151,7 +164,8 @@ export default async function handler(req, res) {
           password,
           email_confirm: true,
           user_metadata: {
-            role: row.role || 'batisseur',
+            roles: roles,        // profils autorisés (multi-profil)
+            role: roles[0],      // profil principal (compat)
             prenom: row.prenom || '',
             nom: row.nom || '',
           },

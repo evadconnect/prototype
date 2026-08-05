@@ -3788,6 +3788,7 @@ body {
 .auth-profil-desc{font-size:.75rem;color:var(--moss);opacity:.75}
 
 /* ─── Sélecteur de profil (sidebar) ─── */
+.role-switch3 { display: flex; gap: .4rem; }
 .role-switch3 .rsw-btn {
   flex: 1;
   display: flex;

@@ -40,10 +40,10 @@ async function evadLoginCore(email, password, onError, btn, btnLabel){
   try {
     const result = await client.auth.signInWithPassword({ email: email, password: password });
     if (result.error) throw result.error;
-    const role = result.data.user?.user_metadata?.role || 'batisseur';
-    currentRole = role;
+    const roles = evadUserRoles(result.data.user);
+    window.EVAD_ROLES = roles;
+    currentRole = roles[0];
     closeAuthModal();
-    splashRole = role;
     const splash = document.getElementById('evad-splash');
     if (splash) {
       splash.classList.remove('hidden');
@@ -51,10 +51,14 @@ async function evadLoginCore(email, password, onError, btn, btnLabel){
       splash.style.pointerEvents = '';
       splash.style.display = 'flex';
     }
-    if (typeof splashEnter === 'function') {
-      splashEnter();
+    if (typeof renderRoleSwitcher === 'function') renderRoleSwitcher(roles);
+    // Plusieurs profils → sélecteur ; un seul → entrée directe.
+    if (roles.length > 1) {
+      showProfileChooser(roles);
     } else {
-      showScreen(({ pilote:'lieu', batisseur:'batisseur', semeur:'semeur' })[role] || 'batisseur');
+      splashRole = roles[0];
+      if (typeof splashEnter === 'function') splashEnter();
+      else showScreen(({ pilote:'lieu', batisseur:'batisseur', semeur:'semeur' })[roles[0]] || 'batisseur');
     }
   } catch (e) {
     onError(e.message || 'Connexion impossible.');
@@ -73,6 +77,65 @@ async function homeLoginSubmit(){
   await evadLoginCore(email, password, function (msg) {
     if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
   }, btn, 'Se connecter');
+}
+
+// ── Multi-profil : profils autorisés du compte + sélecteur + switcher ──
+const EVAD_ROLE_META = {
+  pilote:    { ic:'🏡', name:"Pilote d'impact",    desc:"Coordonner un lieu durable." },
+  batisseur: { ic:'🌿', name:"Bâtisseur d'impact", desc:"Passer à l'action, rejoindre des quêtes." },
+  semeur:    { ic:'🌾', name:"Semeur d'impact",     desc:"Soutenir et financer des projets." }
+};
+
+// Profils autorisés d'un compte : user_metadata.roles (liste), repli sur role.
+function evadUserRoles(user){
+  const meta = (user && user.user_metadata) || {};
+  const valid = ['pilote','batisseur','semeur'];
+  let roles = Array.isArray(meta.roles) ? meta.roles.filter(function(r){ return valid.indexOf(r) !== -1; }) : [];
+  if (!roles.length) roles = [ valid.indexOf(meta.role) !== -1 ? meta.role : 'batisseur' ];
+  return roles;
+}
+
+// Sélecteur affiché à la connexion quand le compte a plusieurs profils.
+function showProfileChooser(roles){
+  const old = document.getElementById('evad-profile-chooser');
+  if (old) old.remove();
+  const ov = document.createElement('div');
+  ov.id = 'evad-profile-chooser';
+  ov.style.cssText = "position:fixed;inset:0;z-index:10002;background:rgba(14,26,18,.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:1rem;font-family:'Satoshi',sans-serif";
+  const cards = roles.map(function(r){
+    const m = EVAD_ROLE_META[r] || EVAD_ROLE_META.batisseur;
+    return '<button type="button" onclick="chooseProfile(\'' + r + '\')" style="display:flex;align-items:center;gap:.9rem;width:100%;text-align:left;padding:.9rem 1rem;border:1.5px solid rgba(1,130,98,.18);background:#fff;border-radius:14px;cursor:pointer;font-family:inherit">'
+      + '<span style="font-size:1.7rem">' + m.ic + '</span>'
+      + '<span><span style="display:block;font-weight:700;font-size:.95rem;color:#0d2b22">' + m.name + '</span>'
+      + '<span style="display:block;font-size:.75rem;color:#3d6b5a">' + m.desc + '</span></span></button>';
+  }).join('');
+  ov.innerHTML = '<div style="background:#fff;border-radius:1.5rem;max-width:460px;width:100%;padding:1.7rem 1.6rem">'
+    + '<div style="font-weight:800;font-size:1.25rem;color:#0d2b22;margin-bottom:.25rem">Bienvenue 🌱</div>'
+    + '<p style="font-size:.83rem;color:#3d6b5a;margin:0 0 1.2rem">Vous avez plusieurs profils. Lequel voulez-vous ouvrir&nbsp;?</p>'
+    + '<div style="display:grid;gap:.6rem">' + cards + '</div></div>';
+  document.body.appendChild(ov);
+}
+function chooseProfile(role){
+  const ov = document.getElementById('evad-profile-chooser');
+  if (ov) ov.remove();
+  splashRole = role;
+  currentRole = role;
+  if (typeof splashEnter === 'function') splashEnter();
+}
+
+// Switcher dans le menu de l'app (visible seulement si plusieurs profils).
+function renderRoleSwitcher(roles){
+  const c = document.getElementById('role-switch3');
+  if (!c) return;
+  if (!roles || roles.length < 2) { c.style.display = 'none'; c.innerHTML = ''; return; }
+  c.innerHTML = roles.map(function(r){
+    const m = EVAD_ROLE_META[r] || EVAD_ROLE_META.batisseur;
+    return '<button class="rsw-btn" type="button" data-role="' + r + '" title="' + m.name + '" onclick="switchRole(\'' + r + '\')">'
+      + '<span class="rsw-ic">' + m.ic + '</span>'
+      + '<span class="rsw-lbl">' + m.name.replace(" d'impact", "") + '</span></button>';
+  }).join('');
+  c.style.display = 'flex';
+  if (typeof updateRoleNavigation === 'function' && currentRole) updateRoleNavigation(currentRole);
 }
 
 function openSignupModal(){
