@@ -200,10 +200,12 @@ function syncPiloteQuetesFromLieu() {
     sols.forEach(function (nom) {
       const sol = SOLS.find(function (s) { return s.nom === nom; });
       if (!sol || !sol.quete) return;
-      const qid = 'sol-' + String(nom).replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+      // id propre au lieu → pas de collision entre Pilotes en base.
+      const lieuId = (L && L.id) || 'draft';
+      const qid = lieuId + '-sol-' + String(nom).replace(/[^a-z0-9]+/gi, '-').toLowerCase();
       if (!store.get('quetes', qid)) {
         store.upsert('quetes', {
-          id: qid, custom: false, source: nom, sourceIc: sol.img || '⚡',
+          id: qid, lieu_id: (L && L.id) || null, custom: false, source: nom, sourceIc: sol.img || '⚡',
           titre: sol.quete.titre, duree: sol.quete.duree || '-', nb: sol.quete.nb || '-',
           graines: 50, impact: sol.quete.impact_quete || '', statut: 'a_verifier'
         });

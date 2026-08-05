@@ -11631,6 +11631,14 @@ window.addEventListener('evad:supabase-ready', function(){
   }
 });
 
+// Quêtes reçues de Supabase : on resynchronise la liste et on re-rend l'onglet.
+window.addEventListener('evad:quetes-ready', function(){
+  try {
+    if (typeof syncPiloteQuetesFromLieu === 'function') syncPiloteQuetesFromLieu();
+    if (typeof renderPiloteQuetes === 'function') renderPiloteQuetes();
+  } catch(e){}
+});
+
 // Cas où les lieux sont déjà en localStorage au chargement (visite précédente) :
 // pas besoin d'attendre Supabase, on peuple tout de suite.
 syncMapPlacesFromStore();

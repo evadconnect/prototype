@@ -7,8 +7,8 @@
   var NS = 'evad';
   var VERSION = 1;
 
-  // Pour le moment, seule la table lieux est synchronisée avec Supabase.
-  var remoteTables = ['lieux'];
+  // Tables synchronisées avec Supabase (les autres restent locales).
+  var remoteTables = ['lieux', 'quetes'];
   var currentUserId = null;
 
   function keyOf(table) {
@@ -240,6 +240,60 @@
       });
   }
 
+  // ── Synchronisation des quêtes avec Supabase (table quetes) ──
+  function remoteQueteRow(row) {
+    return {
+      id: row.id,
+      user_id: currentUserId || null,
+      lieu_id: row.lieu_id || null,
+      titre: row.titre || '',
+      duree: row.duree || null,
+      nb: row.nb || null,
+      graines: (typeof row.graines === 'number') ? row.graines : (parseInt(row.graines, 10) || 50),
+      impact: row.impact || null,
+      source: row.source || null,
+      source_ic: row.sourceIc || null,
+      statut: row.statut || 'a_verifier',
+      custom: row.custom === true,
+      donnees: row,
+      updated_at: nowISO()
+    };
+  }
+
+  function upsertQueteRemote(row) {
+    if (!global.evadSupabase || !row || !row.id) return;
+    global.evadSupabase
+      .from('quetes')
+      .upsert(remoteQueteRow(row), { onConflict: 'id' })
+      .then(function (result) {
+        if (result.error) {
+          console.warn('Quête non enregistrée dans Supabase :', result.error.message);
+        }
+      });
+  }
+
+  async function hydrateQuetes() {
+    if (!global.evadSupabase) return;
+    try {
+      var result = await global.evadSupabase.from('quetes').select('*');
+      if (result.error) {
+        console.error('Erreur lecture des quêtes :', result.error.message);
+        return;
+      }
+      var remoteRows = (result.data || []).map(function (row) {
+        return Object.assign({}, row.donnees || {}, {
+          id: row.id, lieu_id: row.lieu_id, titre: row.titre, duree: row.duree,
+          nb: row.nb, graines: row.graines, impact: row.impact, source: row.source,
+          sourceIc: row.source_ic, statut: row.statut, custom: row.custom === true
+        });
+      });
+      write('quetes', remoteRows);
+      global.dispatchEvent(new CustomEvent('evad:quetes-ready', { detail: { quetes: remoteRows } }));
+    } catch (error) {
+      console.error('Erreur de récupération des quêtes :', error);
+    }
+  }
+
   /*
    * Lecture des lieux publiés.
    */
@@ -347,10 +401,12 @@
       write(table, rows);
 
       /*
-       * Seuls les lieux sont envoyés dans Supabase.
+       * Lieux et quêtes sont envoyés dans Supabase.
        */
       if (table === 'lieux') {
         insertLieuRemote(row);
+      } else if (table === 'quetes') {
+        upsertQueteRemote(row);
       }
 
       return row;
@@ -375,6 +431,8 @@
 
           if (table === 'lieux') {
             updateLieuRemote(rows[i]);
+          } else if (table === 'quetes') {
+            upsertQueteRemote(rows[i]);
           }
 
           return rows[i];
@@ -562,6 +620,7 @@
             : null;
 
         hydrateRemote();
+        hydrateQuetes();
         hydrateDrafts().then(function () {
           if (typeof global.splashInitResume === 'function') global.splashInitResume();
         });
@@ -578,6 +637,7 @@
           hydrateRemote,
           0
         );
+        setTimeout(hydrateQuetes, 0);
         hydrateDrafts().then(function () {
           if (typeof global.splashInitResume === 'function') global.splashInitResume();
         });
