@@ -6522,6 +6522,21 @@ function qdEditSection(sec) {
   qdRerender();
 }
 function qdSaveSection() {
+  // Persistance : les quêtes du Pilote portent l'id réel du store dans `srcId`
+  // (posé par openPiloteQueteFiche). On réécrit les champs éditables dans la
+  // table `quetes` → la modification survit au rechargement et à la re-synchro.
+  const q = qdQuest();
+  if (q && q.srcId && window.store) {
+    try {
+      store.update('quetes', q.srcId, {
+        titre: q.titre,
+        duree: q.duree,
+        graines: (typeof q.tokens === 'number') ? q.tokens : (parseInt(q.tokens, 10) || 50),
+        impact: q.impact,
+        desc: q.desc
+      });
+    } catch (e) {}
+  }
   _qdEditSection = null;
   mmBubble('✏️ Modifications enregistrées');
   qdRerender();

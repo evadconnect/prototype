@@ -134,7 +134,7 @@ function openPiloteQueteFiche(qid) {
     titre: pq.titre,
     type: (pq.sourceIc || (sol && sol.img) || '⚡') + ' ' + ((sol && sol.cat) || 'Quête'),
     lieu: lieuNom, pilote: lieuNom, ville: ville,
-    desc: (sol && sol.desc) || pq.titre,
+    desc: pq.desc || (sol && sol.desc) || pq.titre,
     impact: pq.impact || (sol && sol.impact) || '',
     plan: _semPlan,
     materiel: ((sol && typeof SOLS_INDICATORS !== 'undefined' && SOLS_INDICATORS[sol.nom]) ? SOLS_INDICATORS[sol.nom].materiel : null) || [],
@@ -231,7 +231,9 @@ function syncPiloteQuetesFromLieu() {
       id: r.id, titre: r.titre || 'Quête', statut: r.statut || 'a_verifier',
       duree: r.duree || '-', nb: r.nb || '-', graines: r.graines || 50,
       impact: r.impact || '', source: r.source || null,
-      sourceIc: r.sourceIc || '⚡', custom: r.custom === true
+      sourceIc: r.sourceIc || '⚡', custom: r.custom === true,
+      // desc éditée par le Pilote (sinon dérivée de la solution à l'ouverture).
+      desc: r.desc || (r.donnees && r.donnees.desc) || null
     });
   });
 }
