@@ -428,6 +428,7 @@
           })
         );
 
+        saveDraftRemote(kind, data);
         return true;
       } catch (e) {
         return false;
@@ -456,6 +457,7 @@
           draftKey(kind)
         );
       } catch (e) {}
+      clearDraftRemote(kind);
     },
 
     refreshLieux: function () {
@@ -487,8 +489,64 @@
     }
   };
 
+  // ── Brouillons synchronisés dans le cloud (table fiches_brouillons) ──
+  // Rattachés au compte connecté → on reprend sa fiche depuis n'importe quel
+  // appareil. Sans connexion, on retombe sur le brouillon localStorage seul.
+  var _draftTimers = {};
+  function saveDraftRemote(kind, data) {
+    if (!currentUserId || !global.evadSupabase) return;
+    clearTimeout(_draftTimers[kind]);
+    _draftTimers[kind] = setTimeout(function () {
+      global.evadSupabase
+        .from('fiches_brouillons')
+        .upsert(
+          { user_id: currentUserId, kind: kind, data: data, updated_at: nowISO() },
+          { onConflict: 'user_id,kind' }
+        )
+        .then(function (r) {
+          if (r.error) console.warn('Brouillon cloud non sauvegardé :', r.error.message);
+        });
+    }, 1500);
+  }
+
+  function clearDraftRemote(kind) {
+    if (!currentUserId || !global.evadSupabase) return;
+    global.evadSupabase
+      .from('fiches_brouillons')
+      .delete()
+      .eq('user_id', currentUserId)
+      .eq('kind', kind)
+      .then(function () {});
+  }
+
+  // Récupère les brouillons du compte et les injecte dans le localStorage
+  // (le cloud gagne s'il est plus récent) → l'UI existante les retrouve.
+  function hydrateDrafts() {
+    if (!currentUserId || !global.evadSupabase) return Promise.resolve();
+    return global.evadSupabase
+      .from('fiches_brouillons')
+      .select('kind,data,updated_at')
+      .eq('user_id', currentUserId)
+      .then(function (r) {
+        if (r.error || !Array.isArray(r.data)) return;
+        r.data.forEach(function (row) {
+          try {
+            var localRaw = JSON.parse(global.localStorage.getItem(draftKey(row.kind)) || 'null');
+            if (!localRaw || !localRaw.updated_at || (row.updated_at && row.updated_at >= localRaw.updated_at)) {
+              global.localStorage.setItem(
+                draftKey(row.kind),
+                JSON.stringify({ data: row.data, updated_at: row.updated_at || nowISO() })
+              );
+            }
+          } catch (e) {}
+        });
+      })
+      .catch(function () {});
+  }
+
   global.store = store;
   global.EvadStore = store;
+  store.hydrateDrafts = hydrateDrafts;
 
   /*
    * Récupération de la session Supabase si elle existe.
@@ -505,6 +563,9 @@
             : null;
 
         hydrateRemote();
+        hydrateDrafts().then(function () {
+          if (typeof global.splashInitResume === 'function') global.splashInitResume();
+        });
       });
 
     global.evadSupabase.auth.onAuthStateChange(
@@ -518,6 +579,9 @@
           hydrateRemote,
           0
         );
+        hydrateDrafts().then(function () {
+          if (typeof global.splashInitResume === 'function') global.splashInitResume();
+        });
       }
     );
   } else {
