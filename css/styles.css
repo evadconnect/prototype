@@ -2494,6 +2494,8 @@ body {
   padding: 0.95rem 1rem;
   margin-bottom: 1rem;
 }
+/* Masque la carte de contexte quand elle est vide (pas de rectangle blanc). */
+.context-card:empty { display: none; }
 .context-label {
   font-size: 0.58rem;
   text-transform: uppercase;
