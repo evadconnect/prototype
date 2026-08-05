@@ -30,6 +30,51 @@ function openLoginModal(){
   document.getElementById('auth-connexion-modal').style.display = 'flex';
 }
 
+// Cœur de connexion partagé (formulaire d'accueil + modal). Sur succès,
+// route vers l'onboarding du bon profil (rôle repris des métadonnées du compte).
+async function evadLoginCore(email, password, onError, btn, btnLabel){
+  const client = window.evadSupabase;
+  if (!client) return onError('Connexion Supabase indisponible.');
+  if (!email || password.length < 6) return onError('Saisis un email et un mot de passe de 6 caractères minimum.');
+  if (btn) { btn.disabled = true; btn.textContent = 'Patiente…'; }
+  try {
+    const result = await client.auth.signInWithPassword({ email: email, password: password });
+    if (result.error) throw result.error;
+    const role = result.data.user?.user_metadata?.role || 'batisseur';
+    currentRole = role;
+    closeAuthModal();
+    splashRole = role;
+    const splash = document.getElementById('evad-splash');
+    if (splash) {
+      splash.classList.remove('hidden');
+      splash.style.opacity = '';
+      splash.style.pointerEvents = '';
+      splash.style.display = 'flex';
+    }
+    if (typeof splashEnter === 'function') {
+      splashEnter();
+    } else {
+      showScreen(({ pilote:'lieu', batisseur:'batisseur', semeur:'semeur' })[role] || 'batisseur');
+    }
+  } catch (e) {
+    onError(e.message || 'Connexion impossible.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = btnLabel || 'Se connecter'; }
+  }
+}
+
+// Formulaire de connexion de la page d'accueil (inline).
+async function homeLoginSubmit(){
+  const email = (document.getElementById('home-email').value || '').trim();
+  const password = document.getElementById('home-password').value || '';
+  const errEl = document.getElementById('home-login-error');
+  const btn = document.getElementById('home-login-btn');
+  if (errEl) errEl.style.display = 'none';
+  await evadLoginCore(email, password, function (msg) {
+    if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+  }, btn, 'Se connecter');
+}
+
 function openSignupModal(){
   _authMode = 'signup';
   openAuthModal();
@@ -132,11 +177,14 @@ function closeAuthModal(){
 document.getElementById('auth-profil-modal').addEventListener('click',function(e){if(e.target===this)closeAuthModal();});
 document.getElementById('auth-connexion-modal').addEventListener('click',function(e){if(e.target===this)closeAuthModal();});
 
-// Arrivée depuis evad.org (« Se connecter ») : ?login=1 → ouvre la connexion directement.
+// Arrivée depuis evad.org (« Se connecter ») : ?login=1 → focus le champ email de l'accueil.
 (function(){
   try {
     if (new URLSearchParams(location.search).get('login') === '1') {
-      window.addEventListener('load', function(){ setTimeout(function(){ try { openLoginModal(); } catch(e){} }, 300); });
+      window.addEventListener('load', function(){ setTimeout(function(){
+        var el = document.getElementById('home-email');
+        if (el) { try { el.focus(); el.scrollIntoView({ behavior:'smooth', block:'center' }); } catch(e){} }
+      }, 300); });
     }
   } catch(e){}
 })();

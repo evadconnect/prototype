@@ -34,48 +34,22 @@
       <span class="sp-pill"><span class="sp-pill-leaf">🍃</span>Espace bêta-testeurs<span class="sp-pill-leaf sp-pill-leaf-r">🍃</span></span>
       <p class="sp-slogan">Bienvenue dans le prototype EVAD&nbsp;!</p>
       <p class="sp-oneliner">L'écosystème qui relie les lieux régénératifs et celles et ceux qui les font vivre.</p>
-      <p class="sp-tagline">Choisis le profil qui te ressemble, puis compose ton lieu avec tes propres données. Tes retours nous aident à construire la suite.</p>
+      <p class="sp-tagline">Coordonner un lieu, passer à l'action, soutenir des projets : EVAD réunit celles et ceux qui font vivre la transition. Connecte-toi pour composer ta fiche. Tes retours nous aident à construire la suite.</p>
     </div>
 
-      <div class="sp-sep"><div class="sp-sep-line"></div><span class="sp-sep-label">Choisis un profil pour démarrer</span><div class="sp-sep-line"></div></div>
-
-    <div class="sp-portails">
-      <button class="sp-card" type="button" aria-label="Tu portes un lieu ? Choisir le profil Pilote d'impact" onclick="splashSelect('pilote', this)">
-        <div class="sp-card-q">Tu portes un lieu&nbsp;?</div>
-        <div class="sp-icon sp-icon-pilote" aria-hidden="true">🏡</div>
-        <div class="sp-body">
-          <div class="sp-name-card">Pilote d'impact</div>
-          <div class="sp-desc">Porteur.se d'un tiers-lieu, écolieu, ferme, association…</div>
-          <span class="sp-badge bdg-pilote">Coordonner un lieu</span>
-        </div>
-      </button>
-      <button class="sp-card" type="button" aria-label="Tu veux contribuer ? Choisir le profil Bâtisseur d'impact" onclick="splashSelect('batisseur', this)">
-        <div class="sp-card-q">Tu veux contribuer&nbsp;?</div>
-        <div class="sp-icon sp-icon-bat" aria-hidden="true">🌿</div>
-        <div class="sp-body">
-          <div class="sp-name-card">Bâtisseur d'impact</div>
-          <div class="sp-desc">Membre, particulier, étudiant, entrepreneur…</div>
-          <span class="sp-badge bdg-bat">Passer à l'action</span>
-        </div>
-      </button>
-      <button class="sp-card" type="button" aria-label="Tu finances ? Choisir le profil Semeur d'impact" onclick="splashSelect('semeur', this)">
-        <div class="sp-card-q">Tu finances&nbsp;?</div>
-        <div class="sp-icon sp-icon-sem" aria-hidden="true">🌾</div>
-        <div class="sp-body">
-          <div class="sp-name-card">Semeur d'impact</div>
-          <div class="sp-desc">Financeur public/privé, fondation, collectivité…</div>
-          <span class="sp-badge bdg-sem">Soutenir des projets</span>
-        </div>
-      </button>
+    <!-- Connexion directe sur l'accueil -->
+    <div style="max-width:380px;margin:0 auto;background:#fff;border:1px solid rgba(1,130,98,.15);border-radius:16px;padding:1.4rem 1.4rem 1.2rem;box-shadow:0 10px 30px rgba(1,130,98,.08)">
+      <div style="font-family:'Satoshi',sans-serif;font-weight:800;font-size:1.15rem;color:#0d2b22;margin:0 0 .3rem">Se connecter</div>
+      <p style="font-size:.8rem;color:#3d6b5a;margin:0 0 1.1rem;font-family:'Satoshi',sans-serif">Accède à ton espace bêta-testeur EVAD.</p>
+      <input id="home-email" type="email" placeholder="Adresse email" autocomplete="email" style="width:100%;box-sizing:border-box;padding:.8rem 1rem;margin-bottom:.6rem;border:1.5px solid rgba(1,130,98,.2);border-radius:.7rem;font-size:.9rem;font-family:'Satoshi',sans-serif;color:#0d2b22;outline:none" onfocus="this.style.borderColor='#018262'" onblur="this.style.borderColor='rgba(1,130,98,.2)'">
+      <input id="home-password" type="password" placeholder="Mot de passe" autocomplete="current-password" onkeydown="if(event.key==='Enter')homeLoginSubmit()" style="width:100%;box-sizing:border-box;padding:.8rem 1rem;border:1.5px solid rgba(1,130,98,.2);border-radius:.7rem;font-size:.9rem;font-family:'Satoshi',sans-serif;color:#0d2b22;outline:none" onfocus="this.style.borderColor='#018262'" onblur="this.style.borderColor='rgba(1,130,98,.2)'">
+      <div id="home-login-error" style="display:none;color:#a83232;font-size:.75rem;margin-top:.55rem;font-family:'Satoshi',sans-serif"></div>
+      <button id="home-login-btn" type="button" onclick="homeLoginSubmit()" style="width:100%;margin-top:.9rem;padding:.85rem;border:none;border-radius:100px;background:#018262;color:#fff;font-size:.95rem;font-weight:700;font-family:'Satoshi',sans-serif;cursor:pointer">Se connecter</button>
+      <p style="font-size:.75rem;color:#3d6b5a;text-align:center;margin:.9rem 0 0;font-family:'Satoshi',sans-serif">Pas encore de compte&nbsp;? <a href="https://evad.org" target="_blank" rel="noopener" style="color:#018262;font-weight:700;text-decoration:none">Inscris-toi sur evad.org</a></p>
     </div>
 
-    <!-- Reprendre ma session (sous les 3 profils, affiché par JS si un brouillon existe) -->
+    <!-- Reprendre ma session (affiché par JS si un brouillon existe) -->
     <button id="sp-resume" class="sp-resume" type="button" style="display:none" onclick="splashResumeClick()"></button>
-
-    <!-- Déjà inscrit·e : accès direct à la connexion -->
-    <div style="text-align:center;margin-top:1.1rem">
-      <button type="button" onclick="openLoginModal()" style="background:none;border:none;color:#018262;font-family:'Satoshi',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;padding:.5rem .6rem">Déjà inscrit·e&nbsp;? <span style="text-decoration:underline">Se connecter</span></button>
-    </div>
 
     <p class="sp-deva"><img src="Deva.png" alt="" class="sp-deva-avatar" aria-hidden="true"> Deva, l'assistant, t'accompagne pas à pas</p>
 
