@@ -57,7 +57,9 @@
       });
       const data = await res.json();
       if (!res.ok) {
-        out.innerHTML = '<span class="ko">Erreur : ' + (data.error || res.status) + '</span>';
+        const http = data.http ? ' (HTTP ' + data.http + ')' : '';
+        const det = data.detail ? '<div style="margin-top:.5rem;font-size:.75rem;color:#a83232">Détail : ' + (typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)) + '</div>' : '';
+        out.innerHTML = '<span class="ko">Erreur : ' + (data.error || res.status) + http + '</span>' + det;
       } else if (!data.results || data.results.length === 0) {
         out.innerHTML = 'Aucun inscrit « approuvé » à traiter. ✅';
       } else {

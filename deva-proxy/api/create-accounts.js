@@ -103,7 +103,11 @@ export default async function handler(req, res) {
     );
     const rows = await listRes.json();
     if (!Array.isArray(rows)) {
-      return res.status(500).json({ error: 'Lecture inscription_beta impossible', detail: rows });
+      return res.status(500).json({
+        error: 'Lecture inscription_beta impossible',
+        http: listRes.status,
+        detail: rows,
+      });
     }
 
     const results = [];
