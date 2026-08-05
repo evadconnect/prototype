@@ -13,6 +13,7 @@ const ALLOWED_ORIGINS = [
   'https://evadconnect.github.io',
   'https://app.evad.org',
   'https://beta.evad.org',
+  'https://prototype-l5xc.vercel.app',
   'http://localhost:8755',
   'http://localhost:8756'
 ];
