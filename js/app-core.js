@@ -11604,7 +11604,10 @@ window.addEventListener('evad:supabase-ready', function(){
   _mapCommunityRendered = false; // force mapRenderCommunity à reparcourir MAP_PLACES
   const carteScreen = document.getElementById('screen-carte');
   if (carteScreen && carteScreen.classList.contains('active')) {
-    evadMap = null; // force initRealMap à reconstruire les marqueurs (sinon il s'arrête tôt si déjà initialisée)
+    // Détruire proprement l'ancienne carte Leaflet avant de la reconstruire :
+    // sinon les anciens marqueurs (lieux supprimés) restent affichés.
+    if (evadMap) { try { evadMap.remove(); } catch (e) {} }
+    evadMap = null;
     initRealMap();
   } else {
     mapRenderCommunity();
