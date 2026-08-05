@@ -6263,79 +6263,52 @@ function batBuildQuetesFromProfile() {
   const fd = (typeof batFicheData !== 'undefined') ? batFicheData : {};
   const skills = fd.skills || [];
   const ville = (fd.ville || '').trim().toLowerCase();
-  const lieux = (typeof MAP_PLACES !== 'undefined') ? MAP_PLACES : [];
   BAT_QUETES.length = 0;
-  // On ne propose au bâtisseur que les quêtes effectivement publiées par les pilotes
-  // (statut 'ouverte' dans PILOTE_QUETES_DEMO, reliées à leur solution par .source).
-  if (typeof syncPiloteQuetesFromLieu === 'function') { try { syncPiloteQuetesFromLieu(); } catch (e) {} }
-  const publishedSols = (typeof PILOTE_QUETES_DEMO !== 'undefined')
-    ? new Set(PILOTE_QUETES_DEMO.filter(q => q.statut === 'ouverte').map(q => q.source))
-    : new Set();
-  SOLS.filter(s => s.quete && publishedSols.has(s.nom)).forEach((sol, idx) => {
-    const text = (sol.nom + ' ' + (sol.cat || '') + ' ' + sol.quete.titre).toLowerCase();
+  if (!window.store) return;
+
+  // Toutes les quêtes OUVERTES publiées par les Pilotes (partagées via Supabase,
+  // hydratées dans le store). On retrouve le lieu hôte réel via lieu_id.
+  store.where('quetes', q => q.statut === 'ouverte').forEach((q, idx) => {
+    const lieu = q.lieu_id ? store.get('lieux', q.lieu_id) : null;
+    const hostNom = (lieu && lieu.nom) || 'Lieu EVAD';
+    const hostVille = (lieu && (lieu.localisation || lieu.ville)) || 'Bordeaux';
+
+    // Détail riche depuis la solution d'origine (si la quête vient d'une solution).
+    const sol = q.source ? SOLS.find(s => s.nom === q.source) : null;
+    const _ind = (sol && typeof SOLS_INDICATORS !== 'undefined') ? SOLS_INDICATORS[sol.nom] : null;
+    const _plan = (_ind && _ind.plan) || [];
+
+    const text = ((sol ? sol.nom + ' ' + (sol.cat || '') : '') + ' ' + (q.titre || '') + ' ' + (q.impact || '')).toLowerCase();
     const matchedSkills = skills.filter(sk => (BAT_SKILL_KW[sk] || []).some(k => text.includes(k)));
     const matched = matchedSkills.length > 0;
-    // lieu hôte : un lieu dont le type accueille cette solution, sinon rotation
-    // Ces quêtes sont les quêtes PUBLIÉES d'un lieu : on affiche le vrai nom de ce lieu.
-    const _srcNom = ((typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom) || (typeof cData !== 'undefined' && cData && cData.nom) || '');
-    const _srcVille = ((typeof myLieuData !== 'undefined' && myLieuData && (myLieuData.localisation || myLieuData.ville)) || (typeof cData !== 'undefined' && cData && cData.localisation) || 'Bordeaux');
-    let host = _srcNom
-      ? { nom: _srcNom, ville: _srcVille }
-      : (lieux.find(l => {
-          const tid = (typeof TYPES_LIEU !== 'undefined') ? (TYPES_LIEU.find(t => t.l === l.type) || {}).id : null;
-          return tid && (sol.lieux || []).includes(tid);
-        }) || lieux[idx % Math.max(1, lieux.length)] || { nom: 'Lieu EVAD', ville: 'Bordeaux' });
-    const villeMatch = ville && host.ville && host.ville.toLowerCase().includes(ville);
+    const villeMatch = ville && hostVille && hostVille.toLowerCase().includes(ville);
     let match = 62 + (matched ? 28 : 0) + (villeMatch ? 8 : 0) - (idx % 3);
     match = Math.max(55, Math.min(99, match));
-    const _ind = (typeof SOLS_INDICATORS !== 'undefined') ? SOLS_INDICATORS[sol.nom] : null;
-    const _plan = (_ind && _ind.plan) || [];
+
     BAT_QUETES.push({
-      id: 0, type: (sol.img || '⚡') + ' ' + (sol.cat || 'Quête'),
-      titre: sol.quete.titre, match: match,
-      lieu: host.nom, pilote: host.nom, ville: host.ville || 'Bordeaux',
-      desc: sol.desc || sol.quete.titre,
-      impact: sol.quete.impact_quete || sol.impact || '',
+      id: 0,
+      type: (q.sourceIc || (sol && sol.img) || '⚡') + ' ' + ((sol && sol.cat) || 'Quête'),
+      titre: q.titre || (sol && sol.quete && sol.quete.titre) || 'Quête',
+      match: match,
+      lieu: hostNom, pilote: hostNom, ville: hostVille,
+      desc: (sol && sol.desc) || q.titre || '',
+      impact: q.impact || (sol && sol.quete && sol.quete.impact_quete) || '',
       plan: _plan,
       materiel: (_ind && _ind.materiel) || [],
       preuve: 'Photos de l\'action réalisée + indicateurs mesurés (CO₂, énergie, déchets…).',
-      apprendre: 'Mise en œuvre de « ' + sol.nom + ' » et documentation de l\'impact.',
-      duree: sol.quete.duree || '1 journée',
-      places: '0/' + (parseInt(sol.quete.nb, 10) || 6),
+      apprendre: sol ? ('Mise en œuvre de « ' + sol.nom + ' » et documentation de l\'impact.') : (q.titre || ''),
+      duree: q.duree || (sol && sol.quete && sol.quete.duree) || '1 journée',
+      places: '0/' + (parseInt(q.nb, 10) || 6),
       etape_actuelle: 1, etapes: _plan.length || 4,
       etapeLabels: _plan.length ? _plan.map(p => p.titre) : ['Lancement', 'Préparation', 'Réalisation', 'Certification'],
-      tokens: sol.tok || 50, co2: sol.co2 || 0,
-      esrs: (sol.esrs || []).map(e => String(e).replace('ESRS ', '').trim()),
+      tokens: q.graines || (sol && sol.tok) || 50, co2: (sol && sol.co2) || 0,
+      esrs: ((sol && sol.esrs) || []).map(e => String(e).replace('ESRS ', '').trim()),
       financement: { objectif: 0, montant: 0, semeur: null },
       equipe: [],
       dates: ['Samedi · 9h–17h', 'Dimanche · 9h–13h'], _matched: matched, matchedSkills: matchedSkills
     });
   });
-  // Quêtes créées à la main par le Pilote (sans solution associée) et publiées.
-  (typeof PILOTE_QUETES_DEMO !== 'undefined' ? PILOTE_QUETES_DEMO : [])
-    .filter(q => q.custom && q.statut === 'ouverte')
-    .forEach(q => {
-      const lieuNom = ((typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom) || (typeof cData !== 'undefined' && cData && cData.nom) || 'Lieu EVAD');
-      const lieuVille = ((typeof myLieuData !== 'undefined' && myLieuData && (myLieuData.localisation || myLieuData.ville)) || 'Bordeaux');
-      const text = (q.titre + ' ' + (q.impact || '')).toLowerCase();
-      const matchedSkills = skills.filter(sk => (BAT_SKILL_KW[sk] || []).some(k => text.includes(k)));
-      BAT_QUETES.push({
-        id: 0, type: (q.sourceIc || '⚡') + ' Quête',
-        titre: q.titre, match: Math.min(99, 70 + (matchedSkills.length ? 20 : 0)),
-        lieu: lieuNom, pilote: lieuNom, ville: lieuVille,
-        desc: q.titre, impact: q.impact || '',
-        plan: [], materiel: [],
-        preuve: 'Photos de l\'action réalisée + indicateurs mesurés.',
-        apprendre: q.titre,
-        duree: q.duree || '1 journée',
-        places: '0/' + (parseInt(q.nb, 10) || 6),
-        etape_actuelle: 1, etapes: 4,
-        etapeLabels: ['Lancement', 'Préparation', 'Réalisation', 'Certification'],
-        tokens: q.graines || 50, co2: 0, esrs: [],
-        financement: { objectif: 0, montant: 0, semeur: null },
-        equipe: [], dates: [], _matched: matchedSkills.length > 0, matchedSkills: matchedSkills
-      });
-    });
+
   BAT_QUETES.sort((a, b) => b.match - a.match);
   BAT_QUETES.forEach((q, i) => { q.id = i; });
 }
@@ -11636,6 +11609,7 @@ window.addEventListener('evad:quetes-ready', function(){
   try {
     if (typeof syncPiloteQuetesFromLieu === 'function') syncPiloteQuetesFromLieu();
     if (typeof renderPiloteQuetes === 'function') renderPiloteQuetes();
+    if (typeof batRenderQuetes === 'function') batRenderQuetes();  // vue Bâtisseur : quêtes du réseau
   } catch(e){}
 });
 
