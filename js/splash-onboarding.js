@@ -3,10 +3,15 @@ let splashRole = null;
 let spObStep = 0;
 let spObSelectedScreen = null;
 
-function splashSelect(role, card) {
+async function splashSelect(role, card) {
   splashRole = role;
   document.querySelectorAll('.sp-card').forEach(c => c.classList.remove('selected'));
-  card.classList.add('selected');
+  if (card) card.classList.add('selected');
+  // Bêta sur invitation : connexion obligatoire avant d'entrer.
+  if (typeof evadHasSession === 'function' && !(await evadHasSession())) {
+    openLoginForRole(role);
+    return;
+  }
   splashEnter();
 }
 
@@ -294,9 +299,15 @@ function splashInitResume() {
   btn.innerHTML = '↩&nbsp; Reprendre ma session <span class="sp-resume-sub">(' + d.label + ')</span>';
   btn.style.display = 'flex';
 }
-function splashResumeClick() {
+async function splashResumeClick() {
   const btn = document.getElementById('sp-resume');
-  splashRole = (btn && btn._role) ? btn._role : 'pilote';
+  const role = (btn && btn._role) ? btn._role : 'pilote';
+  splashRole = role;
+  // Bêta sur invitation : connexion obligatoire, même pour reprendre un brouillon.
+  if (typeof evadHasSession === 'function' && !(await evadHasSession())) {
+    openLoginForRole(role);
+    return;
+  }
   spObFinish(); // ferme le splash, applique le rôle et ouvre l'écran de création où le brouillon se restaure
 }
 if (document.readyState !== 'loading') splashInitResume();
