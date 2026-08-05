@@ -186,12 +186,41 @@ function syncPiloteQuetesFromLieu() {
   if (typeof PILOTE_QUETES_DEMO === 'undefined') return;
   PILOTE_QUETES_DEMO.length = 0;
   if (!window.store) return;
-  store.where('quetes', r => r.custom === true && r.statut !== 'retiree').forEach(r => {
+
+  // Solutions du lieu (depuis la fiche publiée ou l'édition en cours).
+  const L = (typeof myLieuData !== 'undefined' && myLieuData && (myLieuData.solutions || []).length)
+    ? myLieuData
+    : (typeof cData !== 'undefined' ? cData : null);
+  const sols = (L && L.solutions) || [];
+  const solSet = new Set(sols);
+
+  // 1. Proposer une quête « à publier » pour chaque solution qui en a une
+  //    (créée une seule fois dans le store ; on ne réécrase pas si déjà publiée/retirée).
+  if (typeof SOLS !== 'undefined') {
+    sols.forEach(function (nom) {
+      const sol = SOLS.find(function (s) { return s.nom === nom; });
+      if (!sol || !sol.quete) return;
+      const qid = 'sol-' + String(nom).replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+      if (!store.get('quetes', qid)) {
+        store.upsert('quetes', {
+          id: qid, custom: false, source: nom, sourceIc: sol.img || '⚡',
+          titre: sol.quete.titre, duree: sol.quete.duree || '-', nb: sol.quete.nb || '-',
+          graines: 50, impact: sol.quete.impact_quete || '', statut: 'a_verifier'
+        });
+      }
+    });
+  }
+
+  // 2. Charger les quêtes du lieu : créées manuellement (custom) OU proposées
+  //    depuis une solution actuellement dans la fiche. Hors quêtes retirées.
+  store.where('quetes', function (r) {
+    return r.statut !== 'retiree' && (r.custom === true || (r.source && solSet.has(r.source)));
+  }).forEach(function (r) {
     PILOTE_QUETES_DEMO.push({
       id: r.id, titre: r.titre || 'Quête', statut: r.statut || 'a_verifier',
       duree: r.duree || '-', nb: r.nb || '-', graines: r.graines || 50,
       impact: r.impact || '', source: r.source || null,
-      sourceIc: r.sourceIc || '⚡', custom: true
+      sourceIc: r.sourceIc || '⚡', custom: r.custom === true
     });
   });
 }
