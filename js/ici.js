@@ -38,25 +38,54 @@ const ICI_PLANCHER = 40;
 // Poids des 3 livres dans le score global (Σ = 1), configurable.
 const ICI_POIDS_LIVRE = { ecologie: 1 / 3, social: 1 / 3, economie_locale: 1 / 3 };
 
-/* ── Catalogue des ICI (seed ≥ 6, 2 par livre).
+/* ── Catalogue des ICI.
    point0 = base T0 (PAS toujours 0). point100 = référence « excellent »
-   (peut être < point0 si « moins c'est mieux »). solutionIds = noms de SOLS. ── */
+   (peut être < point0 si « moins c'est mieux »). solutionIds = noms de SOLS.
+   desc = ce que l'indicateur mesure et pourquoi il compte (fiche Bibliothèque).
+   Couverture : chaque solution du catalogue porte au moins un ICI. ── */
 const ICI_CATALOG = [
-  // Écologie
+  // ── Écologie ──
   { id: 'eco_co2',   nom: 'Émissions de CO₂ évitées', livre: 'ecologie', unite: 'kg CO₂e/an', point0: 0,  point100: 8000, poids: 1,
-    solutionIds: ['Panneaux solaires PV', 'Récupération eau de pluie', 'Compostage partagé', 'Réemploi matériaux'] },
+    desc: 'Le carbone que le lieu n\'émet plus grâce à ses solutions : énergie renouvelable, sobriété du bâti, circuits courts et réemploi. C\'est l\'indicateur climat de référence.',
+    solutionIds: ['Panneaux solaires PV', 'Récupération eau de pluie', 'Compostage partagé', 'Réemploi matériaux', 'Isolation paille', 'Chauffe-eau solaire', 'Rafraîchissement passif du bâti'] },
   { id: 'eco_renat', nom: 'Surface renaturée',        livre: 'ecologie', unite: 'm²',         point0: 0,  point100: 500,  poids: 1,
-    solutionIds: ['Jardin permaculture', 'Potager en buttes', 'Haie champêtre', 'Mare écologique'] },
-  // Social
+    desc: 'Les mètres carrés rendus au vivant : sols cultivés en permaculture, haies, mares, toitures végétalisées, surfaces désimperméabilisées. La base du retour de la biodiversité.',
+    solutionIds: ['Jardin permaculture', 'Potager en buttes', 'Haie champêtre', 'Mare écologique', 'Toiture végétalisée', 'Désimperméabilisation des sols'] },
+  { id: 'eco_eau',   nom: 'Eau potable économisée',   livre: 'ecologie', unite: 'L/an',       point0: 0,  point100: 40000, poids: 1,
+    desc: 'Les litres d\'eau potable que le lieu ne consomme plus : récupération de pluie, traitement des eaux grises, toilettes sans eau. Un enjeu vital en période de sécheresse.',
+    solutionIds: ['Récupération eau de pluie', 'Phytoépuration', 'Toilettes sèches'] },
+  { id: 'eco_enr',   nom: 'Énergie renouvelable produite', livre: 'ecologie', unite: 'kWh/an', point0: 0, point100: 12000, poids: 1,
+    desc: 'L\'énergie que le lieu produit lui-même à partir du soleil. Elle mesure le chemin vers l\'autonomie énergétique.',
+    solutionIds: ['Panneaux solaires PV', 'Chauffe-eau solaire'] },
+  { id: 'eco_fraicheur', nom: 'Rafraîchissement obtenu', livre: 'ecologie', unite: '°C en été', point0: 0, point100: 4, poids: 1,
+    desc: 'Les degrés gagnés lors des canicules grâce à l\'ombre, au végétal et au bâti passif. L\'indicateur d\'adaptation au changement climatique.',
+    solutionIds: ['Canopée & îlots de fraîcheur', 'Toiture & murs végétalisés', 'Ombrières & pergolas bioclimatiques', 'Rafraîchissement passif du bâti', 'Toiture végétalisée'] },
+  { id: 'eco_dechets', nom: 'Déchets détournés de l\'enfouissement', livre: 'ecologie', unite: 'kg/an', point0: 0, point100: 2000, poids: 1,
+    desc: 'Ce qui ne part plus à la benne : composté, réparé, réemployé. La mesure concrète de l\'économie circulaire du lieu.',
+    solutionIds: ['Compostage partagé', 'Repair café', 'Réemploi matériaux', 'Toilettes sèches'] },
+  // ── Social ──
   { id: 'soc_insertion', nom: 'Personnes en insertion accueillies', livre: 'social', unite: 'personnes/an', point0: 0, point100: 12,  poids: 1,
+    desc: 'Les personnes éloignées de l\'emploi que le lieu accueille et accompagne à travers ses activités. Le cœur de l\'impact d\'inclusion.',
     solutionIds: ['Repair café', 'AMAP circuit court'] },
   { id: 'soc_formation', nom: 'Heures de formation dispensées',     livre: 'social', unite: 'heures/an',    point0: 0, point100: 400, poids: 1,
+    desc: 'Les heures d\'apprentissage offertes au territoire : jardinage, réparation, compostage. La transmission des savoir-faire de la transition.',
     solutionIds: ['Jardin permaculture', 'Repair café', 'Compostage partagé'] },
-  // Économie locale
+  { id: 'soc_benevoles', nom: 'Bénévoles mobilisés', livre: 'social', unite: 'personnes/an', point0: 0, point100: 40, poids: 1,
+    desc: 'Les habitantes et habitants qui mettent la main à la pâte sur les chantiers participatifs. La vitalité communautaire du lieu.',
+    solutionIds: ['Isolation paille', 'Potager en buttes', 'Haie champêtre', 'Mare écologique', 'Désimperméabilisation des sols'] },
+  { id: 'soc_sensibilisation', nom: 'Personnes sensibilisées', livre: 'social', unite: 'personnes/an', point0: 0, point100: 300, poids: 1,
+    desc: 'Les visiteurs, scolaires et curieux qui découvrent les solutions en fonctionnement. Chaque visite sème une graine ailleurs.',
+    solutionIds: ['Phytoépuration', 'Toilettes sèches', 'Mare écologique', 'Compostage partagé', 'Canopée & îlots de fraîcheur'] },
+  // ── Économie locale ──
   { id: 'eco_emplois', nom: 'Emplois locaux créés',     livre: 'economie_locale', unite: 'ETP',        point0: 0,  point100: 5,  poids: 1,
+    desc: 'Les emplois en équivalent temps plein que l\'activité du lieu fait naître sur le territoire. La preuve qu\'un lieu régénératif fait vivre.',
     solutionIds: ['AMAP circuit court', 'Réemploi matériaux'] },
   { id: 'eco_approv',  nom: 'Approvisionnement local',  livre: 'economie_locale', unite: '% du budget', point0: 20, point100: 80, poids: 1,
+    desc: 'La part du budget du lieu dépensée auprès de producteurs et artisans du territoire. Chaque point gagné irrigue l\'économie de proximité.',
     solutionIds: ['AMAP circuit court'] },
+  { id: 'eco_biosource', nom: 'Matériaux biosourcés ou réemployés', livre: 'economie_locale', unite: 'tonnes/an', point0: 0, point100: 10, poids: 1,
+    desc: 'Les tonnes de paille, bois local et matériaux de seconde vie mis en œuvre à la place du neuf importé. Des filières locales plutôt que des chaînes mondiales.',
+    solutionIds: ['Isolation paille', 'Réemploi matériaux', 'Toiture végétalisée', 'Ombrières & pergolas bioclimatiques'] },
 ];
 
 const iciGetICI = (id) => ICI_CATALOG.find((i) => i.id === id) || null;
@@ -431,10 +460,17 @@ function iciDevaPreuves() {
 const ICI_EXPORTS = {
   eco_co2:       { odd: [7, 13],  esrs: ['E1'],       vsme: ['B3 · Énergie & GES'] },
   eco_renat:     { odd: [15],     esrs: ['E4'],       vsme: ['B5 · Biodiversité'] },
+  eco_eau:       { odd: [6],      esrs: ['E3'],       vsme: ['B6 · Eau'] },
+  eco_enr:       { odd: [7],      esrs: ['E1'],       vsme: ['B3 · Énergie & GES'] },
+  eco_fraicheur: { odd: [11, 13], esrs: ['E1'],       vsme: ['B3 · Énergie & GES'] },
+  eco_dechets:   { odd: [12],     esrs: ['E5'],       vsme: ['B7 · Ressources & déchets'] },
   soc_insertion: { odd: [8, 10],  esrs: ['S1', 'S3'], vsme: ['B8 · Main-d\'œuvre'] },
   soc_formation: { odd: [4],      esrs: ['S1'],       vsme: ['B9 · Formation & développement'] },
+  soc_benevoles: { odd: [11, 17], esrs: ['S3'],       vsme: ['B8 · Main-d\'œuvre'] },
+  soc_sensibilisation: { odd: [4, 13], esrs: ['S3'],  vsme: ['B9 · Formation & développement'] },
   eco_emplois:   { odd: [8],      esrs: ['S1', 'S3'], vsme: ['B8 · Main-d\'œuvre'] },
   eco_approv:    { odd: [12],     esrs: ['S2'],       vsme: ['C2 · Chaîne de valeur'] },
+  eco_biosource: { odd: [9, 12],  esrs: ['E5'],       vsme: ['B7 · Ressources & déchets'] },
 };
 
 function iciRenderExports() {

@@ -3335,13 +3335,41 @@ function bddIciDetail(id){
   const m=meta[ici.livre]||{label:ici.livre,ic:'◆',col:'#4a8c5c'};
   // Solutions du catalogue qui portent cet indicateur (avec leur index → liens)
   const solsIdx=[]; SOLS.forEach((s,i)=>{ if((ici.solutionIds||[]).includes(s.nom)) solsIdx.push({s,i}); });
+  // Barème T0 → cible (le « 100 » de l'indicateur) + correspondances dérivées.
+  const _fmtNb=(v)=>(typeof v==='number'?(Number.isInteger(v)?v:Math.round(v*10)/10).toLocaleString('fr-FR'):v);
+  const _sens = ici.point100>=ici.point0?'↗':'↘';
+  const _ex=(typeof ICI_EXPORTS!=='undefined')?(ICI_EXPORTS[ici.id]||{}):{};
+  const _chip=(txt,col,mono)=>'<span style="font-size:.58rem;font-weight:700;padding:.14rem .45rem;border-radius:100px;background:'+col+'14;color:'+col+';border:1px solid '+col+'33;white-space:nowrap'+(mono?';font-family:monospace':'')+'">'+txt+'</span>';
+  const _corr=[].concat(
+    (_ex.odd||[]).map(n=>_chip('ODD '+n,'#b86000',false)),
+    (_ex.esrs||[]).map(e=>_chip('ESRS '+e,'#2a6090',true)),
+    (_ex.vsme||[]).map(v=>_chip(v,'#5a3080',false))
+  );
   el.innerHTML=''
     +'<div style="padding:1.4rem 1.6rem;max-width:640px">'
       +'<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;flex-wrap:wrap">'
         +'<span style="font-size:.64rem;font-weight:700;color:'+m.col+';background:'+m.col+'15;border:1px solid '+m.col+'44;border-radius:100px;padding:.18rem .6rem">'+m.ic+' '+m.label+'</span>'
       +'</div>'
       +'<div style="font-family:\'Satoshi\',sans-serif;font-size:1.25rem;font-weight:900;color:var(--ink);line-height:1.15;margin-bottom:.25rem">'+ici.nom+'</div>'
-      +'<div style="font-size:.72rem;color:var(--moss);opacity:.75;margin-bottom:1rem">Indicateur de Changement d\'Impact · mesuré en <b>'+(ici.unite||'-')+'</b></div>'
+      +'<div style="font-size:.72rem;color:var(--moss);opacity:.75;margin-bottom:.6rem">Indicateur de Changement d\'Impact · mesuré en <b>'+(ici.unite||'-')+'</b></div>'
+      +(ici.desc?'<div style="font-size:.76rem;color:var(--ink);opacity:.85;line-height:1.6;margin-bottom:1rem">'+ici.desc+'</div>':'')
+      // Barème : point de départ → référence « excellent » (sous-score 100)
+      +'<div style="background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:.8rem 1rem;margin-bottom:1rem">'
+        +'<div style="font-size:.58rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem">Barème Vadance</div>'
+        +'<div style="display:flex;align-items:center;gap:.7rem">'
+          +'<div style="text-align:center;flex-shrink:0"><div style="font-size:.52rem;text-transform:uppercase;letter-spacing:.08em;color:var(--moss);opacity:.65;margin-bottom:.12rem">Départ (T0)</div><div style="font-size:.85rem;font-weight:800;color:var(--ink)">'+_fmtNb(ici.point0)+' '+(ici.unite||'')+'</div></div>'
+          +'<div style="flex:1;position:relative;height:2px;background:linear-gradient(90deg,'+m.col+'33,'+m.col+');border-radius:2px;min-width:50px">'
+            +'<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:0 .3rem;font-size:.56rem;font-weight:700;color:'+m.col+';white-space:nowrap">'+_sens+' impact</span>'
+          +'</div>'
+          +'<div style="text-align:center;flex-shrink:0"><div style="font-size:.52rem;text-transform:uppercase;letter-spacing:.08em;color:'+m.col+';opacity:.85;margin-bottom:.12rem">Excellent (100)</div><div style="font-size:.85rem;font-weight:800;color:'+m.col+'">'+_fmtNb(ici.point100)+' '+(ici.unite||'')+'</div></div>'
+        +'</div>'
+        +'<div style="font-size:.6rem;color:var(--moss);opacity:.6;margin-top:.5rem;line-height:1.5">La mesure du lieu est convertie en sous-score 0–100 entre ces deux repères : c\'est ce sous-score qui nourrit la Vadance (projeté) et la Vadité (prouvé).</div>'
+      +'</div>'
+      // Correspondances (vues dérivées : ODD / ESRS / VSME)
+      +(_corr.length?('<div style="margin-bottom:1rem;padding:.55rem .7rem;background:rgba(46,102,66,.035);border:1px solid rgba(46,102,66,.12);border-radius:var(--r)">'
+        +'<div style="font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--moss);margin-bottom:.4rem">↳ Correspondances <span style="font-weight:500;text-transform:none;letter-spacing:0;opacity:.7">· vues dérivées de l\'ICI (ODD · CSRD · VSME)</span></div>'
+        +'<div style="display:flex;flex-wrap:wrap;gap:.3rem">'+_corr.join('')+'</div>'
+      +'</div>'):'')
       // Liens → solutions qui le portent (et leur quête)
       +'<div style="font-size:.62rem;font-weight:700;color:var(--moss);opacity:.65;text-transform:uppercase;letter-spacing:.08em;margin:.9rem 0 .4rem">🧩 Mesuré par '+solsIdx.length+' solution'+(solsIdx.length>1?'s':'')+'</div>'
       +(solsIdx.length?solsIdx.map(({s,i})=>''
