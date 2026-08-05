@@ -5253,7 +5253,6 @@ const DEVA_TOUR_PILOTE = [
   { screen: 'pilote', tab: 'fiche', title: 'Ta fiche lieu ✏️', text: 'Tu peux compléter et enrichir ton lieu ici à tout moment : plus c\'est précis, plus ta Vadance est juste.' },
   { screen: 'pilote', tab: 'marketplace', title: 'Tes avantages 🛖', text: 'Dépose ici tes <b>biens et services payables en graines</b> (paniers, ateliers, hébergement, prêt de matériel…). Les bâtisseurs et membres du réseau viennent les échanger chez toi : l\'économie regen circule.' },
   // ── Explore l'écosystème EVAD ──
-  { screen: 'reseau', title: 'Le réseau 🌍', text: 'Le fil de la communauté EVAD : publie tes quêtes, suis les autres lieux, trouve des bâtisseurs.' },
   { screen: 'bdd', title: 'La bibliothèque 📚', text: 'Un catalogue de solutions, d\'indicateurs (ICI) et de ressources pour t\'inspirer et enrichir ton lieu.' },
   { screen: 'marketplace', title: 'Les avantages 🛖', text: 'Propose des biens et services payables en graines, et dépense les tiens chez les autres lieux : l\'économie regen circule.' },
   // ── Fin ──
@@ -5266,7 +5265,6 @@ const DEVA_TOUR_BATISSEUR = [
   { screen: 'quete', tab: 'quetes', title: 'Tes quêtes ⚡', text: 'Rejoins des missions publiées par les Pilotes, agis sur le terrain et dépose tes preuves.' },
   { screen: 'quete', tab: 'competences', title: 'Tes compétences 🏅', text: 'Décris tes savoir-faire et ta disponibilité : on te proposera les quêtes qui te correspondent.' },
   { screen: 'quete', tab: 'graines', title: 'Tes avantages 🛖', text: 'Échange les <b>graines</b> gagnées contre des paniers, ateliers, hébergements ou formations près de chez toi.' },
-  { screen: 'reseau', title: 'Le réseau 🌍', text: 'Le fil de la communauté EVAD : suis les lieux, trouve des quêtes et des rencontres.' },
   { screen: 'bdd', title: 'La bibliothèque 📚', text: 'Un catalogue de solutions et de ressources régénératives pour t\'inspirer.' },
   { screen: 'quete', tab: 'apercu', title: 'À toi de jouer ! 🌿', text: 'C\'est tout pour la visite. Une question ? Je suis toujours là, en bas à gauche. Bonne exploration !' }
 ];
@@ -5277,7 +5275,6 @@ const DEVA_TOUR_SEMEUR = [
   { screen: 'semeur', tab: 'quetes', title: 'Quêtes à financer ⚡', text: 'Choisis les projets à soutenir. Les fonds se débloquent au fil des étapes validées.' },
   { screen: 'semeur', tab: 'rse', title: 'RSE / CSRD 📋', text: 'Tes preuves d\'impact, structurées et exportables pour ton reporting extra-financier.' },
   { screen: 'semeur', tab: 'graines', title: 'Tes échanges 🌱', text: 'Retrouve ici tes contrats et contreparties avec les lieux que tu finances.' },
-  { screen: 'reseau', title: 'Le réseau 🌍', text: 'Le fil de la communauté EVAD : découvre les lieux et leurs avancées.' },
   { screen: 'bdd', title: 'La bibliothèque 📚', text: 'Le catalogue des solutions et des indicateurs d\'impact (ICI).' },
   { screen: 'semeur', tab: 'apercu', title: 'À toi de jouer ! 🌿', text: 'C\'est tout pour la visite. Une question ? Je suis toujours là, en bas à gauche. Bonne exploration !' }
 ];
@@ -5907,8 +5904,17 @@ function _captureActeurCard(kind) {
   const mainPanel = document.getElementById('map-panel-main');
   const prevHTML = panel.innerHTML, prevDisp = panel.style.display;
   const prevMain = mainPanel ? mainPanel.style.display : null;
+  // Aperçu du lieu : refléter l'ÉDITION EN COURS (cData), pas la version déjà
+  // enregistrée (myLieuData) — c'est cData qui sera publié.
+  let _savedMyLieu, _lieuOverride = false;
+  if (kind === 'lieu' && typeof cData !== 'undefined' && cData) {
+    _savedMyLieu = myLieuData;
+    myLieuData = Object.assign({}, cData);
+    _lieuOverride = true;
+  }
   render();
   let html = panel.innerHTML;
+  if (_lieuOverride) myLieuData = _savedMyLieu;
   panel.innerHTML = prevHTML; panel.style.display = prevDisp;
   if (mainPanel) mainPanel.style.display = prevMain;
   // En aperçu : la croix interne ferme l'aperçu (pas la carte).
