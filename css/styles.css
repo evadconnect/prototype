@@ -3399,7 +3399,6 @@ body {
 
 .sp-footer {
   text-align: center; padding-top: 24px;
-  border-top: 1px solid rgba(1,130,98,0.15);
   font-family: 'Satoshi', sans-serif;
 }
 .sp-footer-text { font-size: 0.72rem; color: #3d6b5a; opacity: 0.6; letter-spacing: 0.04em; }
