@@ -5465,6 +5465,58 @@ try {
   }
 } catch (e) {}
 
+// Dérive et persiste les solutions retenues + leurs indicateurs (ICI) d'un lieu
+// dans les tables dédiées Supabase (via store.replaceLieuChildren). Appelée à la
+// publication de la fiche lieu.
+function evadSyncLieuChildren(lieuId){
+  if (!window.store || !lieuId || typeof store.replaceLieuChildren !== 'function') return;
+  const L = (typeof myLieuData !== 'undefined' && myLieuData) ? myLieuData
+          : (typeof cData !== 'undefined' ? cData : {});
+  const sols = (L && L.solutions) || [];
+  const solsByEsp = (L && L.solsByEspace) || {};
+  const slug = (s) => String(s).replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+
+  // Espace (nom) qui porte chaque solution — le premier rencontré.
+  const espaceParSol = {};
+  Object.keys(solsByEsp).forEach(idx => {
+    (solsByEsp[idx] || []).forEach(nom => {
+      if (!espaceParSol[nom]) {
+        espaceParSol[nom] = (L.espacesData && L.espacesData[idx] && L.espacesData[idx].nom)
+          || (Array.isArray(L.espaces) && L.espaces[idx]) || null;
+      }
+    });
+  });
+
+  const solRows = sols.map(nom => {
+    const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === nom) : null;
+    return {
+      id: lieuId + '-sol-' + slug(nom), lieu_id: lieuId, nom: nom,
+      cat: (sol && sol.cat) || null, espace: espaceParSol[nom] || null,
+      source_ic: (sol && sol.img) || null
+    };
+  });
+
+  // Indicateurs (ICI) dérivés des solutions retenues, dédupliqués par id.
+  const iciMap = {};
+  if (typeof iciPourSolution === 'function') {
+    sols.forEach(nom => {
+      (iciPourSolution(nom) || []).forEach(ici => {
+        if (!iciMap[ici.id]) iciMap[ici.id] = { ici: ici, sols: [] };
+        if (iciMap[ici.id].sols.indexOf(nom) < 0) iciMap[ici.id].sols.push(nom);
+      });
+    });
+  }
+  const iciRows = Object.keys(iciMap).map(id => {
+    const e = iciMap[id];
+    return {
+      id: lieuId + '-ici-' + id, lieu_id: lieuId, ici_id: id, nom: e.ici.nom,
+      livre: e.ici.livre, unite: e.ici.unite, solutions: e.sols
+    };
+  });
+
+  try { store.replaceLieuChildren(lieuId, solRows, iciRows); } catch (e) {}
+}
+
 async function createLieuOnMap(){
   const nom = cData.nom || 'Nouveau lieu';
   const ic = TYPE_IC[cData.type] || '✦';
@@ -5493,6 +5545,8 @@ async function createLieuOnMap(){
       }
       store.clearDraft('lieu');
       if (typeof evadMarkFicheDone === 'function') evadMarkFicheDone('pilote');
+      // Persiste les solutions + indicateurs du lieu dans leurs tables dédiées.
+      if (typeof evadSyncLieuChildren === 'function') evadSyncLieuChildren(myLieuData.id);
     } catch(e) {}
   }
 

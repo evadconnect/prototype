@@ -8,7 +8,7 @@
   var VERSION = 1;
 
   // Tables synchronisées avec Supabase (les autres restent locales).
-  var remoteTables = ['lieux', 'quetes'];
+  var remoteTables = ['lieux', 'quetes', 'solutions', 'indicateurs'];
   var currentUserId = null;
 
   function keyOf(table) {
@@ -322,6 +322,76 @@
     }
   }
 
+  // ── Solutions & indicateurs d'un lieu (tables dédiées) ──
+  // Écrites à la publication de la fiche lieu : on remplace l'ensemble des
+  // lignes du lieu (suppression puis insertion) pour refléter retraits/ajouts.
+  function remoteSolutionRow(r) {
+    return {
+      id: r.id, user_id: currentUserId || null, lieu_id: r.lieu_id || null,
+      nom: r.nom || null, cat: r.cat || null, espace: r.espace || null,
+      source_ic: r.source_ic || null, donnees: r, updated_at: nowISO()
+    };
+  }
+  function remoteIndicateurRow(r) {
+    return {
+      id: r.id, user_id: currentUserId || null, lieu_id: r.lieu_id || null,
+      ici_id: r.ici_id || null, nom: r.nom || null, livre: r.livre || null,
+      unite: r.unite || null, solutions: r.solutions || [], donnees: r, updated_at: nowISO()
+    };
+  }
+  function _replaceRemoteChildren(table, lieuId, rows) {
+    if (!global.evadSupabase) return;
+    global.evadSupabase.from(table).delete().eq('lieu_id', lieuId).then(function (res) {
+      if (res && res.error) { console.warn(table + ' : suppression échouée : ' + res.error.message); return; }
+      if (!rows.length) return;
+      global.evadSupabase.from(table).upsert(rows, { onConflict: 'id' }).then(function (r2) {
+        if (r2 && r2.error) console.warn(table + ' non enregistrées dans Supabase : ' + r2.error.message);
+      });
+    });
+  }
+  // Remplace les solutions + indicateurs d'un lieu (miroir local + Supabase).
+  function replaceLieuChildren(lieuId, solutions, indicateurs) {
+    if (!lieuId) return;
+    solutions = solutions || []; indicateurs = indicateurs || [];
+    try {
+      write('solutions', read('solutions').filter(function (r) { return r.lieu_id !== lieuId; }).concat(solutions));
+      write('indicateurs', read('indicateurs').filter(function (r) { return r.lieu_id !== lieuId; }).concat(indicateurs));
+    } catch (e) {}
+    _replaceRemoteChildren('solutions', lieuId, solutions.map(remoteSolutionRow));
+    _replaceRemoteChildren('indicateurs', lieuId, indicateurs.map(remoteIndicateurRow));
+  }
+
+  async function hydrateSolutions() {
+    if (!global.evadSupabase) return;
+    try {
+      var result = await global.evadSupabase.from('solutions').select('*');
+      if (result.error) return;
+      var rows = (result.data || []).map(function (row) {
+        return Object.assign({}, row.donnees || {}, {
+          id: row.id, lieu_id: row.lieu_id, nom: row.nom, cat: row.cat,
+          espace: row.espace, source_ic: row.source_ic
+        });
+      });
+      write('solutions', rows);
+      global.dispatchEvent(new CustomEvent('evad:solutions-ready', { detail: { solutions: rows } }));
+    } catch (e) {}
+  }
+  async function hydrateIndicateurs() {
+    if (!global.evadSupabase) return;
+    try {
+      var result = await global.evadSupabase.from('indicateurs').select('*');
+      if (result.error) return;
+      var rows = (result.data || []).map(function (row) {
+        return Object.assign({}, row.donnees || {}, {
+          id: row.id, lieu_id: row.lieu_id, ici_id: row.ici_id, nom: row.nom,
+          livre: row.livre, unite: row.unite, solutions: row.solutions || []
+        });
+      });
+      write('indicateurs', rows);
+      global.dispatchEvent(new CustomEvent('evad:indicateurs-ready', { detail: { indicateurs: rows } }));
+    } catch (e) {}
+  }
+
   /*
    * Lecture des lieux publiés.
    */
@@ -633,6 +703,7 @@
   global.EvadStore = store;
   store.hydrateDrafts = hydrateDrafts;
   store.deleteQueteRemote = deleteQueteRemote;
+  store.replaceLieuChildren = replaceLieuChildren;
 
   /*
    * Récupération de la session Supabase si elle existe.
@@ -650,6 +721,8 @@
 
         hydrateRemote();
         hydrateQuetes();
+        hydrateSolutions();
+        hydrateIndicateurs();
         hydrateDrafts().then(function () {
           if (typeof global.splashInitResume === 'function') global.splashInitResume();
         });
@@ -667,6 +740,8 @@
           0
         );
         setTimeout(hydrateQuetes, 0);
+        setTimeout(hydrateSolutions, 0);
+        setTimeout(hydrateIndicateurs, 0);
         hydrateDrafts().then(function () {
           if (typeof global.splashInitResume === 'function') global.splashInitResume();
         });
