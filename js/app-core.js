@@ -5415,18 +5415,26 @@ async function createLieuOnMap(){
   const typeLabel = (TYPES_LIEU.find(t => t.id === cData.type)?.l) || 'Lieu';
   const adresse = cData.localisation || 'Nouvelle-Aquitaine';
 
+  // Le lieu a-t-il déjà été publié ? (édition vs première création)
+  const _existingId = (cData && cData.id) || (myLieuData && myLieuData.id) || null;
+
   // On mémorise la fiche saisie pour la refléter dans le tableau de bord
   try {
     myLieuData = Object.assign({}, cData);
+    if (_existingId) myLieuData.id = _existingId;
     // Vadance (promesse) figée au résultat de la création
     myLieuData.vadance = (typeof computeVadance === 'function') ? computeVadance(cData) : 0;
   } catch(e) {}
 
-  // Persistance (prête pour Supabase) : enregistre le lieu publié, vide le brouillon.
+  // Persistance Supabase : MISE À JOUR si le lieu existe déjà, sinon création.
   if (window.store) {
     try {
-      const row = store.insert('lieux', Object.assign({}, myLieuData));
-      myLieuData.id = row.id;
+      if (_existingId) {
+        store.update('lieux', _existingId, myLieuData);
+      } else {
+        const row = store.insert('lieux', Object.assign({}, myLieuData));
+        myLieuData.id = row.id;
+      }
       store.clearDraft('lieu');
     } catch(e) {}
   }
