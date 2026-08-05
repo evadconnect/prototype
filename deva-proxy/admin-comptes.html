@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>EVAD — Création des comptes bêta</title>
+<style>
+  :root { --forest:#018262; --ink:#0d2b22; --moss:#3d6b5a; }
+  * { box-sizing:border-box; }
+  body { font-family:Arial,Helvetica,sans-serif; background:#eef5f1; color:var(--ink); margin:0; padding:2rem 1rem; }
+  .card { max-width:640px; margin:0 auto; background:#fff; border-radius:16px; box-shadow:0 12px 40px rgba(0,0,0,.1); padding:1.8rem; }
+  h1 { font-size:1.4rem; margin:0 0 .3rem; }
+  p.sub { color:var(--moss); font-size:.9rem; margin:0 0 1.4rem; }
+  label { display:block; font-size:.78rem; font-weight:700; color:var(--moss); margin:0 0 .35rem; }
+  input { width:100%; padding:.8rem 1rem; border:1.5px solid rgba(1,130,98,.25); border-radius:10px; font-size:.95rem; outline:none; }
+  input:focus { border-color:var(--forest); }
+  button { margin-top:1.2rem; width:100%; padding:.95rem; border:none; border-radius:100px; background:var(--forest); color:#fff; font-size:1rem; font-weight:700; cursor:pointer; }
+  button:disabled { opacity:.6; cursor:default; }
+  .hint { font-size:.75rem; color:var(--moss); margin-top:.8rem; line-height:1.5; }
+  #out { margin-top:1.4rem; font-size:.85rem; white-space:pre-wrap; background:#f2f8f5; border-radius:10px; padding:1rem; display:none; }
+  .row { display:flex; gap:.5rem; align-items:center; padding:.35rem 0; border-bottom:1px solid rgba(0,0,0,.05); }
+  .ok { color:#0a7a4b; } .ko { color:#a83232; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>🌱 Création des comptes bêta</h1>
+    <p class="sub">Crée les comptes des inscrits passés à <b>« approuvé »</b> dans Supabase, et leur envoie leurs identifiants par email.</p>
+
+    <label for="secret">Secret admin</label>
+    <input id="secret" type="password" placeholder="Colle le secret admin" autocomplete="off">
+
+    <button id="go" onclick="run()">Créer les comptes approuvés</button>
+    <p class="hint">Rappel : d'abord mettre <code>statut = approuvé</code> sur les bonnes lignes dans Supabase (Table Editor → inscription_beta). Les lignes déjà traitées (<code>compte_créé</code>) sont ignorées.</p>
+
+    <div id="out"></div>
+  </div>
+
+<script>
+  const ENDPOINT = 'https://prototype-theta-mocha.vercel.app/api/create-accounts';
+
+  async function run() {
+    const btn = document.getElementById('go');
+    const out = document.getElementById('out');
+    const secret = document.getElementById('secret').value.trim();
+    if (!secret) { alert('Entre le secret admin.'); return; }
+
+    btn.disabled = true; btn.textContent = 'Création en cours…';
+    out.style.display = 'block'; out.textContent = 'Patiente…';
+
+    try {
+      const res = await fetch(ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+        body: '{}',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        out.innerHTML = '<span class="ko">Erreur : ' + (data.error || res.status) + '</span>';
+      } else if (!data.results || data.results.length === 0) {
+        out.innerHTML = 'Aucun inscrit « approuvé » à traiter. ✅';
+      } else {
+        let html = '<b>' + data.comptes_crees + ' compte(s) créé(s) sur ' + data.traite + ' traité(s).</b>';
+        data.results.forEach(r => {
+          const mail = r.ok ? (r.mailOk ? '· email envoyé ✉️' : '· email NON envoyé (' + (r.mailError||'?') + ')') : '';
+          html += '<div class="row"><span class="' + (r.ok ? 'ok' : 'ko') + '">' + (r.ok ? '✓' : '✗') + '</span>'
+                + '<span>' + (r.email || r.id) + '</span>'
+                + '<span style="color:#3d6b5a;font-size:.78rem">' + (r.ok ? mail : (r.error||'')) + '</span></div>';
+        });
+        out.innerHTML = html;
+      }
+    } catch (e) {
+      out.innerHTML = '<span class="ko">Erreur réseau : ' + e + '</span>';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Créer les comptes approuvés';
+    }
+  }
+</script>
+</body>
+</html>
