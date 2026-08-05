@@ -148,7 +148,7 @@ function openPiloteQueteFiche(qid) {
     esrs: ((sol && sol.esrs) || []).map(e => String(e).replace('ESRS ', '').trim()),
     financement: { objectif: 0, montant: 0, semeur: null },
     equipe: [], dates: [], dateISO: pq.dateISO || null, heure: pq.heure || null,
-    srcId: pq.id, published: pq.statut === 'ouverte'
+    srcId: pq.id, published: pq.statut === 'ouverte', paused: pq.statut === 'en_pause'
   }, 'pilote');
 }
 
@@ -405,6 +405,7 @@ function renderPiloteQuetes() {
   const F = (typeof piloteQueteFilter !== 'undefined') ? piloteQueteFilter : 'toutes';
   const aVerifier = PILOTE_QUETES_DEMO.filter(q => q.statut === 'a_verifier');
   const enLigne   = PILOTE_QUETES_DEMO.filter(q => q.statut === 'ouverte');
+  const enPause   = PILOTE_QUETES_DEMO.filter(q => q.statut === 'en_pause');
   // Sections affichées selon le filtre actif
   const enLigneActives = enLigne.filter(q => !isVal(q.id));   // publiées, non terminées
   const terminees      = enLigne.filter(q =>  isVal(q.id));   // validées / propagées
@@ -414,21 +415,28 @@ function renderPiloteQuetes() {
 
   const card = (q) => {
     const estAVerif  = q.statut === 'a_verifier';
-    const estValidee = !estAVerif && isVal(q.id);
+    const estPause   = q.statut === 'en_pause';
+    const estValidee = !estAVerif && !estPause && isVal(q.id);
     const badges = renderQueteConvBadges(q);
     const statutHtml = estAVerif
       ? `<span class="pq-status a-verifier">🕓 À vérifier</span>`
-      : estValidee
-        ? `<span class="pq-status validee">✓ Propagée</span>`
-        : `<span class="pq-status ouverte">🟢 En ligne</span>`;
+      : estPause
+        ? `<span class="pq-status a-verifier">⏸ En pause</span>`
+        : estValidee
+          ? `<span class="pq-status validee">✓ Propagée</span>`
+          : `<span class="pq-status ouverte">🟢 En ligne</span>`;
     const actions = estAVerif
       ? `<button class="btn btn-primary" style="font-size:.74rem;font-weight:700;padding:.5rem 1.1rem" onclick="piloteQuetePublier('${q.id}')">✓ Publier</button>
          <button class="btn btn-ghost" style="font-size:.72rem;padding:.5rem .9rem" onclick="openPiloteQueteFiche('${q.id}')">Vérifier le détail →</button>
          <button class="btn btn-ghost" style="font-size:.7rem;padding:.5rem .8rem;color:var(--moss);opacity:.65" onclick="piloteQueteRetirer('${q.id}')">✕ Retirer</button>`
-      : `<button class="btn btn-ghost" style="font-size:.74rem;padding:.5rem 1.1rem" onclick="openPiloteQueteFiche('${q.id}')">Voir détail →</button>
+      : estPause
+        ? `<button class="btn btn-primary" style="font-size:.74rem;font-weight:700;padding:.5rem 1.1rem" onclick="piloteQueteReactiver('${q.id}')">▶️ Réactiver</button>
+           <button class="btn btn-ghost" style="font-size:.72rem;padding:.5rem .9rem" onclick="openPiloteQueteFiche('${q.id}')">Voir détail →</button>
+           <span style="font-size:.62rem;color:var(--moss);opacity:.7;margin-left:.2rem">Retirée du réseau</span>`
+        : `<button class="btn btn-ghost" style="font-size:.74rem;padding:.5rem 1.1rem" onclick="openPiloteQueteFiche('${q.id}')">Voir détail →</button>
          ${estValidee ? `<span class="pq-propag-badge visible">✦ ${nbDossiers} dossiers mis à jour</span>` : `<span style="font-size:.62rem;color:var(--fern);font-weight:600;margin-left:.2rem">✓ Visible par les bâtisseurs</span>`}`;
     return `
-      <div class="pq-card" id="pq-${q.id}" style="${estAVerif ? 'border-left:3px solid var(--amber)' : ''}${estValidee ? ';opacity:.78' : ''}">
+      <div class="pq-card" id="pq-${q.id}" style="${estAVerif || estPause ? 'border-left:3px solid var(--amber)' : ''}${estPause ? ';opacity:.9' : ''}${estValidee ? ';opacity:.78' : ''}">
         <div class="pq-card-top">
           <div class="pq-card-title">${q.titre}</div>
           ${statutHtml}
@@ -460,6 +468,11 @@ function renderPiloteQuetes() {
   if (showTerminees && terminees.length) {
     html += `<div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--moss);opacity:.65;margin:${html ? '1.1rem' : '.2rem'} 0 .55rem">✓ Terminées · ${terminees.length}</div>`;
     html += terminees.map(card).join('');
+  }
+  // Quêtes en pause : publiées puis mises en pause (retirées du réseau).
+  if ((F === 'toutes' || F === 'ouvertes') && enPause.length) {
+    html += `<div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--moss);opacity:.65;margin:${html ? '1.1rem' : '.2rem'} 0 .55rem">⏸ En pause · ${enPause.length}</div>`;
+    html += enPause.map(card).join('');
   }
   if (!html) {
     const labels = { a_publier: 'à publier', ouvertes: 'ouverte', terminees: 'terminée' };
@@ -509,6 +522,14 @@ function piloteQueteRetirer(id) {
     if (wasPublished && typeof store.deleteQueteRemote === 'function') store.deleteQueteRemote(id);
   }
   if (typeof mmBubble === 'function') mmBubble('Quête retirée des propositions');
+  renderPiloteQuetes();
+}
+// Réactiver une quête en pause : re-publiée sur le réseau (réinscrite en base).
+function piloteQueteReactiver(id) {
+  const q = PILOTE_QUETES_DEMO.find(x => x.id === id); if (!q) return;
+  q.statut = 'ouverte';
+  if (window.store) store.update('quetes', id, { statut: 'ouverte', paused: false });
+  if (typeof mmBubble === 'function') mmBubble('▶️ Quête réactivée · de nouveau visible sur le réseau');
   renderPiloteQuetes();
 }
 function piloteQuetesPublierToutes() {

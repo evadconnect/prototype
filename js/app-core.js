@@ -6585,8 +6585,25 @@ function qdToggleMat(i, el) {
 function qdPause() {
   const q = qdQuest(); if (!q) return;
   q.paused = !q.paused;
-  mmBubble(q.paused ? '⏸ Quête mise en pause · masquée aux Bâtisseurs' : '▶️ Quête réactivée');
+  // Pause = retirée du réseau : la quête passe en statut « en_pause » (donc
+  // supprimée de Supabase, invisible pour les Bâtisseurs) mais reste chez le
+  // Pilote. Réactiver = re-publier (statut « ouverte » → réinscrite en base).
+  if (q.srcId && window.store) {
+    if (q.paused) {
+      store.update('quetes', q.srcId, { statut: 'en_pause', paused: true });
+      if (typeof store.deleteQueteRemote === 'function') store.deleteQueteRemote(q.srcId);
+    } else {
+      store.update('quetes', q.srcId, { statut: 'ouverte', paused: false });
+    }
+    // Refléter le nouveau statut dans la liste du tableau de bord.
+    if (typeof PILOTE_QUETES_DEMO !== 'undefined') {
+      const pe = PILOTE_QUETES_DEMO.find(x => x.id === q.srcId);
+      if (pe) pe.statut = q.paused ? 'en_pause' : 'ouverte';
+    }
+  }
+  mmBubble(q.paused ? '⏸ Quête mise en pause · retirée du réseau' : '▶️ Quête réactivée · de nouveau visible');
   qdRerender();
+  if (typeof renderPiloteQuetes === 'function') renderPiloteQuetes();
 }
 
 function qdSupprimer() {
