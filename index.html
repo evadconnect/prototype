@@ -49,7 +49,6 @@
     </div>
 
     <div class="sp-footer">
-      <div style="font-size:1.1rem;color:#018262;margin-bottom:8px">💭 ➡️ 🏡</div>
       <div class="sp-footer-text">EVAD © 2026, Licence Creative Commons · Prototype · espace bêta-testeurs</div>
     </div>
 
@@ -94,7 +93,7 @@
 </div>
 
 
-<script src="js/splash-onboarding.js?v=94"></script>
+<script src="js/splash-onboarding.js?v=95"></script>
 
 <div class="app">
 
@@ -850,7 +849,7 @@
       </div>
 
       <!-- ÉTAT DU LIEU -->
-      <div style="background:white;border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:1.4rem 1.5rem;margin-bottom:.9rem">
+      <div id="apercu-etat-card" style="background:white;border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:1.4rem 1.5rem;margin-bottom:.9rem">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.1rem">
           <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
             <span style="font-size:.62rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.14em">État du lieu</span>
@@ -1521,9 +1520,9 @@
   </div>
 </div>
 
-<script src="js/data-reseau.js?v=94"></script>
+<script src="js/data-reseau.js?v=95"></script>
 
-<script src="js/regen-loop.js?v=94"></script>
+<script src="js/regen-loop.js?v=95"></script>
 
 <!-- Modale ajout/édition offre Pilote -->
 <div id="pmkt-modal" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(14,26,18,0.75);backdrop-filter:blur(6px);align-items:center;justify-content:center">
@@ -2169,10 +2168,10 @@
     </div>
   </div>
 
-  <div style="display:flex;height:calc(100vh - 57px);overflow:hidden;">
+  <div class="bat-fiche-split" style="display:flex;height:calc(100vh - 57px);overflow:hidden;">
 
     <!-- Colonne formulaire -->
-    <div style="width:340px;flex-shrink:0;border-right:1px solid rgba(46,102,66,0.12);background:#fff;display:flex;flex-direction:column;height:100%;overflow:hidden;">
+    <div class="bat-fiche-formcol" style="width:340px;flex-shrink:0;border-right:1px solid rgba(46,102,66,0.12);background:#fff;display:flex;flex-direction:column;height:100%;overflow:hidden;">
 
       <!-- Contenu étape -->
       <div style="flex:1;padding:1.1rem 1rem;overflow-y:auto;min-height:0;" id="bat-fiche-content"></div>
@@ -2516,9 +2515,9 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-config.js?v=94"></script>
-<script src="js/store.js?v=94"></script>
-<script src="js/app-core.js?v=94"></script>
+<script src="js/supabase-config.js?v=95"></script>
+<script src="js/store.js?v=95"></script>
+<script src="js/app-core.js?v=95"></script>
 
 <script
   src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -2577,9 +2576,9 @@
   </div>
 </div>
 
-<script src="js/deva.js?v=94"></script>
+<script src="js/deva.js?v=95"></script>
 
-<script src="js/nav-mobile.js?v=94"></script>
+<script src="js/nav-mobile.js?v=95"></script>
 
 <!-- ── Modal : Choisir ton profil ── -->
 <div id="auth-profil-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(14,26,18,.6);backdrop-filter:blur(6px);align-items:center;justify-content:center">
@@ -2624,7 +2623,7 @@
 </div>
 
 
-<script src="js/auth.js?v=94"></script>
+<script src="js/auth.js?v=95"></script>
 
 <!-- Espace modal, placé au niveau body pour rester accessible depuis tous les contextes -->
 <div id="espace-modal">
@@ -2713,16 +2712,16 @@
     </div>
   </div>
 </div>
-<script src="js/espace-modal.js?v=94"></script>
+<script src="js/espace-modal.js?v=95"></script>
 
 <!-- ═══════════════════════════════════════════════════════
      COUCHE DE CONVERGENCE, PERMA-COMPTABILITÉ EVAD
      Saisie unique → traduction multi-cadres institutionnels
      ═══════════════════════════════════════════════════════ -->
-<script src="js/quetes.js?v=94"></script>
-<script src="js/ici.js?v=94"></script>
+<script src="js/quetes.js?v=95"></script>
+<script src="js/ici.js?v=95"></script>
 
-<script src="js/contribution.js?v=94"></script>
+<script src="js/contribution.js?v=95"></script>
 
 <!-- Modal détail solution (créer lieu step 4) -->
 <div id="creer-sol-detail-modal" style="display:none;position:fixed;inset:0;z-index:10010;background:rgba(13,43,34,.6);backdrop-filter:blur(6px);align-items:flex-end;justify-content:center;" onclick="if(event.target===this)creerCloseSolDetail()">
@@ -2735,7 +2734,7 @@
   </div>
 </div>
 
-<script src="js/fil-rouge-feedback.js?v=94"></script>
+<script src="js/fil-rouge-feedback.js?v=95"></script>
 
 </body>
 </html>

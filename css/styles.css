@@ -2663,6 +2663,23 @@ body {
   /* Sidebar masquée en mobile → panneau espace plein écran */
   #espace-modal { left: 0; }
 
+  /* ── Onboarding : empiler en colonne (sinon le panneau fixe 480px déborde
+     et coupe le texte à droite). Couvre les deux variantes d'onboarding. ── */
+  .ob-shell { flex-direction: column; height: auto; overflow: visible; }
+  .ob-left { width: 100% !important; padding: 1.4rem 1.2rem !important; }
+  .ob-right { display: none !important; }
+  #sp-ob-overlay { overflow-y: auto; }
+  #sp-ob-overlay > div { flex-direction: column; height: auto; width: 100%; }
+  #sp-ob-left { width: 100% !important; padding: 1.4rem 1.2rem !important; }
+  #sp-ob-right { display: none !important; }
+
+  /* ── Fiche Bâtisseur : arbre latéral (décoratif) masqué, formulaire pleine
+     largeur (le panneau fixe 340px + l'arbre débordaient). ── */
+  .bat-fiche-split { flex-direction: column; height: auto !important; overflow: visible !important; }
+  .bat-fiche-formcol { width: 100% !important; border-right: none !important; height: auto !important; overflow: visible !important; }
+  .bat-fiche-formcol > #bat-fiche-content { overflow: visible !important; }
+  #bat-fiche-stage { display: none !important; }
+
   /* Espace bas pour la barre de navigation fixe */
   .screen { padding-bottom: 68px !important; }
 

@@ -7665,6 +7665,10 @@ function apercuNextCran() {
 function apercuRender() {
   const imp = (typeof evadImpactData === 'function') ? evadImpactData() : { vadance: 0, vadite: 0, taux: 0 };
   const hasV = imp.vadance > 0;
+  // Tant qu'aucune fiche n'est composée, on masque la carte de métriques (sinon
+  // « -/100 » partout, déroutant) : le Pilote est guidé par « Ton prochain cran ».
+  const etatCard = document.getElementById('apercu-etat-card');
+  if (etatCard) etatCard.style.display = hasV ? '' : 'none';
   const L = (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom) ? myLieuData : (typeof cData !== 'undefined' ? cData : {});
   const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   setTxt('apercu-lieu-nom', (L && L.nom) ? L.nom : 'mon lieu');
