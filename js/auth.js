@@ -131,3 +131,12 @@ function closeAuthModal(){
 }
 document.getElementById('auth-profil-modal').addEventListener('click',function(e){if(e.target===this)closeAuthModal();});
 document.getElementById('auth-connexion-modal').addEventListener('click',function(e){if(e.target===this)closeAuthModal();});
+
+// Arrivée depuis evad.org (« Se connecter ») : ?login=1 → ouvre la connexion directement.
+(function(){
+  try {
+    if (new URLSearchParams(location.search).get('login') === '1') {
+      window.addEventListener('load', function(){ setTimeout(function(){ try { openLoginModal(); } catch(e){} }, 300); });
+    }
+  } catch(e){}
+})();
