@@ -167,7 +167,7 @@
     var payload = remoteLieuRow(row);
 
     global.evadSupabase
-      .from('lieux')
+      .from('fiche_pilote')
       .insert(payload)
       .then(function (result) {
         if (result.error) {
@@ -212,7 +212,7 @@
     var payload = remoteLieuRow(row);
 
     global.evadSupabase
-      .from('lieux')
+      .from('fiche_pilote')
       .update({
         nom: payload.nom,
         type: payload.type,
@@ -250,7 +250,7 @@
 
     try {
       var result = await global.evadSupabase
-        .from('lieux')
+        .from('fiche_pilote')
         .select('*')
         .order('created_at', {
           ascending: true
