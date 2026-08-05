@@ -3063,6 +3063,36 @@ function initRealMap() {
 
 /* ─── BDD ─── */
 let bddCat='tous', bddCplx='tous', bddSel=null, bddEsp='tous', bddLieu='tous', bddOk=false;
+let bddMode='solutions';   // onglet actif de la Bibliothèque : solutions | quetes | indicateurs
+
+// ── Bascule entre les 3 tables du catalogue (Solutions / Quêtes / Indicateurs) ──
+function setBddMode(mode, btn){
+  bddMode = mode;
+  document.querySelectorAll('.bdd-mode-tab').forEach(b=>b.classList.toggle('active', b===btn || b.getAttribute('data-mode')===mode));
+  // Filtres propres aux solutions (type de lieu, catégories, complexité)
+  const solOnly = mode==='solutions';
+  const lieuRow=document.getElementById('bdd-lieu-row'); if(lieuRow) lieuRow.style.display=solOnly?'flex':'none';
+  const cats=document.getElementById('bdd-cats'); if(cats) cats.style.display=solOnly?'flex':'none';
+  const cplxRow=document.getElementById('bdd-cplx-row'); if(cplxRow) cplxRow.style.display=solOnly?'flex':'none';
+  const banner=document.getElementById('bdd-context-banner'); if(banner && !solOnly) banner.style.display='none';
+  const search=document.getElementById('bdd-search');
+  if(search) search.placeholder = mode==='quetes' ? 'Rechercher une quête…' : mode==='indicateurs' ? 'Rechercher un indicateur…' : 'Rechercher solution…';
+  const sub=document.getElementById('bdd-topbar-sub');
+  if(sub) sub.textContent = mode==='quetes'
+    ? 'Les quêtes du catalogue : chaque action concrète portée par une solution.'
+    : mode==='indicateurs'
+      ? 'Les indicateurs (ICI) : ce que chaque solution rend mesurable, par capital.'
+      : 'Filtre les solutions selon ton type de lieu, ton niveau de maturité et tes contraintes.';
+  // Placeholder du panneau détail
+  const det=document.getElementById('bdd-detail');
+  if(det){
+    const meta={ solutions:['📚','Sélectionne un espace ou une solution'], quetes:['⚡','Sélectionne une quête'], indicateurs:['📊','Sélectionne un indicateur'] }[mode];
+    det.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:1rem;opacity:0.35;">'
+      +'<div style="font-size:3rem;">'+meta[0]+'</div>'
+      +'<div style="font-family:\'Satoshi\', sans-serif;font-size:1rem;color:var(--moss);">'+meta[1]+'</div></div>';
+  }
+  bddRenderList();
+}
 
 function setBddLieu(id, btn){
   bddLieu=id;
@@ -3155,6 +3185,10 @@ function bddRenderList(){
   const q=(document.getElementById('bdd-search')?.value||'').toLowerCase();
   const el=document.getElementById('bdd-list'); el.innerHTML='';
 
+  // Onglets Quêtes / Indicateurs : listes dédiées aux deux autres tables.
+  if(typeof bddMode!=='undefined' && bddMode==='quetes'){ bddRenderListQuetes(el,q); return; }
+  if(typeof bddMode!=='undefined' && bddMode==='indicateurs'){ bddRenderListIndicateurs(el,q); return; }
+
   // Header espace si filtré
   if(bddEsp!=='tous'){
     const esp=ESPS.find(e=>e.id===bddEsp);
@@ -3204,6 +3238,128 @@ function bddRenderList(){
     el.appendChild(d);
   });
 }
+
+/* ── Onglet QUÊTES : la table quetes du catalogue (une quête par solution) ── */
+function bddRenderListQuetes(el,q){
+  const rows=[];
+  SOLS.forEach((s,i)=>{ if(s.quete) rows.push({s,i}); });
+  const list=rows.filter(({s})=>!q || s.quete.titre.toLowerCase().includes(q) || s.nom.toLowerCase().includes(q));
+  if(!list.length){ el.innerHTML='<div style="padding:2rem;text-align:center;color:var(--moss);opacity:.4;font-size:.78rem">Aucune quête</div>'; return; }
+  list.forEach(({s,i})=>{
+    const d=document.createElement('div'); d.className='sol-item'+(bddSel==='q'+i?' sel':'');
+    d.innerHTML=''
+      +'<div style="padding:.2rem 0 .22rem;display:flex;align-items:flex-start;gap:.4rem">'
+        +'<span style="font-size:.95rem;flex-shrink:0">'+s.img+'</span>'
+        +'<span style="font-size:.76rem;font-weight:600;color:var(--ink);flex:1;line-height:1.3">'+s.quete.titre+'</span>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.28rem;font-size:.6rem;color:var(--moss)">'
+        +'<span>⏱ '+(s.quete.duree||'-')+'</span><span>👥 '+(s.quete.nb||'-')+'</span>'
+        +'<span style="color:var(--amber);font-weight:700;margin-left:auto">🌱 '+(s.tok||50)+'</span>'
+      +'</div>'
+      +'<div style="font-size:.56rem;color:var(--moss);opacity:.55">issue de « '+s.nom+' »</div>';
+    d.onclick=()=>{bddSel='q'+i;bddRenderList();bddQueteDetailByIdx(i);};
+    el.appendChild(d);
+  });
+}
+
+// Fiche quête (panneau détail) : les champs de la table quetes + liens croisés.
+function bddQueteDetailByIdx(i){
+  const s=SOLS[i]; if(!s||!s.quete) return;
+  const el=document.getElementById('bdd-detail'); if(!el) return;
+  const icis=(typeof iciPourSolution==='function')?iciPourSolution(s.nom):[];
+  const meta=(typeof ICI_LIVRE_META!=='undefined')?ICI_LIVRE_META:{};
+  const champ=(l,v)=>'<div style="min-width:110px"><div style="font-size:.58rem;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.15rem">'+l+'</div><div style="font-size:.82rem;font-weight:700;color:var(--ink)">'+v+'</div></div>';
+  el.innerHTML=''
+    +'<div style="padding:1.4rem 1.6rem;max-width:640px">'
+      +'<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.3rem">'
+        +'<span style="font-size:1.6rem">'+s.img+'</span>'
+        +'<div><div style="font-family:\'Satoshi\',sans-serif;font-size:1.25rem;font-weight:900;color:var(--ink);line-height:1.15">'+s.quete.titre+'</div>'
+        +'<div style="font-size:.68rem;color:var(--moss);opacity:.7">Quête du catalogue · issue de la solution « '+s.nom+' »</div></div>'
+      +'</div>'
+      +'<div style="display:flex;gap:1.2rem;flex-wrap:wrap;background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:.9rem 1.1rem;margin:1rem 0">'
+        +champ('Durée', s.quete.duree||'-')
+        +champ('Participants', s.quete.nb||'-')
+        +champ('Graines', '🌱 '+(s.tok||50))
+        +champ('Impact', s.quete.impact_quete||s.impact||'-')
+      +'</div>'
+      // Lien → solution d'origine
+      +'<div style="font-size:.62rem;font-weight:700;color:var(--moss);opacity:.65;text-transform:uppercase;letter-spacing:.08em;margin:.9rem 0 .4rem">🧩 Solution d\'origine</div>'
+      +'<button onclick="bddOpenSolByIdx('+i+')" style="display:inline-flex;align-items:center;gap:.4rem;background:#fff;border:1px solid rgba(46,102,66,.25);border-radius:100px;padding:.45rem .9rem;font-size:.74rem;font-weight:700;color:var(--forest);cursor:pointer;font-family:inherit">'+s.img+' '+s.nom+' →</button>'
+      // Liens → indicateurs portés par la solution
+      +(icis.length?(''
+        +'<div style="font-size:.62rem;font-weight:700;color:var(--moss);opacity:.65;text-transform:uppercase;letter-spacing:.08em;margin:1rem 0 .4rem">📊 Indicateurs mesurés</div>'
+        +'<div style="display:flex;gap:.35rem;flex-wrap:wrap">'
+        +icis.map(ici=>{const m=meta[ici.livre]||{ic:'◆',col:'#4a8c5c'};
+          return '<button onclick="bddOpenIci(\''+ici.id+'\')" style="display:inline-flex;align-items:center;gap:.3rem;background:'+m.col+'12;border:1px solid '+m.col+'44;border-radius:100px;padding:.3rem .7rem;font-size:.66rem;font-weight:600;color:'+m.col+';cursor:pointer;font-family:inherit">'+m.ic+' '+ici.nom+' →</button>';}).join('')
+        +'</div>'):'')
+    +'</div>';
+}
+
+/* ── Onglet INDICATEURS : la table indicateurs (catalogue ICI) ── */
+function bddRenderListIndicateurs(el,q){
+  if(typeof ICI_CATALOG==='undefined'){ el.innerHTML='<div style="padding:2rem;text-align:center;color:var(--moss);opacity:.4;font-size:.78rem">Catalogue indisponible</div>'; return; }
+  const meta=(typeof ICI_LIVRE_META!=='undefined')?ICI_LIVRE_META:{};
+  const order=['ecologie','social','economie_locale'];
+  let shown=0;
+  order.forEach(livre=>{
+    const list=ICI_CATALOG.filter(i=>i.livre===livre && (!q || i.nom.toLowerCase().includes(q) || (i.unite||'').toLowerCase().includes(q)));
+    if(!list.length) return;
+    const m=meta[livre]||{label:livre,ic:'◆',col:'#4a8c5c'};
+    const h=document.createElement('div');
+    h.style.cssText='padding:.5rem .9rem .3rem;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:'+m.col;
+    h.textContent=m.ic+' '+m.label;
+    el.appendChild(h);
+    list.forEach(ici=>{
+      const d=document.createElement('div'); d.className='sol-item'+(bddSel==='i'+ici.id?' sel':'');
+      d.innerHTML=''
+        +'<div style="padding:.2rem 0 .22rem;display:flex;align-items:flex-start;gap:.4rem">'
+          +'<span style="font-size:.76rem;font-weight:600;color:var(--ink);flex:1;line-height:1.3">'+ici.nom+'</span>'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:.4rem;font-size:.6rem;color:var(--moss)">'
+          +'<span style="color:'+m.col+';font-weight:600">'+(ici.unite||'')+'</span>'
+          +'<span style="margin-left:auto;opacity:.6">'+(ici.solutionIds||[]).length+' solution'+((ici.solutionIds||[]).length>1?'s':'')+'</span>'
+        +'</div>';
+      d.onclick=()=>{bddSel='i'+ici.id;bddRenderList();bddIciDetail(ici.id);};
+      el.appendChild(d);
+      shown++;
+    });
+  });
+  if(!shown) el.innerHTML='<div style="padding:2rem;text-align:center;color:var(--moss);opacity:.4;font-size:.78rem">Aucun indicateur</div>';
+}
+
+// Fiche indicateur (panneau détail) : les champs de la table indicateurs + liens croisés.
+function bddIciDetail(id){
+  const ici=(typeof iciGetICI==='function')?iciGetICI(id):null; if(!ici) return;
+  const el=document.getElementById('bdd-detail'); if(!el) return;
+  const meta=(typeof ICI_LIVRE_META!=='undefined')?ICI_LIVRE_META:{};
+  const m=meta[ici.livre]||{label:ici.livre,ic:'◆',col:'#4a8c5c'};
+  // Solutions du catalogue qui portent cet indicateur (avec leur index → liens)
+  const solsIdx=[]; SOLS.forEach((s,i)=>{ if((ici.solutionIds||[]).includes(s.nom)) solsIdx.push({s,i}); });
+  el.innerHTML=''
+    +'<div style="padding:1.4rem 1.6rem;max-width:640px">'
+      +'<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;flex-wrap:wrap">'
+        +'<span style="font-size:.64rem;font-weight:700;color:'+m.col+';background:'+m.col+'15;border:1px solid '+m.col+'44;border-radius:100px;padding:.18rem .6rem">'+m.ic+' '+m.label+'</span>'
+      +'</div>'
+      +'<div style="font-family:\'Satoshi\',sans-serif;font-size:1.25rem;font-weight:900;color:var(--ink);line-height:1.15;margin-bottom:.25rem">'+ici.nom+'</div>'
+      +'<div style="font-size:.72rem;color:var(--moss);opacity:.75;margin-bottom:1rem">Indicateur de Changement d\'Impact · mesuré en <b>'+(ici.unite||'-')+'</b></div>'
+      // Liens → solutions qui le portent (et leur quête)
+      +'<div style="font-size:.62rem;font-weight:700;color:var(--moss);opacity:.65;text-transform:uppercase;letter-spacing:.08em;margin:.9rem 0 .4rem">🧩 Mesuré par '+solsIdx.length+' solution'+(solsIdx.length>1?'s':'')+'</div>'
+      +(solsIdx.length?solsIdx.map(({s,i})=>''
+        +'<div style="background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:var(--r);padding:.6rem .8rem;margin-bottom:.4rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">'
+          +'<span style="font-size:1rem">'+s.img+'</span>'
+          +'<span style="font-size:.76rem;font-weight:700;color:var(--ink);flex:1;min-width:120px">'+s.nom+'</span>'
+          +'<button onclick="bddOpenSolByIdx('+i+')" style="background:none;border:1px solid rgba(46,102,66,.25);border-radius:100px;padding:.25rem .65rem;font-size:.62rem;font-weight:700;color:var(--forest);cursor:pointer;font-family:inherit">🧩 Solution →</button>'
+          +(s.quete?'<button onclick="bddOpenQueteByIdx('+i+')" style="background:none;border:1px solid rgba(200,115,42,.35);border-radius:100px;padding:.25rem .65rem;font-size:.62rem;font-weight:700;color:var(--amber);cursor:pointer;font-family:inherit">⚡ Quête →</button>':'')
+        +'</div>').join('')
+      :'<div style="font-size:.7rem;color:var(--moss);opacity:.6">Aucune solution du catalogue ne porte cet indicateur.</div>')
+    +'</div>';
+}
+
+/* ── Navigation croisée entre les 3 onglets ── */
+function _bddActivateMode(mode){ setBddMode(mode, document.querySelector('.bdd-mode-tab[data-mode="'+mode+'"]')); }
+function bddOpenSolByIdx(i){ const s=SOLS[i]; if(!s) return; _bddActivateMode('solutions'); bddSel=s.nom; bddRenderList(); bddDetail(s); }
+function bddOpenQueteByIdx(i){ _bddActivateMode('quetes'); bddSel='q'+i; bddRenderList(); bddQueteDetailByIdx(i); }
+function bddOpenIci(id){ _bddActivateMode('indicateurs'); bddSel='i'+id; bddRenderList(); bddIciDetail(id); }
 
 /* ── Vue détaillée ESPACE ── */
 function bddEspaceDetail(esp){
@@ -3550,7 +3706,29 @@ function solFicheHTML(s, opts){
   </div>`;
 }
 // Fiche de la Bibliothèque : rend la fiche partagée dans le panneau latéral.
-function bddDetail(s){ const el=document.getElementById('bdd-detail'); if(el) el.innerHTML = solFicheHTML(s, {context:'biblio'}); }
+function bddDetail(s){
+  const el=document.getElementById('bdd-detail'); if(!el) return;
+  el.innerHTML = solFicheHTML(s, {context:'biblio'});
+  // Liens croisés vers les deux autres tables (quête portée + indicateurs mesurés).
+  const i=SOLS.indexOf(s);
+  const icis=(typeof iciPourSolution==='function')?iciPourSolution(s.nom):[];
+  const meta=(typeof ICI_LIVRE_META!=='undefined')?ICI_LIVRE_META:{};
+  if(i>=0 && (s.quete || icis.length)){
+    const bloc=document.createElement('div');
+    bloc.style.cssText='padding:0 1.6rem 1.6rem;max-width:640px';
+    bloc.innerHTML=''
+      +(s.quete?(''
+        +'<div style="font-size:.62rem;font-weight:700;color:var(--moss);opacity:.65;text-transform:uppercase;letter-spacing:.08em;margin:.4rem 0 .4rem">⚡ Quête portée</div>'
+        +'<button onclick="bddOpenQueteByIdx('+i+')" style="display:inline-flex;align-items:center;gap:.4rem;background:rgba(200,115,42,.07);border:1px solid rgba(200,115,42,.35);border-radius:100px;padding:.45rem .9rem;font-size:.74rem;font-weight:700;color:var(--amber);cursor:pointer;font-family:inherit">⚡ '+s.quete.titre+' →</button>'):'')
+      +(icis.length?(''
+        +'<div style="font-size:.62rem;font-weight:700;color:var(--moss);opacity:.65;text-transform:uppercase;letter-spacing:.08em;margin:1rem 0 .4rem">📊 Indicateurs mesurés</div>'
+        +'<div style="display:flex;gap:.35rem;flex-wrap:wrap">'
+        +icis.map(ici=>{const m=meta[ici.livre]||{ic:'◆',col:'#4a8c5c'};
+          return '<button onclick="bddOpenIci(\''+ici.id+'\')" style="display:inline-flex;align-items:center;gap:.3rem;background:'+m.col+'12;border:1px solid '+m.col+'44;border-radius:100px;padding:.3rem .7rem;font-size:.66rem;font-weight:600;color:'+m.col+';cursor:pointer;font-family:inherit">'+m.ic+' '+ici.nom+' →</button>';}).join('')
+        +'</div>'):'');
+    el.appendChild(bloc);
+  }
+}
 
 function toggleDevaPanel(){const p=document.getElementById('deva-panel');p.style.display=p.style.display==='none'?'flex':'none';}
 
