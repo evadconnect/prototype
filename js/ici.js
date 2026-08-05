@@ -38,7 +38,7 @@ const ICI_PLANCHER = 40;
 // Poids des 3 livres dans le score global (Σ = 1), configurable.
 const ICI_POIDS_LIVRE = { ecologie: 1 / 3, social: 1 / 3, economie_locale: 1 / 3 };
 
-/* ── Catalogue des ICI.
+/* ── Biblio des ICI.
    point0 = base T0 (PAS toujours 0). point100 = référence « excellent »
    (peut être < point0 si « moins c'est mieux »). solutionIds = noms de SOLS.
    desc = ce que l'indicateur mesure et pourquoi il compte (fiche Bibliothèque).

@@ -134,7 +134,7 @@ function devaHideTyping() {
 }
 
 // Contexte live injecté dans l'appel : les espaces du lieu (avec leur
-// problématique) + le catalogue de solutions et les enjeux qu'elles couvrent.
+// problématique) + la bibliothèque de solutions et les enjeux qu'elles couvrent.
 // Permet à Deva de relier une problématique d'espace aux bonnes solutions.
 function devaBuildAppContext() {
   const parts = [];
@@ -156,7 +156,7 @@ function devaBuildAppContext() {
         const enj = se.enjeux ? se.enjeux.split('. ')[0] : (s.impact || '');
         return `- ${s.nom} → ${enj}`;
       });
-      parts.push('CATALOGUE DE SOLUTIONS (bibliothèque EVAD) :\n' + cat.join('\n'));
+      parts.push('BIBLIOTHÈQUE DE SOLUTIONS (EVAD) :\n' + cat.join('\n'));
     }
   } catch (e) {}
   if (!parts.length) return null;

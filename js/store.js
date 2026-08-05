@@ -361,15 +361,15 @@
     _replaceRemoteChildren('indicateurs', lieuId, indicateurs.map(remoteIndicateurRow));
   }
 
-  // ── Catalogue partagé (tables catalogue_solutions / catalogue_indicateurs) ──
+  // ── Bibliothèque partagée (tables biblio_solutions / biblio_indicateurs) ──
   // Source de vérité dans Supabase, éditable via le Table Editor. Si la base est
   // injoignable ou vide, on garde la version embarquée dans le JS (repli sûr).
   // NB : SOLS / ICI_CATALOG / ICI_EXPORTS sont des bindings lexicaux globaux
   // (const de scripts classiques) : on les mute en place, jamais réassignés.
-  async function hydrateCatalogue() {
+  async function hydrateBiblio() {
     if (!global.evadSupabase) return;
     try {
-      var rs = await global.evadSupabase.from('catalogue_solutions').select('*').order('ordre', { ascending: true });
+      var rs = await global.evadSupabase.from('biblio_solutions').select('*').order('ordre', { ascending: true });
       if (!rs.error && Array.isArray(rs.data) && rs.data.length && typeof SOLS !== 'undefined') {
         var sols = rs.data.filter(function (r) { return r.actif !== false; }).map(function (r) {
           var o = {
@@ -386,7 +386,7 @@
         });
         if (sols.length) { SOLS.length = 0; sols.forEach(function (x) { SOLS.push(x); }); }
       }
-      var ri = await global.evadSupabase.from('catalogue_indicateurs').select('*').order('ordre', { ascending: true });
+      var ri = await global.evadSupabase.from('biblio_indicateurs').select('*').order('ordre', { ascending: true });
       if (!ri.error && Array.isArray(ri.data) && ri.data.length && typeof ICI_CATALOG !== 'undefined') {
         var icis = ri.data.filter(function (r) { return r.actif !== false; }).map(function (r) {
           return {
@@ -406,7 +406,7 @@
           }
         }
       }
-      global.dispatchEvent(new CustomEvent('evad:catalogue-ready'));
+      global.dispatchEvent(new CustomEvent('evad:biblio-ready'));
     } catch (e) {}
   }
 
@@ -769,7 +769,7 @@
             : null;
 
         hydrateRemote();
-        hydrateCatalogue();
+        hydrateBiblio();
         hydrateQuetes();
         hydrateSolutions();
         hydrateIndicateurs();
@@ -789,7 +789,7 @@
           hydrateRemote,
           0
         );
-        setTimeout(hydrateCatalogue, 0);
+        setTimeout(hydrateBiblio, 0);
         setTimeout(hydrateQuetes, 0);
         setTimeout(hydrateSolutions, 0);
         setTimeout(hydrateIndicateurs, 0);

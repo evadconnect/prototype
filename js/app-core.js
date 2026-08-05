@@ -1956,7 +1956,7 @@ const CATS={
 };
 
 /* ─── Matching « problématique à résoudre » → solutions de la BDD (SOLS) ───
-   100 % local : croise le texte de la problématique avec le catalogue. Ne
+   100 % local : croise le texte de la problématique avec la biblio. Ne
    propose QUE des solutions existantes (jamais d'invention). ── */
 const PROBLEME_CAT_KW = {
   eau:          ['eau','secheresse','pluie','arrosage','inondation','nappe','potable','irrigation','fuite'],
@@ -3065,7 +3065,7 @@ function initRealMap() {
 let bddCat='tous', bddCplx='tous', bddSel=null, bddEsp='tous', bddLieu='tous', bddOk=false;
 let bddMode='solutions';   // onglet actif de la Bibliothèque : solutions | quetes | indicateurs
 
-// ── Bascule entre les 3 tables du catalogue (Solutions / Quêtes / Indicateurs) ──
+// ── Bascule entre les 3 tables de la biblio (Solutions / Quêtes / Indicateurs) ──
 function setBddMode(mode, btn){
   bddMode = mode;
   document.querySelectorAll('.bdd-mode-tab').forEach(b=>b.classList.toggle('active', b===btn || b.getAttribute('data-mode')===mode));
@@ -3079,7 +3079,7 @@ function setBddMode(mode, btn){
   if(search) search.placeholder = mode==='quetes' ? 'Rechercher une quête…' : mode==='indicateurs' ? 'Rechercher un indicateur…' : 'Rechercher solution…';
   const sub=document.getElementById('bdd-topbar-sub');
   if(sub) sub.textContent = mode==='quetes'
-    ? 'Les quêtes du catalogue : chaque action concrète portée par une solution.'
+    ? 'Les quêtes de la biblio : chaque action concrète portée par une solution.'
     : mode==='indicateurs'
       ? 'Les indicateurs (ICI) : ce que chaque solution rend mesurable, par capital.'
       : 'Filtre les solutions selon ton type de lieu, ton niveau de maturité et tes contraintes.';
@@ -3239,7 +3239,7 @@ function bddRenderList(){
   });
 }
 
-/* ── Onglet QUÊTES : la table quetes du catalogue (une quête par solution) ── */
+/* ── Onglet QUÊTES : la table quetes de la biblio (une quête par solution) ── */
 function bddRenderListQuetes(el,q){
   const rows=[];
   SOLS.forEach((s,i)=>{ if(s.quete) rows.push({s,i}); });
@@ -3274,7 +3274,7 @@ function bddQueteDetailByIdx(i){
       +'<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.3rem">'
         +'<span style="font-size:1.6rem">'+s.img+'</span>'
         +'<div><div style="font-family:\'Satoshi\',sans-serif;font-size:1.25rem;font-weight:900;color:var(--ink);line-height:1.15">'+s.quete.titre+'</div>'
-        +'<div style="font-size:.68rem;color:var(--moss);opacity:.7">Quête du catalogue · issue de la solution « '+s.nom+' »</div></div>'
+        +'<div style="font-size:.68rem;color:var(--moss);opacity:.7">Quête de la biblio · issue de la solution « '+s.nom+' »</div></div>'
       +'</div>'
       +'<div style="display:flex;gap:1.2rem;flex-wrap:wrap;background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:.9rem 1.1rem;margin:1rem 0">'
         +champ('Durée', s.quete.duree||'-')
@@ -3295,9 +3295,9 @@ function bddQueteDetailByIdx(i){
     +'</div>';
 }
 
-/* ── Onglet INDICATEURS : la table indicateurs (catalogue ICI) ── */
+/* ── Onglet INDICATEURS : la table indicateurs (biblio ICI) ── */
 function bddRenderListIndicateurs(el,q){
-  if(typeof ICI_CATALOG==='undefined'){ el.innerHTML='<div style="padding:2rem;text-align:center;color:var(--moss);opacity:.4;font-size:.78rem">Catalogue indisponible</div>'; return; }
+  if(typeof ICI_CATALOG==='undefined'){ el.innerHTML='<div style="padding:2rem;text-align:center;color:var(--moss);opacity:.4;font-size:.78rem">Biblio indisponible</div>'; return; }
   const meta=(typeof ICI_LIVRE_META!=='undefined')?ICI_LIVRE_META:{};
   const order=['ecologie','social','economie_locale'];
   let shown=0;
@@ -3333,7 +3333,7 @@ function bddIciDetail(id){
   const el=document.getElementById('bdd-detail'); if(!el) return;
   const meta=(typeof ICI_LIVRE_META!=='undefined')?ICI_LIVRE_META:{};
   const m=meta[ici.livre]||{label:ici.livre,ic:'◆',col:'#4a8c5c'};
-  // Solutions du catalogue qui portent cet indicateur (avec leur index → liens)
+  // Solutions de la biblio qui portent cet indicateur (avec leur index → liens)
   const solsIdx=[]; SOLS.forEach((s,i)=>{ if((ici.solutionIds||[]).includes(s.nom)) solsIdx.push({s,i}); });
   // Barème T0 → cible (le « 100 » de l'indicateur) + correspondances dérivées.
   const _fmtNb=(v)=>(typeof v==='number'?(Number.isInteger(v)?v:Math.round(v*10)/10).toLocaleString('fr-FR'):v);
@@ -3379,7 +3379,7 @@ function bddIciDetail(id){
           +'<button onclick="bddOpenSolByIdx('+i+')" style="background:none;border:1px solid rgba(46,102,66,.25);border-radius:100px;padding:.25rem .65rem;font-size:.62rem;font-weight:700;color:var(--forest);cursor:pointer;font-family:inherit">🧩 Solution →</button>'
           +(s.quete?'<button onclick="bddOpenQueteByIdx('+i+')" style="background:none;border:1px solid rgba(200,115,42,.35);border-radius:100px;padding:.25rem .65rem;font-size:.62rem;font-weight:700;color:var(--amber);cursor:pointer;font-family:inherit">⚡ Quête →</button>':'')
         +'</div>').join('')
-      :'<div style="font-size:.7rem;color:var(--moss);opacity:.6">Aucune solution du catalogue ne porte cet indicateur.</div>')
+      :'<div style="font-size:.7rem;color:var(--moss);opacity:.6">Aucune solution de la biblio ne porte cet indicateur.</div>')
     +'</div>';
 }
 
@@ -5515,7 +5515,7 @@ const DEVA_TOUR_PILOTE = [
   { screen: 'pilote', tab: 'fiche', title: 'Ta fiche lieu ✏️', text: 'Tu peux compléter et enrichir ton lieu ici à tout moment : plus c\'est précis, plus ta Vadance est juste.' },
   { screen: 'pilote', tab: 'marketplace', title: 'Tes avantages 🛖', text: 'Dépose ici tes <b>biens et services payables en graines</b> (paniers, ateliers, hébergement, prêt de matériel…). Les bâtisseurs et membres du réseau viennent les échanger chez toi : l\'économie regen circule.' },
   // ── Explore l'écosystème EVAD ──
-  { screen: 'bdd', title: 'La bibliothèque 📚', text: 'Un catalogue de solutions, d\'indicateurs (ICI) et de ressources pour t\'inspirer et enrichir ton lieu.' },
+  { screen: 'bdd', title: 'La bibliothèque 📚', text: 'Toutes les solutions, les indicateurs (ICI) et les ressources pour t\'inspirer et enrichir ton lieu.' },
   { screen: 'marketplace', title: 'Les avantages 🛖', text: 'Propose des biens et services payables en graines, et dépense les tiens chez les autres lieux : l\'économie regen circule.' },
   // ── Fin ──
   { screen: 'pilote', tab: 'apercu', title: 'À toi de jouer ! 🌿', text: 'C\'est tout pour la visite. Une question ? Je suis toujours là, en bas à gauche. Bonne exploration !' },
@@ -5527,7 +5527,7 @@ const DEVA_TOUR_BATISSEUR = [
   { screen: 'quete', tab: 'quetes', title: 'Tes quêtes ⚡', text: 'Rejoins des missions publiées par les Pilotes, agis sur le terrain et dépose tes preuves.' },
   { screen: 'quete', tab: 'competences', title: 'Tes compétences 🏅', text: 'Décris tes savoir-faire et ta disponibilité : on te proposera les quêtes qui te correspondent.' },
   { screen: 'quete', tab: 'graines', title: 'Tes avantages 🛖', text: 'Échange les <b>graines</b> gagnées contre des paniers, ateliers, hébergements ou formations près de chez toi.' },
-  { screen: 'bdd', title: 'La bibliothèque 📚', text: 'Un catalogue de solutions et de ressources régénératives pour t\'inspirer.' },
+  { screen: 'bdd', title: 'La bibliothèque 📚', text: 'Toutes les solutions et ressources régénératives pour t\'inspirer.' },
   { screen: 'quete', tab: 'apercu', title: 'À toi de jouer ! 🌿', text: 'C\'est tout pour la visite. Une question ? Je suis toujours là, en bas à gauche. Bonne exploration !' }
 ];
 // Visite guidée du Semeur : passe par SON tableau de bord (écran « semeur »).
@@ -5537,7 +5537,7 @@ const DEVA_TOUR_SEMEUR = [
   { screen: 'semeur', tab: 'quetes', title: 'Quêtes à financer ⚡', text: 'Choisis les projets à soutenir. Les fonds se débloquent au fil des étapes validées.' },
   { screen: 'semeur', tab: 'rse', title: 'RSE / CSRD 📋', text: 'Tes preuves d\'impact, structurées et exportables pour ton reporting extra-financier.' },
   { screen: 'semeur', tab: 'graines', title: 'Tes échanges 🌱', text: 'Retrouve ici tes contrats et contreparties avec les lieux que tu finances.' },
-  { screen: 'bdd', title: 'La bibliothèque 📚', text: 'Le catalogue des solutions et des indicateurs d\'impact (ICI).' },
+  { screen: 'bdd', title: 'La bibliothèque 📚', text: 'Les solutions et les indicateurs d\'impact (ICI) de la biblio.' },
   { screen: 'semeur', tab: 'apercu', title: 'À toi de jouer ! 🌿', text: 'C\'est tout pour la visite. Une question ? Je suis toujours là, en bas à gauche. Bonne exploration !' }
 ];
 const DEVA_TOURS = { pilote: DEVA_TOUR_PILOTE, batisseur: DEVA_TOUR_BATISSEUR, semeur: DEVA_TOUR_SEMEUR };
@@ -8309,7 +8309,7 @@ const VADE_STEPS = [
     title: 'Activer les solutions',
     desc: 'Déclarer les solutions mises en œuvre et mobiliser la communauté.',
     tags: ['🌱 Solutions', '🤝 Communauté'],
-    outils: ['Catalogue de solutions', 'Déclaration des ICI', 'Quêtes'],
+    outils: ['Bibliothèque de solutions', 'Déclaration des ICI', 'Quêtes'],
     taches: [
       'Déclarer les solutions que tu mets en œuvre',
       'Chaque solution embarque ses ICI à suivre',
@@ -10932,7 +10932,7 @@ function espActiviteAutocomplete(val) {
   const q = val.trim().toLowerCase();
   if (!q) { drop.style.display = 'none'; return; }
 
-  // Cherche dans le catalogue + accepte toute saisie libre
+  // Cherche dans la biblio + accepte toute saisie libre
   const matches = ACTIVITES_FLAT.filter(a =>
     a.toLowerCase().includes(q) && !_espaceActivites.includes(a)
   ).slice(0, 8);
@@ -11985,9 +11985,9 @@ window.addEventListener('evad:quetes-ready', function(){
   } catch(e){}
 });
 
-// Catalogue (solutions + indicateurs) hydraté depuis Supabase : on rafraîchit
+// Bibliothèque (solutions + indicateurs) hydratée depuis Supabase : on rafraîchit
 // la Bibliothèque si elle est affichée (les autres vues se re-rendent à la demande).
-window.addEventListener('evad:catalogue-ready', function(){
+window.addEventListener('evad:biblio-ready', function(){
   try {
     var bdd = document.getElementById('screen-bdd');
     if (bdd && bdd.classList.contains('active') && typeof bddRenderList === 'function') bddRenderList();
