@@ -6579,10 +6579,12 @@ function renderQueteDetail() {
   const q = _qdQuestOverride || BAT_QUETES[_qdCurrentId];
   if (!q) return;
 
-  // Édition ciblée : une section à la fois (infos / materiel / etapes)
-  const EDinfos = _qdEditSection === 'infos';
-  const EDmat   = _qdEditSection === 'materiel';
-  const EDplan  = _qdEditSection === 'etapes';
+  // Édition ciblée : une section à la fois (infos / desc / materiel / etapes / impact)
+  const EDinfos  = _qdEditSection === 'infos';
+  const EDdesc   = _qdEditSection === 'desc';
+  const EDmat    = _qdEditSection === 'materiel';
+  const EDplan   = _qdEditSection === 'etapes';
+  const EDimpact = _qdEditSection === 'impact';
   // Sections repliables (matériel/étapes) — dépliées si ouvertes OU en édition
   const matOpen  = !!_qdOpenSections.materiel || EDmat;
   const planOpen = !!_qdOpenSections.etapes   || EDplan;
@@ -6602,6 +6604,11 @@ function renderQueteDetail() {
     : `${v}`;
   const edObj = (f,i,k,v)=> EDplan
     ? `<span contenteditable="true" onblur="qdSetObj('${f}',${i},'${k}',this.textContent)" style="outline:1px dashed rgba(46,102,66,.4);border-radius:4px;padding:0 .25rem;cursor:text;min-width:1ch;display:inline-block">${v}</span>`
+    : `${v}`;
+  // Champ éditable dont l'activation dépend d'un flag de section quelconque
+  // (utilisé par Description et Impact, qui ont chacun leur propre crayon).
+  const edSec = (on,f,v,num,dark)=> on
+    ? `<span contenteditable="true" onblur="qdSet('${f}',this.textContent${num?',1':''})" style="outline:1px dashed ${dark?'rgba(255,255,255,.5)':'rgba(46,102,66,.4)'};border-radius:4px;padding:0 .25rem;cursor:text;min-width:1ch;display:inline-block">${v}</span>`
     : `${v}`;
 
   // Topbar
@@ -6683,6 +6690,7 @@ function renderQueteDetail() {
     <!-- Hero -->
     <div style="background:linear-gradient(135deg,#0e2a1a,#1a3a22);border-radius:var(--r-xl);padding:1.4rem 1.8rem;position:relative;overflow:hidden">
       <div style="position:absolute;right:-30px;top:-30px;width:150px;height:150px;background:radial-gradient(circle,rgba(122,184,64,.12),transparent);pointer-events:none;border-radius:50%"></div>
+      ${currentRole === 'pilote' && !EDinfos ? `<button onclick="qdEditSection('infos')" title="Modifier les infos" style="position:absolute;top:.9rem;right:.9rem;z-index:2;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.32);border-radius:100px;padding:.22rem .5rem;font-size:.62rem;font-weight:700;cursor:pointer;font-family:inherit">✏️</button>` : ''}
       <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.7rem">
         <span style="font-size:.65rem;padding:.18rem .55rem;border-radius:100px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.8)">${q.type}</span>
         <span style="font-size:.65rem;padding:.18rem .55rem;border-radius:100px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.6)">📍 ${edDark('ville', q.ville)}</span>
@@ -6737,8 +6745,11 @@ function renderQueteDetail() {
 
     <!-- Description -->
     <div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-lg);padding:1rem 1.1rem">
-      <div style="font-size:.72rem;font-weight:600;color:var(--ink);margin-bottom:.5rem">📝 Description</div>
-      <p style="font-size:.8rem;color:var(--moss);line-height:1.6;margin:0">${edLight('desc', q.desc || '-')}</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+        <div style="font-size:.72rem;font-weight:600;color:var(--ink)">📝 Description</div>
+        ${secCtrl('desc', EDdesc)}
+      </div>
+      <p style="font-size:.8rem;color:var(--moss);line-height:1.6;margin:0">${edSec(EDdesc, 'desc', q.desc || '-')}</p>
     </div>
 
     <!-- Dates -->
@@ -6799,8 +6810,11 @@ function renderQueteDetail() {
 
     <!-- Impact -->
     <div style="background:rgba(74,140,92,.05);border:1px solid rgba(74,140,92,.2);border-radius:var(--r-lg);padding:.9rem 1rem">
-      <div style="font-size:.72rem;font-weight:600;color:var(--fern);margin-bottom:.4rem">🌿 Impact si complétée</div>
-      <div style="font-size:.78rem;color:var(--ink);line-height:1.6">${edLight('impact', q.impact)}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem">
+        <div style="font-size:.72rem;font-weight:600;color:var(--fern)">🌿 Impact si complétée</div>
+        ${secCtrl('impact', EDimpact)}
+      </div>
+      <div style="font-size:.78rem;color:var(--ink);line-height:1.6">${edSec(EDimpact, 'impact', q.impact)}</div>
       <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.6rem">${esrsBadges}</div>
     </div>
   `;
