@@ -6677,8 +6677,8 @@ function renderQueteDetail() {
     </div>`;
   })() : '';
 
-  // Équipe
-  const equipeHtml = `<div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-lg);padding:.9rem 1rem">
+  // Équipe — masquée tant qu'aucun Bâtisseur n'a rejoint (fiche épurée).
+  const equipeHtml = (!q.equipe || !q.equipe.length) ? '' : `<div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-lg);padding:.9rem 1rem">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
       <div style="font-size:.72rem;font-weight:600;color:var(--ink)">👥 Équipe (${q.equipe.length}/${q.places.split('/')[1]})</div>
       <span style="font-size:.6rem;color:var(--moss);opacity:.6">${q.places} inscrits</span>
@@ -6721,41 +6721,10 @@ function renderQueteDetail() {
         <div style="font-size:.72rem;color:rgba(255,255,255,.5)">⏱ ${edDark('duree', q.duree)}</div>
       </div>
       ${EDinfos ? '' : `<button onclick="qdVoirLieu()" style="display:inline-flex;align-items:center;gap:.35rem;margin-bottom:1rem;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:.4rem .85rem;font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit">🏡 Voir le lieu →</button>`}
-      <div style="display:flex;gap:.8rem;flex-wrap:wrap">
-        <div style="text-align:center;background:rgba(255,255,255,.07);border-radius:var(--r);padding:.55rem .9rem">
-          <div style="font-family:'Satoshi', sans-serif;font-size:1.3rem;font-weight:900;color:var(--amber)">${edDark('tokens', q.tokens, true)}</div>
-          <div style="font-size:.55rem;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em">graines</div>
-        </div>
-        <div style="text-align:center;background:rgba(255,255,255,.07);border-radius:var(--r);padding:.55rem .9rem">
-          <div style="font-family:'Satoshi', sans-serif;font-size:1.3rem;font-weight:900;color:#7ceb6a">${edDark('co2', q.co2, true)}t</div>
-          <div style="font-size:.55rem;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em">CO₂ évité</div>
-        </div>
-        <div style="text-align:center;background:rgba(255,255,255,.07);border-radius:var(--r);padding:.55rem .9rem">
-          <div style="font-family:'Satoshi', sans-serif;font-size:1.3rem;font-weight:900;color:var(--sky)">${edDark('places', q.places)}</div>
-          <div style="font-size:.55rem;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em">participants</div>
-        </div>
+      <div style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.07);border-radius:var(--r);padding:.5rem .9rem">
+        <span style="font-family:'Satoshi', sans-serif;font-size:1.3rem;font-weight:900;color:var(--amber)">🌱 ${edDark('tokens', q.tokens, true)}</span>
+        <span style="font-size:.6rem;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em">graines</span>
       </div>
-      ${(() => {
-        // Progression vers la récolte : graines déjà gagnées / total, indexées sur les étapes franchies.
-        const gtot = q.tokens || 0;
-        const gfait = Math.max(0, Math.min(_stepCount, (q.etape_actuelle || 1) - 1));
-        const gpct = q.validated ? 100 : (_stepCount ? Math.round(gfait / _stepCount * 100) : 0);
-        const ggain = q.validated ? gtot : Math.round(gtot * gpct / 100);
-        const reste = Math.max(0, _stepCount - gfait);
-        const hint = q.validated
-          ? '🎉 Quête certifiée · graines récoltées !'
-          : reste > 0
-            ? `Plus que ${reste} étape${reste > 1 ? 's' : ''} avant de récolter tes ${gtot} 🌱`
-            : 'Dernière ligne droite · valide pour récolter 🌱';
-        return `<div style="margin-top:1rem;background:rgba(255,255,255,.06);border-radius:var(--r);padding:.7rem .9rem">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem">
-            <span style="font-size:.6rem;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.08em">🌱 Graines récoltées</span>
-            <span style="font-family:'Satoshi', sans-serif;font-size:.9rem;font-weight:900;color:var(--amber)">${ggain} <span style="color:rgba(255,255,255,.4);font-weight:600">/ ${gtot}</span></span>
-          </div>
-          <div style="height:7px;background:rgba(255,255,255,.1);border-radius:100px;overflow:hidden"><div style="height:100%;width:${gpct}%;background:linear-gradient(90deg,#f0b032,#7ab840);border-radius:100px;transition:width .6s cubic-bezier(.34,1.2,.5,1)"></div></div>
-          <div style="font-size:.6rem;color:rgba(255,255,255,.5);margin-top:.4rem">${hint}</div>
-        </div>`;
-      })()}
     </div>
 
     <!-- Description -->
