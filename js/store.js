@@ -394,7 +394,8 @@
             point0: (r.point0 == null ? 0 : Number(r.point0)),
             point100: (r.point100 == null ? 100 : Number(r.point100)),
             poids: (r.poids == null ? 1 : Number(r.poids)),
-            desc: r.description || '', solutionIds: r.solution_noms || []
+            desc: r.description || '', photo: r.photo || '',
+            solutionIds: r.solution_noms || []
           };
         });
         if (icis.length) {

@@ -3248,8 +3248,13 @@ function bddRenderListQuetes(el,q){
   list.forEach(({s,i})=>{
     const d=document.createElement('div'); d.className='sol-item'+(bddSel==='q'+i?' sel':'');
     d.innerHTML=''
-      +'<div style="padding:.2rem 0 .22rem;display:flex;align-items:flex-start;gap:.4rem">'
-        +'<span style="font-size:.95rem;flex-shrink:0">'+s.img+'</span>'
+      +(s.photo?'<div style="height:72px;border-radius:6px 6px 0 0;overflow:hidden;position:relative">'
+          +'<img src="'+s.photo+'" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center">'
+          +'<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(10,26,18,.55),transparent)"></div>'
+          +'<span style="position:absolute;bottom:5px;left:8px;font-size:.85rem">⚡</span>'
+        +'</div>':'')
+      +'<div style="padding:'+(s.photo?'.45rem 0 .22rem':'.2rem 0 .22rem')+';display:flex;align-items:flex-start;gap:.4rem">'
+        +(!s.photo?'<span style="font-size:.95rem;flex-shrink:0">'+s.img+'</span>':'')
         +'<span style="font-size:.76rem;font-weight:600;color:var(--ink);flex:1;line-height:1.3">'+s.quete.titre+'</span>'
       +'</div>'
       +'<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.28rem;font-size:.6rem;color:var(--moss)">'
@@ -3269,14 +3274,27 @@ function bddQueteDetailByIdx(i){
   const icis=(typeof iciPourSolution==='function')?iciPourSolution(s.nom):[];
   const meta=(typeof ICI_LIVRE_META!=='undefined')?ICI_LIVRE_META:{};
   const champ=(l,v)=>'<div style="min-width:110px"><div style="font-size:.58rem;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.15rem">'+l+'</div><div style="font-size:.82rem;font-weight:700;color:var(--ink)">'+v+'</div></div>';
-  el.innerHTML=''
+  // Hero avec l'image de la solution d'origine (comme la fiche solution).
+  const hero = s.photo
+    ? '<div style="position:relative;overflow:hidden;min-height:170px">'
+        +'<img src="'+s.photo+'" alt="'+s.quete.titre+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center">'
+        +'<div style="position:absolute;inset:0;background:linear-gradient(160deg,rgba(10,30,18,.82) 0%,rgba(20,60,35,.65) 60%,rgba(10,30,18,.5) 100%)"></div>'
+        +'<div style="position:relative;padding:1.4rem 1.6rem 1.2rem">'
+          +'<span style="font-size:.58rem;padding:.15rem .5rem;border-radius:100px;background:rgba(200,115,42,.35);color:#f5c842;font-weight:700">⚡ Quête</span>'
+          +'<div style="font-family:\'Satoshi\',sans-serif;font-size:1.45rem;font-weight:900;color:white;line-height:1.15;margin:.55rem 0 .35rem;text-shadow:0 2px 12px rgba(0,0,0,.4)">'+s.img+' '+s.quete.titre+'</div>'
+          +'<div style="font-size:.72rem;color:rgba(255,255,255,.8);text-shadow:0 1px 6px rgba(0,0,0,.3)">issue de la solution « '+s.nom+' »</div>'
+        +'</div>'
+      +'</div>'
+    : '';
+  el.innerHTML=hero
     +'<div style="padding:1.4rem 1.6rem;max-width:640px">'
-      +'<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.3rem">'
+      +(hero?'':''
+        +'<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.3rem">'
         +'<span style="font-size:1.6rem">'+s.img+'</span>'
         +'<div><div style="font-family:\'Satoshi\',sans-serif;font-size:1.25rem;font-weight:900;color:var(--ink);line-height:1.15">'+s.quete.titre+'</div>'
         +'<div style="font-size:.68rem;color:var(--moss);opacity:.7">Quête de la biblio · issue de la solution « '+s.nom+' »</div></div>'
-      +'</div>'
-      +'<div style="display:flex;gap:1.2rem;flex-wrap:wrap;background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:.9rem 1.1rem;margin:1rem 0">'
+      +'</div>')
+      +'<div style="display:flex;gap:1.2rem;flex-wrap:wrap;background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:.9rem 1.1rem;margin:0 0 1rem">'
         +champ('Durée', s.quete.duree||'-')
         +champ('Participants', s.quete.nb||'-')
         +champ('Graines', '🌱 '+(s.tok||50))
@@ -3312,7 +3330,12 @@ function bddRenderListIndicateurs(el,q){
     list.forEach(ici=>{
       const d=document.createElement('div'); d.className='sol-item'+(bddSel==='i'+ici.id?' sel':'');
       d.innerHTML=''
-        +'<div style="padding:.2rem 0 .22rem;display:flex;align-items:flex-start;gap:.4rem">'
+        +(ici.photo?'<div style="height:72px;border-radius:6px 6px 0 0;overflow:hidden;position:relative">'
+            +'<img src="'+ici.photo+'" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center">'
+            +'<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(10,26,18,.55),transparent)"></div>'
+            +'<span style="position:absolute;bottom:5px;left:8px;font-size:.85rem">'+m.ic+'</span>'
+          +'</div>':'')
+        +'<div style="padding:'+(ici.photo?'.45rem 0 .22rem':'.2rem 0 .22rem')+';display:flex;align-items:flex-start;gap:.4rem">'
           +'<span style="font-size:.76rem;font-weight:600;color:var(--ink);flex:1;line-height:1.3">'+ici.nom+'</span>'
         +'</div>'
         +'<div style="display:flex;align-items:center;gap:.4rem;font-size:.6rem;color:var(--moss)">'
@@ -3345,13 +3368,26 @@ function bddIciDetail(id){
     (_ex.esrs||[]).map(e=>_chip('ESRS '+e,'#2a6090',true)),
     (_ex.vsme||[]).map(v=>_chip(v,'#5a3080',false))
   );
-  el.innerHTML=''
+  // Hero avec l'image de l'indicateur (comme la fiche solution).
+  const hero = ici.photo
+    ? '<div style="position:relative;overflow:hidden;min-height:170px">'
+        +'<img src="'+ici.photo+'" alt="'+ici.nom+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center">'
+        +'<div style="position:absolute;inset:0;background:linear-gradient(160deg,rgba(10,30,18,.82) 0%,rgba(20,60,35,.65) 60%,rgba(10,30,18,.5) 100%)"></div>'
+        +'<div style="position:relative;padding:1.4rem 1.6rem 1.2rem">'
+          +'<span style="font-size:.6rem;font-weight:700;color:white;background:'+m.col+'cc;border-radius:100px;padding:.18rem .6rem">'+m.ic+' '+m.label+'</span>'
+          +'<div style="font-family:\'Satoshi\',sans-serif;font-size:1.45rem;font-weight:900;color:white;line-height:1.15;margin:.55rem 0 .35rem;text-shadow:0 2px 12px rgba(0,0,0,.4)">'+ici.nom+'</div>'
+          +'<div style="font-size:.72rem;color:rgba(255,255,255,.8);text-shadow:0 1px 6px rgba(0,0,0,.3)">Indicateur de Changement d\'Impact · mesuré en <b>'+(ici.unite||'-')+'</b></div>'
+        +'</div>'
+      +'</div>'
+    : '';
+  el.innerHTML=hero
     +'<div style="padding:1.4rem 1.6rem;max-width:640px">'
-      +'<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;flex-wrap:wrap">'
+      +(hero?'':''
+        +'<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;flex-wrap:wrap">'
         +'<span style="font-size:.64rem;font-weight:700;color:'+m.col+';background:'+m.col+'15;border:1px solid '+m.col+'44;border-radius:100px;padding:.18rem .6rem">'+m.ic+' '+m.label+'</span>'
       +'</div>'
       +'<div style="font-family:\'Satoshi\',sans-serif;font-size:1.25rem;font-weight:900;color:var(--ink);line-height:1.15;margin-bottom:.25rem">'+ici.nom+'</div>'
-      +'<div style="font-size:.72rem;color:var(--moss);opacity:.75;margin-bottom:.6rem">Indicateur de Changement d\'Impact · mesuré en <b>'+(ici.unite||'-')+'</b></div>'
+      +'<div style="font-size:.72rem;color:var(--moss);opacity:.75;margin-bottom:.6rem">Indicateur de Changement d\'Impact · mesuré en <b>'+(ici.unite||'-')+'</b></div>')
       +(ici.desc?'<div style="font-size:.76rem;color:var(--ink);opacity:.85;line-height:1.6;margin-bottom:1rem">'+ici.desc+'</div>':'')
       // Barème : point de départ → référence « excellent » (sous-score 100)
       +'<div style="background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:.8rem 1rem;margin-bottom:1rem">'
