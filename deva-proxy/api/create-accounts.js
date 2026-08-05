@@ -33,14 +33,18 @@ function genPassword() {
   return randomBytes(12).toString('base64').replace(/[+/=]/g, '').slice(0, 12);
 }
 
-// Profils autorisés d'une inscription : colonne `profils_autorises`
-// (multi-choix) si renseignée, sinon repli sur le champ `role`.
+// Profils autorisés d'une inscription : cases acces_pilote/batisseur/semeur
+// cochées, sinon repli sur le champ `role` (profil d'inscription).
 function parseRoles(row) {
-  const valid = ['pilote', 'batisseur', 'semeur'];
-  let list = Array.isArray(row.profils_autorises) ? row.profils_autorises : [];
-  list = list.map(function (s) { return String(s).trim().toLowerCase(); }).filter(function (r) { return valid.indexOf(r) !== -1; });
-  if (!list.length) list = [ valid.indexOf(row.role) !== -1 ? row.role : 'batisseur' ];
-  return list.filter(function (r, i) { return list.indexOf(r) === i; }); // dédup
+  const list = [];
+  if (row.acces_pilote) list.push('pilote');
+  if (row.acces_batisseur) list.push('batisseur');
+  if (row.acces_semeur) list.push('semeur');
+  if (!list.length) {
+    const valid = ['pilote', 'batisseur', 'semeur'];
+    list.push(valid.indexOf(row.role) !== -1 ? row.role : 'batisseur');
+  }
+  return list;
 }
 
 // Appel REST/Auth Supabase avec la clé service_role.
@@ -135,7 +139,7 @@ export default async function handler(req, res) {
     // 1. Inscrits approuvés (pas encore de compte)
     const listRes = await sb(
       '/rest/v1/inscription_beta?statut=eq.' + encodeURIComponent('approuvé') +
-      '&select=id,email,prenom,nom,role,role_label,profils_autorises'
+      '&select=id,email,prenom,nom,role,role_label,acces_pilote,acces_batisseur,acces_semeur'
     );
     const rows = await listRes.json();
     if (!Array.isArray(rows)) {
