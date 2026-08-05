@@ -40,8 +40,10 @@ async function evadLoginCore(email, password, onError, btn, btnLabel){
   try {
     const result = await client.auth.signInWithPassword({ email: email, password: password });
     if (result.error) throw result.error;
-    const roles = evadUserRoles(result.data.user);
+    const user = result.data.user;
+    const roles = evadUserRoles(user);
     window.EVAD_ROLES = roles;
+    window.EVAD_FICHES_FAITES = (user && user.user_metadata && user.user_metadata.fiches_faites) || [];
     currentRole = roles[0];
     closeAuthModal();
     const splash = document.getElementById('evad-splash');
@@ -52,13 +54,12 @@ async function evadLoginCore(email, password, onError, btn, btnLabel){
       splash.style.display = 'flex';
     }
     if (typeof renderRoleSwitcher === 'function') renderRoleSwitcher(roles);
-    // Plusieurs profils → sélecteur ; un seul → entrée directe.
+    // Plusieurs profils → sélecteur ; un seul → entrée (tableau de bord si la
+    // fiche est déjà faite, sinon onboarding + création).
     if (roles.length > 1) {
       showProfileChooser(roles);
     } else {
-      splashRole = roles[0];
-      if (typeof splashEnter === 'function') splashEnter();
-      else showScreen(({ pilote:'lieu', batisseur:'batisseur', semeur:'semeur' })[roles[0]] || 'batisseur');
+      await evadEnterRole(roles[0]);
     }
   } catch (e) {
     onError(e.message || 'Connexion impossible.');
@@ -118,9 +119,57 @@ function showProfileChooser(roles){
 function chooseProfile(role){
   const ov = document.getElementById('evad-profile-chooser');
   if (ov) ov.remove();
+  evadEnterRole(role);
+}
+
+// True si la fiche de ce profil a déjà été faite (marqueur sur le compte).
+function evadFicheDone(role){
+  const done = window.EVAD_FICHES_FAITES;
+  return Array.isArray(done) && done.indexOf(role) !== -1;
+}
+
+// Entrée dans un profil : tableau de bord si la fiche est déjà faite,
+// sinon onboarding + création de fiche.
+async function evadEnterRole(role){
   splashRole = role;
   currentRole = role;
-  if (typeof splashEnter === 'function') splashEnter();
+  let done = evadFicheDone(role);
+  // Rattrapage comptes existants : une fiche Pilote déjà en base = fiche faite.
+  if (!done && role === 'pilote') {
+    try {
+      const client = window.evadSupabase;
+      const { data: sess } = await client.auth.getSession();
+      const uid = sess && sess.session && sess.session.user && sess.session.user.id;
+      if (uid) {
+        const { data } = await client.from('fiche_pilote').select('id').eq('user_id', uid).limit(1);
+        if (data && data.length) { done = true; evadMarkFicheDone('pilote'); }
+      }
+    } catch (e) {}
+  }
+  if (done && typeof evadEnterDashboard === 'function') {
+    evadEnterDashboard(role);
+  } else if (typeof splashEnter === 'function') {
+    splashEnter();
+  }
+}
+
+// Marque le profil comme « fiche faite » sur le compte (user_metadata),
+// pour aller direct au tableau de bord aux prochaines connexions (tous appareils).
+async function evadMarkFicheDone(role){
+  try {
+    const client = window.evadSupabase;
+    if (!client) return;
+    const { data } = await client.auth.getUser();
+    const user = data && data.user;
+    if (!user) return;
+    const meta = user.user_metadata || {};
+    const done = Array.isArray(meta.fiches_faites) ? meta.fiches_faites.slice() : [];
+    if (done.indexOf(role) === -1) {
+      done.push(role);
+      await client.auth.updateUser({ data: Object.assign({}, meta, { fiches_faites: done }) });
+      window.EVAD_FICHES_FAITES = done;
+    }
+  } catch (e) {}
 }
 
 // Switcher dans le menu de l'app (visible seulement si plusieurs profils).

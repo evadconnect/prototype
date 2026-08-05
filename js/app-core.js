@@ -2175,6 +2175,21 @@ function switchRole(role){
   showOnboarding(role);                  // assistant du rôle → puis création de fiche
 }
 
+// Entrée directe au tableau de bord (fiche déjà faite) : on saute l'onboarding.
+function evadEnterDashboard(role){
+  currentRole = role;
+  const splash = document.getElementById('evad-splash');
+  if (splash) splash.classList.add('hidden');
+  setTimeout(function(){
+    if (splash) { splash.style.opacity = ''; splash.style.pointerEvents = ''; splash.style.display = 'none'; }
+    document.body.style.overflow = 'hidden';
+    updateRoleNavigation(role);
+    if (typeof renderProfileContext === 'function') renderProfileContext();
+    const dash = { pilote:'pilote', batisseur:'quete', semeur:'semeur' }[role] || 'carte';
+    if (typeof showScreen === 'function') showScreen(dash);
+  }, 300);
+}
+
 function firstAllowedScreen(role){
   return ROLE_CONFIG[role]?.defaultScreen||'carte';
 }
@@ -5436,6 +5451,7 @@ async function createLieuOnMap(){
         myLieuData.id = row.id;
       }
       store.clearDraft('lieu');
+      if (typeof evadMarkFicheDone === 'function') evadMarkFicheDone('pilote');
     } catch(e) {}
   }
 
@@ -5975,6 +5991,7 @@ async function publishBatProfil() {
       const row = store.insert('batisseurs', Object.assign({}, batFicheData));
       batFicheData.id = row.id;
       store.clearDraft('batisseur');
+      if (typeof evadMarkFicheDone === 'function') evadMarkFicheDone('batisseur');
       // Transaction graines : gain (bonus de bienvenue lié au profil).
       const bonus = (typeof batProfileGraines === 'function') ? batProfileGraines() : 0;
       _grainesTx(row.id, 'gain', bonus, 'Bonus de bienvenue', 'batisseurs', row.id);
@@ -6060,7 +6077,7 @@ async function publishBatProfil() {
 async function publishSemProfil() {
   // Persistance (prête pour Supabase) : enregistre le semeur publié, vide le brouillon.
   if (window.store) {
-    try { const row = store.insert('semeurs', Object.assign({}, semFicheData)); semFicheData.id = row.id; store.clearDraft('semeur'); } catch(e) {}
+    try { const row = store.insert('semeurs', Object.assign({}, semFicheData)); semFicheData.id = row.id; store.clearDraft('semeur'); if (typeof evadMarkFicheDone === 'function') evadMarkFicheDone('semeur'); } catch(e) {}
   }
   const nom      = semFicheData.nom  || 'Financeur';
   const ville    = semFicheData.localisation || 'France';
