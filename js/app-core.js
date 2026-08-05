@@ -8937,9 +8937,28 @@ function batFicheRenderStep() {
 
     const colFor = s => s >= 65 ? 'var(--fern)' : s >= 45 ? 'var(--amber)' : 'var(--sky)';
 
+    // ── Présentation du matching PAR DEVA ──
+    // Deva restitue le résultat en s'appuyant sur les données saisies par le
+    // Bâtisseur (compétences + ville) : elle explique ce qu'elle a croisé et
+    // met en avant la quête la plus alignée.
+    const _top = list[0];
+    const _skillLabels = mySkills.slice(0, 3).map(s => s.label).join(', ');
+    const _villeTxt = (batFicheData.ville || '').trim();
+    const _n = list.length;
+    let _devaMsg = mySkills.length
+      ? `J'ai croisé tes compétences (${escapeHtml(_skillLabels)})${_villeTxt ? ' et ton ancrage à ' + escapeHtml(_villeTxt) : ''} avec les quêtes ouvertes des lieux de la communauté. `
+      : `J'ai exploré les quêtes ouvertes des lieux de la communauté. `;
+    _devaMsg += `J'en ai trouvé <b>${_n}</b> qui te ${_n > 1 ? 'correspondent' : 'correspond'}, classée${_n > 1 ? 's' : ''} par pertinence.`;
+    if (_top) _devaMsg += ` La plus alignée avec ton profil : <b>${escapeHtml(_top.titre)}</b> — ${escapeHtml(_top.lieu)} (${_top.score}%).`;
+    _devaMsg += ` Clique sur une quête pour postuler 👇`;
+
     c.innerHTML = `
-      <div style="font-size:.62rem;color:var(--moss);opacity:.7;margin-bottom:.6rem;line-height:1.5">
-        ${list.length} quête${list.length > 1 ? 's' : ''} ${batQueteFilter === 'all' ? 'au total' : 'selon tes compétences'}, classée${list.length > 1 ? 's' : ''} par pertinence. Clique sur une quête pour postuler.
+      <div style="display:flex;gap:.55rem;align-items:flex-start;background:linear-gradient(135deg,rgba(74,200,110,.08),rgba(74,140,92,.04));border:1px solid rgba(74,200,110,.22);border-radius:14px;padding:.65rem .75rem;margin-bottom:.7rem">
+        <img src="Deva.png" alt="Deva" style="width:34px;height:34px;object-fit:contain;object-position:bottom;transform:scaleX(-1);flex-shrink:0;filter:drop-shadow(0 0 5px rgba(74,200,110,.4))">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.62rem;font-weight:800;color:var(--fern);letter-spacing:.02em;margin-bottom:.2rem">Deva</div>
+          <div style="font-size:.66rem;color:var(--ink);opacity:.85;line-height:1.5">${_devaMsg}</div>
+        </div>
       </div>
       ${chipsHtml}
       <div style="display:flex;flex-direction:column;gap:.5rem">
