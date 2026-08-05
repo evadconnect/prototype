@@ -187,12 +187,15 @@ function syncPiloteQuetesFromLieu() {
   PILOTE_QUETES_DEMO.length = 0;
   if (!window.store) return;
 
-  // Solutions du lieu (depuis la fiche publiée ou l'édition en cours).
-  const L = (typeof myLieuData !== 'undefined' && myLieuData && (myLieuData.solutions || []).length)
+  // Lieu de référence du Pilote : on privilégie myLieuData dès qu'il a une
+  // identité (fiche publiée) OU des solutions ; sinon la fiche en cours (cData).
+  // Garder l'id fiable est essentiel : c'est lui qui rattache les quêtes au lieu.
+  const L = (typeof myLieuData !== 'undefined' && myLieuData && (myLieuData.id || (myLieuData.solutions || []).length))
     ? myLieuData
     : (typeof cData !== 'undefined' ? cData : null);
   const sols = (L && L.solutions) || [];
   const solSet = new Set(sols);
+  const myLieuId = (L && L.id) || null;
 
   // 1. Proposer une quête « à publier » pour chaque solution qui en a une
   //    (créée une seule fois dans le store ; on ne réécrase pas si déjà publiée/retirée).
@@ -216,7 +219,13 @@ function syncPiloteQuetesFromLieu() {
   // 2. Charger les quêtes du lieu : créées manuellement (custom) OU proposées
   //    depuis une solution actuellement dans la fiche. Hors quêtes retirées.
   store.where('quetes', function (r) {
-    return r.statut !== 'retiree' && (r.custom === true || (r.source && solSet.has(r.source)));
+    if (r.statut === 'retiree') return false;
+    // Toute quête rattachée au lieu du Pilote reste dans son onglet, quel que
+    // soit son statut : une quête publiée (« ouverte ») ne disparaît donc plus,
+    // même si la solution dont elle est issue n'est plus sélectionnée.
+    if (myLieuId && r.lieu_id === myLieuId) return true;
+    // Repli : quête créée manuellement, ou issue d'une solution encore dans la fiche.
+    return r.custom === true || (r.source && solSet.has(r.source));
   }).forEach(function (r) {
     PILOTE_QUETES_DEMO.push({
       id: r.id, titre: r.titre || 'Quête', statut: r.statut || 'a_verifier',
