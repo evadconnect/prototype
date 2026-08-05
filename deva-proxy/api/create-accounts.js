@@ -73,8 +73,8 @@ async function sendWelcomeEmail(row, email, password) {
     '<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.06)">' +
       // En-tête vert
       '<tr><td style="background:#018262;padding:26px 32px;text-align:center">' +
-        '<div style="font-size:26px;font-weight:800;letter-spacing:.5px;color:#ffffff">evad</div>' +
-        '<div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#cdeee3;margin-top:4px">Espace bêta-testeurs</div>' +
+        '<img src="https://www.evad.org/assets/logo-evad-blanc.png" alt="EVAD" width="140" height="66" style="display:inline-block;width:140px;height:66px;border:0;outline:none;text-decoration:none">' +
+        '<div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#cdeee3;margin-top:6px">Espace bêta-testeurs</div>' +
       '</td></tr>' +
       // Corps
       '<tr><td style="padding:30px 32px 8px">' +
