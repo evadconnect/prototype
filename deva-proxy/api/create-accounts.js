@@ -33,13 +33,11 @@ function genPassword() {
   return randomBytes(12).toString('base64').replace(/[+/=]/g, '').slice(0, 12);
 }
 
-// Profils autorisés d'une inscription : colonne `roles` (liste ou texte
-// "pilote,batisseur") si renseignée, sinon repli sur le champ `role`.
+// Profils autorisés d'une inscription : colonne `profils_autorises`
+// (multi-choix) si renseignée, sinon repli sur le champ `role`.
 function parseRoles(row) {
   const valid = ['pilote', 'batisseur', 'semeur'];
-  let list = [];
-  if (Array.isArray(row.roles)) list = row.roles;
-  else if (typeof row.roles === 'string' && row.roles.trim()) list = row.roles.split(/[,;]/);
+  let list = Array.isArray(row.profils_autorises) ? row.profils_autorises : [];
   list = list.map(function (s) { return String(s).trim().toLowerCase(); }).filter(function (r) { return valid.indexOf(r) !== -1; });
   if (!list.length) list = [ valid.indexOf(row.role) !== -1 ? row.role : 'batisseur' ];
   return list.filter(function (r, i) { return list.indexOf(r) === i; }); // dédup
@@ -137,7 +135,7 @@ export default async function handler(req, res) {
     // 1. Inscrits approuvés (pas encore de compte)
     const listRes = await sb(
       '/rest/v1/inscription_beta?statut=eq.' + encodeURIComponent('approuvé') +
-      '&select=id,email,prenom,nom,role,role_label,roles'
+      '&select=id,email,prenom,nom,role,role_label,profils_autorises'
     );
     const rows = await listRes.json();
     if (!Array.isArray(rows)) {
