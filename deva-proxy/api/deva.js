@@ -13,6 +13,7 @@
 // Origines autorisées à appeler le proxy (anti-abus). Ajoute localhost pour tes tests.
 const ALLOWED_ORIGINS = [
   'https://evadconnect.github.io',
+  'https://beta.evad.org',
   'http://localhost:8755',
   'http://localhost:8756'
 ];
