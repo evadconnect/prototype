@@ -262,12 +262,31 @@
 
   function upsertQueteRemote(row) {
     if (!global.evadSupabase || !row || !row.id) return;
+    // On n'inscrit la quête dans Supabase QUE lorsqu'elle est publiée
+    // (statut « ouverte »). Les brouillons (a_verifier) et les quêtes retirées
+    // restent purement locaux (localStorage) tant que le Pilote n'a pas publié.
+    if (row.statut !== 'ouverte') return;
     global.evadSupabase
       .from('quetes')
       .upsert(remoteQueteRow(row), { onConflict: 'id' })
       .then(function (result) {
         if (result.error) {
           console.warn('Quête non enregistrée dans Supabase :', result.error.message);
+        }
+      });
+  }
+
+  // Suppression d'une quête dans Supabase (ex. le Pilote retire une quête
+  // auparavant publiée → elle doit disparaître du réseau).
+  function deleteQueteRemote(id) {
+    if (!global.evadSupabase || !id) return;
+    global.evadSupabase
+      .from('quetes')
+      .delete()
+      .eq('id', id)
+      .then(function (result) {
+        if (result && result.error) {
+          console.warn('Quête non supprimée de Supabase :', result.error.message);
         }
       });
   }
@@ -287,8 +306,17 @@
           sourceIc: row.source_ic, statut: row.statut, custom: row.custom === true
         });
       });
-      write('quetes', remoteRows);
-      global.dispatchEvent(new CustomEvent('evad:quetes-ready', { detail: { quetes: remoteRows } }));
+      // Fusion : Supabase fait foi pour les quêtes publiées, mais on conserve
+      // les brouillons locaux (non publiés) qui ne sont pas encore en base,
+      // sinon l'hydratation les effacerait.
+      var remoteIds = {};
+      remoteRows.forEach(function (r) { remoteIds[r.id] = true; });
+      var localDrafts = read('quetes').filter(function (r) {
+        return r && r.statut !== 'ouverte' && !remoteIds[r.id];
+      });
+      var merged = remoteRows.concat(localDrafts);
+      write('quetes', merged);
+      global.dispatchEvent(new CustomEvent('evad:quetes-ready', { detail: { quetes: merged } }));
     } catch (error) {
       console.error('Erreur de récupération des quêtes :', error);
     }
@@ -604,6 +632,7 @@
   global.store = store;
   global.EvadStore = store;
   store.hydrateDrafts = hydrateDrafts;
+  store.deleteQueteRemote = deleteQueteRemote;
 
   /*
    * Récupération de la session Supabase si elle existe.

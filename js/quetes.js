@@ -501,8 +501,13 @@ function piloteQuetePublier(id) {
 }
 function piloteQueteRetirer(id) {
   const q = PILOTE_QUETES_DEMO.find(x => x.id === id); if (!q) return;
+  const wasPublished = q.statut === 'ouverte';
   q.statut = 'retiree';
-  if (window.store) store.update('quetes', id, { statut: 'retiree' });
+  if (window.store) {
+    store.update('quetes', id, { statut: 'retiree' });   // reste local (non poussé)
+    // Si elle était publiée, on la retire aussi de Supabase (donc du réseau).
+    if (wasPublished && typeof store.deleteQueteRemote === 'function') store.deleteQueteRemote(id);
+  }
   if (typeof mmBubble === 'function') mmBubble('Quête retirée des propositions');
   renderPiloteQuetes();
 }
