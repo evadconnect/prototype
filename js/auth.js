@@ -5,7 +5,7 @@ let _authMode = 'login';
 // Domaines de PRODUCTION où la connexion est obligatoire (bêta-testeurs).
 // Partout ailleurs (préview dev, local), le verrou est désactivé pour que
 // l'équipe puisse tester librement sans compte.
-const EVAD_PROD_HOSTS = ['beta.evad.org'];
+const EVAD_PROD_HOSTS = ['app.evad.org'];
 function evadGateEnforced(){
   try { return EVAD_PROD_HOSTS.includes(location.hostname); }
   catch (e) { return false; }
