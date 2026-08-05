@@ -9,6 +9,27 @@ function openAuthModal(){
   m.style.display='flex';
 }
 
+// Connexion directe pour les personnes DÉJÀ inscrites : ouvre le formulaire
+// email + mot de passe sans passer par le choix de profil (le rôle est repris
+// des métadonnées du compte à la connexion).
+function openLoginModal(){
+  _authMode = 'login';
+  _authSelectedRole = null;
+  const h2 = document.querySelector('#auth-connexion-modal h2');
+  if (h2) h2.textContent = 'Se connecter';
+  const submit = document.getElementById('auth-submit-btn');
+  if (submit) submit.textContent = 'Se connecter';
+  const modeBtn = document.getElementById('auth-mode-btn');
+  if (modeBtn) modeBtn.textContent = "Pas encore de compte ? S'inscrire";
+  const badge = document.getElementById('auth-role-badge');
+  if (badge) badge.innerHTML = '🌿 Déjà inscrit·e';
+  const err = document.getElementById('auth-error');
+  if (err) err.style.display = 'none';
+  const email = document.getElementById('auth-email'); if (email) email.value = '';
+  const pass = document.getElementById('auth-password'); if (pass) pass.value = '';
+  document.getElementById('auth-connexion-modal').style.display = 'flex';
+}
+
 function openSignupModal(){
   _authMode = 'signup';
   openAuthModal();
