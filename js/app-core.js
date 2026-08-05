@@ -6757,7 +6757,6 @@ function renderQueteDetail() {
       <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.7rem">
         <span style="font-size:.65rem;padding:.18rem .55rem;border-radius:100px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.8)">${q.type}</span>
         <span style="font-size:.65rem;padding:.18rem .55rem;border-radius:100px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.6)">📍 ${edDark('ville', q.ville)}</span>
-        ${(q.esrs||[]).map(e=>`<span style="font-size:.62rem;padding:.18rem .5rem;border-radius:100px;background:rgba(33,150,243,.15);color:#90caf9;border:1px solid rgba(33,150,243,.25)">ESRS ${e}</span>`).join('')}
         ${q.validated ? '<span style="font-size:.62rem;padding:.18rem .5rem;border-radius:100px;background:rgba(74,140,92,.25);color:#9be3a6;border:1px solid rgba(74,140,92,.4);font-weight:700">✓ Validée</span>' : ''}
         ${q.closed ? '<span style="font-size:.62rem;padding:.18rem .5rem;border-radius:100px;background:rgba(200,115,42,.2);color:#f0b96a;border:1px solid rgba(200,115,42,.35);font-weight:700">🔒 Clôturée</span>' : ''}
         ${q.paused ? '<span style="font-size:.62rem;padding:.18rem .5rem;border-radius:100px;background:rgba(240,200,74,.2);color:#f0d878;border:1px solid rgba(240,200,74,.35);font-weight:700">⏸ En pause</span>' : ''}
