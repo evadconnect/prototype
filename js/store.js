@@ -8,7 +8,7 @@
   var VERSION = 1;
 
   // Tables synchronisées avec Supabase (les autres restent locales).
-  var remoteTables = ['lieux', 'quetes', 'solutions', 'indicateurs'];
+  var remoteTables = ['lieux', 'quetes', 'lieu_solutions', 'lieu_indicateurs'];
   var currentUserId = null;
 
   function keyOf(table) {
@@ -354,11 +354,11 @@
     if (!lieuId) return;
     solutions = solutions || []; indicateurs = indicateurs || [];
     try {
-      write('solutions', read('solutions').filter(function (r) { return r.lieu_id !== lieuId; }).concat(solutions));
-      write('indicateurs', read('indicateurs').filter(function (r) { return r.lieu_id !== lieuId; }).concat(indicateurs));
+      write('lieu_solutions', read('lieu_solutions').filter(function (r) { return r.lieu_id !== lieuId; }).concat(solutions));
+      write('lieu_indicateurs', read('lieu_indicateurs').filter(function (r) { return r.lieu_id !== lieuId; }).concat(indicateurs));
     } catch (e) {}
-    _replaceRemoteChildren('solutions', lieuId, solutions.map(remoteSolutionRow));
-    _replaceRemoteChildren('indicateurs', lieuId, indicateurs.map(remoteIndicateurRow));
+    _replaceRemoteChildren('lieu_solutions', lieuId, solutions.map(remoteSolutionRow));
+    _replaceRemoteChildren('lieu_indicateurs', lieuId, indicateurs.map(remoteIndicateurRow));
   }
 
   // ── Bibliothèque partagée (tables biblio_solutions / biblio_indicateurs) ──
@@ -413,7 +413,7 @@
   async function hydrateSolutions() {
     if (!global.evadSupabase) return;
     try {
-      var result = await global.evadSupabase.from('solutions').select('*');
+      var result = await global.evadSupabase.from('lieu_solutions').select('*');
       if (result.error) return;
       var rows = (result.data || []).map(function (row) {
         return Object.assign({}, row.donnees || {}, {
@@ -421,14 +421,14 @@
           espace: row.espace, source_ic: row.source_ic
         });
       });
-      write('solutions', rows);
-      global.dispatchEvent(new CustomEvent('evad:solutions-ready', { detail: { solutions: rows } }));
+      write('lieu_solutions', rows);
+      global.dispatchEvent(new CustomEvent('evad:lieu-solutions-ready', { detail: { solutions: rows } }));
     } catch (e) {}
   }
   async function hydrateIndicateurs() {
     if (!global.evadSupabase) return;
     try {
-      var result = await global.evadSupabase.from('indicateurs').select('*');
+      var result = await global.evadSupabase.from('lieu_indicateurs').select('*');
       if (result.error) return;
       var rows = (result.data || []).map(function (row) {
         return Object.assign({}, row.donnees || {}, {
@@ -436,8 +436,8 @@
           livre: row.livre, unite: row.unite, solutions: row.solutions || []
         });
       });
-      write('indicateurs', rows);
-      global.dispatchEvent(new CustomEvent('evad:indicateurs-ready', { detail: { indicateurs: rows } }));
+      write('lieu_indicateurs', rows);
+      global.dispatchEvent(new CustomEvent('evad:lieu-indicateurs-ready', { detail: { indicateurs: rows } }));
     } catch (e) {}
   }
 
