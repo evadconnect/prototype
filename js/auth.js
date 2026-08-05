@@ -76,17 +76,6 @@ function authShowError(message){
 function selectAuthProfil(role,ic,name,desc){
   _authSelectedRole = role;
   document.getElementById('auth-profil-modal').style.display='none';
-  const badge = document.getElementById('auth-role-badge');
-  badge.innerHTML = ic + ' ' + name.toUpperCase();
-  // Couleur du badge selon le rôle
-  const roleColors = {
-    pilote:    { bg: 'rgba(46,107,71,.12)',   color: '#2e6b47' },
-    batisseur: { bg: 'rgba(240,176,50,.18)',  color: '#a06c00' },
-    semeur:    { bg: 'rgba(59,130,180,.14)',  color: '#2563a8' }
-  };
-  const c = roleColors[role] || roleColors.pilote;
-  badge.style.background = c.bg;
-  badge.style.color = c.color;
   document.getElementById('auth-connexion-modal').style.display='flex';
 }
 
