@@ -2,6 +2,15 @@ let _authSelectedRole = null;
 // Bêta sur invitation : plus d'inscription libre, connexion uniquement.
 let _authMode = 'login';
 
+// Domaines de PRODUCTION où la connexion est obligatoire (bêta-testeurs).
+// Partout ailleurs (préview dev, local), le verrou est désactivé pour que
+// l'équipe puisse tester librement sans compte.
+const EVAD_PROD_HOSTS = ['beta.evad.org'];
+function evadGateEnforced(){
+  try { return EVAD_PROD_HOSTS.includes(location.hostname); }
+  catch (e) { return false; }
+}
+
 // True si une session Supabase est active (compte connecté).
 async function evadHasSession(){
   try {

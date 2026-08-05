@@ -7,8 +7,9 @@ async function splashSelect(role, card) {
   splashRole = role;
   document.querySelectorAll('.sp-card').forEach(c => c.classList.remove('selected'));
   if (card) card.classList.add('selected');
-  // Bêta sur invitation : connexion obligatoire avant d'entrer.
-  if (typeof evadHasSession === 'function' && !(await evadHasSession())) {
+  // Bêta sur invitation : connexion obligatoire avant d'entrer (prod uniquement).
+  if (typeof evadGateEnforced === 'function' && evadGateEnforced()
+      && typeof evadHasSession === 'function' && !(await evadHasSession())) {
     openLoginForRole(role);
     return;
   }
@@ -303,8 +304,9 @@ async function splashResumeClick() {
   const btn = document.getElementById('sp-resume');
   const role = (btn && btn._role) ? btn._role : 'pilote';
   splashRole = role;
-  // Bêta sur invitation : connexion obligatoire, même pour reprendre un brouillon.
-  if (typeof evadHasSession === 'function' && !(await evadHasSession())) {
+  // Bêta sur invitation : connexion obligatoire, même pour reprendre un brouillon (prod uniquement).
+  if (typeof evadGateEnforced === 'function' && evadGateEnforced()
+      && typeof evadHasSession === 'function' && !(await evadHasSession())) {
     openLoginForRole(role);
     return;
   }
