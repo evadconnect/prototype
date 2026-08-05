@@ -3510,19 +3510,6 @@ function bddEspaceDetail(esp){
   </div>`;
 }
 
-let _bddDetailTab = 'solution';
-function bddSwitchTab(tab, btn){
-  _bddDetailTab = tab;
-  // On limite l'effet à la fiche contenant le bouton cliqué (Bibliothèque OU modale).
-  const scope = (btn && btn.closest && btn.closest('.sol-fiche')) || document;
-  scope.querySelectorAll('.bdd-detail-tab').forEach(b=>b.classList.remove('active'));
-  if(btn) btn.classList.add('active');
-  const sol = scope.querySelector('.bdd-panel-solution');
-  const que = scope.querySelector('.bdd-panel-quete');
-  if(sol) sol.style.display = tab==='solution' ? 'block' : 'none';
-  if(que) que.style.display = tab==='quete'    ? 'block' : 'none';
-}
-
 // Rendu unifié d'une fiche solution (Bibliothèque ET modale de création).
 // opts.context : 'biblio' (défaut) ou 'modal' (masque les CTA de navigation).
 function solFicheHTML(s, opts){
@@ -3577,13 +3564,7 @@ function solFicheHTML(s, opts){
       </div>
     </div>
 
-    <!-- ONGLETS -->
-    <div style="display:flex;border-bottom:1px solid rgba(46,102,66,.12);background:white;position:sticky;top:0;z-index:10">
-      <button class="bdd-detail-tab active" onclick="bddSwitchTab('solution',this)" style="flex:1;padding:.7rem;font-size:.78rem;font-weight:600;border:none;background:none;cursor:pointer;color:var(--forest);border-bottom:2px solid var(--forest)">📋 Solution</button>
-      <button class="bdd-detail-tab" onclick="bddSwitchTab('quete',this)" style="flex:1;padding:.7rem;font-size:.78rem;font-weight:600;border:none;background:none;cursor:pointer;color:var(--moss);opacity:.55;border-bottom:2px solid transparent">⚡ Quête</button>
-    </div>
-
-    <!-- PANNEAU SOLUTION -->
+    <!-- PANNEAU SOLUTION (la quête vit dans l'onglet Quêtes de la Bibliothèque) -->
     <div class="bdd-panel-solution">
 
     <!-- ② KPI Impact (hero metric) -->
@@ -3643,93 +3624,11 @@ function solFicheHTML(s, opts){
     <!-- ⑧ CTA -->
     ${showCTAs ? `<div style="margin:1.2rem 1.4rem 0;display:flex;gap:.6rem">
       <button class="btn btn-primary" style="flex:1;padding:.7rem" onclick="showScreen('creer')">+ Ajouter à mon lieu</button>
-      <button class="btn btn-ghost" style="padding:.7rem .9rem;font-size:.75rem" onclick="bddSwitchTab('quete',this.closest('.sol-fiche').querySelectorAll('.bdd-detail-tab')[1])">⚡ Quête</button>
     </div>` : ''}
 
     </div><!-- fin bdd-tab-solution -->
 
-    <!-- PANNEAU QUÊTE -->
-    <div class="bdd-panel-quete" style="display:none;padding-bottom:2rem">
 
-      <!-- Hero quête -->
-      <div style="margin:1.1rem 1.4rem 0;background:linear-gradient(135deg,#0e2a1a,#1a4a2e);border-radius:1rem;padding:1.3rem 1.4rem;position:relative;overflow:hidden">
-        <div style="position:absolute;right:-10px;top:-10px;font-size:5rem;opacity:.08;line-height:1">⚡</div>
-        <div style="position:relative">
-          <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.7rem">
-            <span style="font-size:.6rem;padding:.15rem .5rem;border-radius:100px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);font-weight:600">${cv.l}</span>
-            <span style="font-size:.6rem;padding:.15rem .5rem;border-radius:100px;background:rgba(200,115,42,.25);color:#f5c842;font-weight:600">⚡ Quête active</span>
-          </div>
-          <div style="font-family:'Satoshi', sans-serif;font-size:1.25rem;font-weight:900;color:white;line-height:1.2;margin-bottom:.8rem">${s.quete.titre}</div>
-          <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-            <div style="background:rgba(255,255,255,.07);border-radius:.6rem;padding:.45rem .75rem;text-align:center">
-              <div style="font-family:'Satoshi', sans-serif;font-size:1.1rem;font-weight:900;color:var(--amber)">${s.tok}</div>
-              <div style="font-size:.52rem;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em">graines</div>
-            </div>
-            <div style="background:rgba(255,255,255,.07);border-radius:.6rem;padding:.45rem .75rem;text-align:center">
-              <div style="font-family:'Satoshi', sans-serif;font-size:1.1rem;font-weight:900;color:#7ceb6a">${s.co2>0?s.co2+'t':'−'}</div>
-              <div style="font-size:.52rem;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em">CO₂ évité</div>
-            </div>
-            <div style="background:rgba(255,255,255,.07);border-radius:.6rem;padding:.45rem .75rem;text-align:center">
-              <div style="font-family:'Satoshi', sans-serif;font-size:1.1rem;font-weight:900;color:var(--sky)">${s.quete.nb}</div>
-              <div style="font-size:.52rem;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em">participants</div>
-            </div>
-            <div style="background:rgba(255,255,255,.07);border-radius:.6rem;padding:.45rem .75rem;text-align:center">
-              <div style="font-family:'Satoshi', sans-serif;font-size:1.1rem;font-weight:900;color:white">${s.quete.duree}</div>
-              <div style="font-size:.52rem;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em">durée</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Impact si complétée -->
-      <div style="margin:1rem 1.4rem 0;background:rgba(74,140,92,.07);border:1.5px solid rgba(74,140,92,.2);border-radius:1rem;padding:.9rem 1.1rem">
-        <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--moss);opacity:.55;margin-bottom:.4rem">🎯 Impact si complétée</div>
-        <div style="font-size:.92rem;font-weight:700;color:var(--fern)">${s.quete.impact_quete}</div>
-      </div>
-
-      <!-- Matériel nécessaire -->
-      ${(()=>{
-        const ind2 = SOLS_INDICATORS[s.nom]||{};
-        const mat = ind2.materiel||[];
-        if(!mat.length) return '';
-        const matHtml = mat.map(m=>`
-          <div style="display:flex;align-items:center;gap:.5rem;padding:.4rem .5rem;border-radius:.55rem;background:rgba(46,102,66,.04)">
-            <div style="width:5px;height:5px;border-radius:50%;background:var(--fern);flex-shrink:0"></div>
-            <span style="font-size:.72rem;color:var(--ink)">${m}</span>
-          </div>`).join('');
-        return `<div style="margin:1rem 1.4rem 0;background:white;border:1px solid rgba(46,102,66,.12);border-radius:1rem;padding:.9rem 1.05rem">
-          <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--moss);opacity:.55;margin-bottom:.55rem">🛠 Matériel nécessaire</div>
-          <div style="display:flex;flex-direction:column;gap:.3rem">${matHtml}</div>
-          <div style="margin-top:.6rem;font-size:.68rem;color:var(--moss);opacity:.6">Complexité : ${cplxMeta.label} · Durée estimée : ${s.quete.duree}</div>
-        </div>`;
-      })()}
-
-      <!-- Plan d'action -->
-      ${(()=>{
-        const ind2 = SOLS_INDICATORS[s.nom]||{};
-        const planSteps = ind2.plan||[];
-        if(!planSteps.length) return '';
-        const stepsHtml = planSteps.map((step,i)=>`
-          <div style="display:flex;gap:.75rem;padding:.6rem .7rem;border-radius:.75rem;border:1px solid rgba(46,102,66,.1);background:${i===0?'rgba(74,140,92,.05)':'transparent'};margin-bottom:.35rem;align-items:flex-start">
-            <div style="width:32px;height:32px;border-radius:.55rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.1rem;background:rgba(46,102,66,.07)">${step.ic}</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:.75rem;font-weight:700;color:var(--ink);margin-bottom:.18rem">${i+1}. ${step.titre}</div>
-              <div style="font-size:.68rem;color:var(--moss);line-height:1.5;opacity:.85">${step.desc}</div>
-            </div>
-            <div style="width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700;background:rgba(46,102,66,.1);color:var(--moss);margin-top:.2rem">${i+1}</div>
-          </div>`).join('');
-        return `<div style="margin:1rem 1.4rem 0;background:white;border:1px solid rgba(46,102,66,.12);border-radius:1rem;padding:.9rem 1.05rem">
-          <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--moss);opacity:.55;margin-bottom:.6rem">📋 Plan d'action · ${planSteps.length} étapes</div>
-          ${stepsHtml}
-        </div>`;
-      })()}
-
-      <!-- CTA -->
-      ${showCTAs ? `<div style="margin:1.2rem 1.4rem 0;display:flex;gap:.6rem">
-        <button class="btn btn-primary" style="flex:1;padding:.75rem;font-size:.88rem" onclick="showScreen('quete')">✅ Rejoindre cette quête</button>
-      </div>` : ''}
-
-    </div><!-- fin bdd-tab-quete -->
 
   </div>`;
 }
