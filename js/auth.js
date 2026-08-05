@@ -4,7 +4,7 @@ let _authMode = 'login'; // 'login' | 'signup'
 function openAuthModal(){
   _authMode = 'login';
   document.getElementById('auth-profil-title').textContent = 'Choisir un profil';
-  document.getElementById('auth-profil-sub').textContent = 'Sélectionne ton rôle EVAD avant de te connecter.';
+  document.getElementById('auth-profil-sub').textContent = 'Sélectionnez votre rôle EVAD avant de vous connecter.';
   const m=document.getElementById('auth-profil-modal');
   m.style.display='flex';
 }
@@ -35,7 +35,7 @@ function openLoginModal(){
 async function evadLoginCore(email, password, onError, btn, btnLabel){
   const client = window.evadSupabase;
   if (!client) return onError('Connexion Supabase indisponible.');
-  if (!email || password.length < 6) return onError('Saisis un email et un mot de passe de 6 caractères minimum.');
+  if (!email || password.length < 6) return onError('Saisissez un email et un mot de passe de 6 caractères minimum.');
   if (btn) { btn.disabled = true; btn.textContent = 'Patiente…'; }
   try {
     const result = await client.auth.signInWithPassword({ email: email, password: password });
@@ -80,7 +80,7 @@ function openSignupModal(){
   openAuthModal();
   _authMode = 'signup';
   document.getElementById('auth-profil-title').textContent = 'Créer un compte';
-  document.getElementById('auth-profil-sub').textContent = 'Choisis ton rôle EVAD pour commencer.';
+  document.getElementById('auth-profil-sub').textContent = 'Choisissez votre rôle EVAD pour commencer.';
 }
 
 async function authSubmit(){
@@ -91,7 +91,7 @@ async function authSubmit(){
   const btn = document.getElementById('auth-submit-btn');
   errorBox.style.display = 'none';
   if (!client) return authShowError('Connexion Supabase indisponible.');
-  if (!email || password.length < 6) return authShowError('Saisis un email et un mot de passe de 6 caractères minimum.');
+  if (!email || password.length < 6) return authShowError('Saisissez un email et un mot de passe de 6 caractères minimum.');
   btn.disabled = true;
   btn.textContent = 'Patiente…';
   try {
@@ -100,7 +100,7 @@ async function authSubmit(){
       : await client.auth.signInWithPassword({ email, password });
     if (result.error) throw result.error;
     if (_authMode === 'signup' && !result.data.session) {
-      authShowError('Compte créé. Vérifie ton email pour confirmer ton inscription.');
+      authShowError('Compte créé. Vérifiez votre email pour confirmer votre inscription.');
       return;
     }
     const role = result.data.user?.user_metadata?.role || _authSelectedRole || 'batisseur';
