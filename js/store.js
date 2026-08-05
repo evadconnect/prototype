@@ -361,6 +361,55 @@
     _replaceRemoteChildren('indicateurs', lieuId, indicateurs.map(remoteIndicateurRow));
   }
 
+  // ── Catalogue partagé (tables catalogue_solutions / catalogue_indicateurs) ──
+  // Source de vérité dans Supabase, éditable via le Table Editor. Si la base est
+  // injoignable ou vide, on garde la version embarquée dans le JS (repli sûr).
+  // NB : SOLS / ICI_CATALOG / ICI_EXPORTS sont des bindings lexicaux globaux
+  // (const de scripts classiques) : on les mute en place, jamais réassignés.
+  async function hydrateCatalogue() {
+    if (!global.evadSupabase) return;
+    try {
+      var rs = await global.evadSupabase.from('catalogue_solutions').select('*').order('ordre', { ascending: true });
+      if (!rs.error && Array.isArray(rs.data) && rs.data.length && typeof SOLS !== 'undefined') {
+        var sols = rs.data.filter(function (r) { return r.actif !== false; }).map(function (r) {
+          var o = {
+            nom: r.nom, cat: r.cat || 'autre', cplx: r.cplx || 'facile',
+            impact: r.impact || '', co2: (r.co2 == null ? 0 : Number(r.co2)),
+            tok: (r.graines == null ? 50 : r.graines), img: r.img || '✦',
+            desc: r.description || '', avantages: r.avantages || [],
+            budget: r.budget || '', ind: r.indicateurs_libres || [],
+            esrs: r.esrs || [], esrs_detail: r.esrs_detail || '',
+            photo: r.photo || '', lieux: r.lieux || []
+          };
+          if (r.quete_titre) o.quete = { titre: r.quete_titre, duree: r.quete_duree || '-', nb: r.quete_nb || '-', impact_quete: r.quete_impact || '' };
+          return o;
+        });
+        if (sols.length) { SOLS.length = 0; sols.forEach(function (x) { SOLS.push(x); }); }
+      }
+      var ri = await global.evadSupabase.from('catalogue_indicateurs').select('*').order('ordre', { ascending: true });
+      if (!ri.error && Array.isArray(ri.data) && ri.data.length && typeof ICI_CATALOG !== 'undefined') {
+        var icis = ri.data.filter(function (r) { return r.actif !== false; }).map(function (r) {
+          return {
+            id: r.id, nom: r.nom, livre: r.livre || 'ecologie', unite: r.unite || '',
+            point0: (r.point0 == null ? 0 : Number(r.point0)),
+            point100: (r.point100 == null ? 100 : Number(r.point100)),
+            poids: (r.poids == null ? 1 : Number(r.poids)),
+            desc: r.description || '', solutionIds: r.solution_noms || []
+          };
+        });
+        if (icis.length) {
+          ICI_CATALOG.length = 0; icis.forEach(function (x) { ICI_CATALOG.push(x); });
+          if (typeof ICI_EXPORTS !== 'undefined') {
+            ri.data.forEach(function (r) {
+              ICI_EXPORTS[r.id] = { odd: r.odd || [], esrs: r.esrs || [], vsme: r.vsme || [] };
+            });
+          }
+        }
+      }
+      global.dispatchEvent(new CustomEvent('evad:catalogue-ready'));
+    } catch (e) {}
+  }
+
   async function hydrateSolutions() {
     if (!global.evadSupabase) return;
     try {
@@ -720,6 +769,7 @@
             : null;
 
         hydrateRemote();
+        hydrateCatalogue();
         hydrateQuetes();
         hydrateSolutions();
         hydrateIndicateurs();
@@ -739,6 +789,7 @@
           hydrateRemote,
           0
         );
+        setTimeout(hydrateCatalogue, 0);
         setTimeout(hydrateQuetes, 0);
         setTimeout(hydrateSolutions, 0);
         setTimeout(hydrateIndicateurs, 0);

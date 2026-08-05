@@ -11985,6 +11985,15 @@ window.addEventListener('evad:quetes-ready', function(){
   } catch(e){}
 });
 
+// Catalogue (solutions + indicateurs) hydraté depuis Supabase : on rafraîchit
+// la Bibliothèque si elle est affichée (les autres vues se re-rendent à la demande).
+window.addEventListener('evad:catalogue-ready', function(){
+  try {
+    var bdd = document.getElementById('screen-bdd');
+    if (bdd && bdd.classList.contains('active') && typeof bddRenderList === 'function') bddRenderList();
+  } catch(e){}
+});
+
 // Cas où les lieux sont déjà en localStorage au chargement (visite précédente) :
 // pas besoin d'attendre Supabase, on peuple tout de suite.
 syncMapPlacesFromStore();
