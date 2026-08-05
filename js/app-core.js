@@ -11593,6 +11593,14 @@ function syncMapPlacesFromStore(){
 // Rejoue le rendu (sidebar + marqueurs) une fois les lieux reçus de Supabase.
 window.addEventListener('evad:supabase-ready', function(){
   syncMapPlacesFromStore();
+  // Re-dérive le lieu du tableau de bord depuis le store à jour (reflète les
+  // suppressions faites côté Supabase), sauf si une édition est en cours.
+  try {
+    if (typeof cData === 'undefined' || !cData || !cData.nom) {
+      const _r = store.all('lieux');
+      myLieuData = _r.length ? Object.assign({}, _r[_r.length - 1]) : null;
+    }
+  } catch(e){}
   _mapCommunityRendered = false; // force mapRenderCommunity à reparcourir MAP_PLACES
   const carteScreen = document.getElementById('screen-carte');
   if (carteScreen && carteScreen.classList.contains('active')) {

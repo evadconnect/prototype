@@ -280,12 +280,11 @@
       );
 
       /*
-       * Ne pas effacer les données locales si Supabase
-       * ne retourne encore aucun lieu.
+       * La requête a réussi : on reflète l'état EXACT de Supabase, y compris
+       * une liste vide (tout supprimé) — sinon les lieux supprimés restent
+       * affichés depuis le cache local.
        */
-      if (remoteRows.length > 0) {
-        write('lieux', remoteRows);
-      }
+      write('lieux', remoteRows);
 
       global.dispatchEvent(
         new CustomEvent(
