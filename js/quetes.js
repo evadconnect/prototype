@@ -147,7 +147,7 @@ function openPiloteQueteFiche(qid) {
     tokens: pq.graines || 50, co2: (sol && sol.co2) || 0,
     esrs: ((sol && sol.esrs) || []).map(e => String(e).replace('ESRS ', '').trim()),
     financement: { objectif: 0, montant: 0, semeur: null },
-    equipe: [], dates: ['Samedi · 9h–17h', 'Dimanche · 9h–13h'],
+    equipe: [], dates: [], dateISO: pq.dateISO || null, heure: pq.heure || null,
     srcId: pq.id, published: pq.statut === 'ouverte'
   }, 'pilote');
 }
@@ -233,7 +233,10 @@ function syncPiloteQuetesFromLieu() {
       impact: r.impact || '', source: r.source || null,
       sourceIc: r.sourceIc || '⚡', custom: r.custom === true,
       // desc éditée par le Pilote (sinon dérivée de la solution à l'ouverture).
-      desc: r.desc || (r.donnees && r.donnees.desc) || null
+      desc: r.desc || (r.donnees && r.donnees.desc) || null,
+      // Date choisie au calendrier + heure (persistées dans donnees).
+      dateISO: r.dateISO || (r.donnees && r.donnees.dateISO) || null,
+      heure: r.heure || (r.donnees && r.donnees.heure) || null
     });
   });
 }

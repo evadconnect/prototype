@@ -6371,6 +6371,20 @@ let _qdOpenSections = {};     // sections dépliées (matériel/étapes repliés
 function qdSet(field, val, num){ const q = qdQuest(); if(!q) return; const t = String(val).trim(); q[field] = num ? (parseFloat(t.replace(',','.'))||0) : t; }
 function qdSetArr(field, i, val){ const q = qdQuest(); if(!q || !Array.isArray(q[field])) return; q[field][i] = String(val).trim(); }
 function qdSetObj(field, i, key, val){ const q = qdQuest(); if(!q || !Array.isArray(q[field]) || !q[field][i]) return; q[field][i][key] = String(val).trim(); }
+// Date de la quête choisie au calendrier (input type=date → ISO yyyy-mm-dd) + heure optionnelle.
+function qdSetDate(val){ const q = qdQuest(); if(!q) return; q.dateISO = (val || '').trim() || null; }
+function qdSetHeure(val){ const q = qdQuest(); if(!q) return; q.heure = (val || '').trim() || null; }
+// Formate une date ISO en français : « samedi 12 septembre 2026 » (+ heure si fournie).
+function qdFormatDateFr(iso, heure){
+  if(!iso) return '';
+  // Midi local pour éviter tout décalage de fuseau (yyyy-mm-dd est interprété en UTC).
+  const d = new Date(iso + 'T12:00:00');
+  if(isNaN(d.getTime())) return iso;
+  let s = d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  s = s.charAt(0).toUpperCase() + s.slice(1);
+  if(heure) s += ' · ' + String(heure).replace(':', 'h');
+  return s;
+}
 
 function showQueteDetail(id, from) {
   _qdQuestOverride = null;
@@ -6533,7 +6547,9 @@ function qdSaveSection() {
         duree: q.duree,
         graines: (typeof q.tokens === 'number') ? q.tokens : (parseInt(q.tokens, 10) || 50),
         impact: q.impact,
-        desc: q.desc
+        desc: q.desc,
+        dateISO: q.dateISO || null,
+        heure: q.heure || null
       });
     } catch (e) {}
   }
@@ -6597,6 +6613,7 @@ function renderQueteDetail() {
   // Édition ciblée : une section à la fois (infos / desc / materiel / etapes / impact)
   const EDinfos  = _qdEditSection === 'infos';
   const EDdesc   = _qdEditSection === 'desc';
+  const EDdates  = _qdEditSection === 'dates';
   const EDmat    = _qdEditSection === 'materiel';
   const EDplan   = _qdEditSection === 'etapes';
   const EDimpact = _qdEditSection === 'impact';
@@ -6693,10 +6710,24 @@ function renderQueteDetail() {
   const esrsColors = {E1:'#2e7d32',E2:'#388e3c',E3:'#43a047',E4:'#4caf50',S1:'#1565c0',S2:'#1976d2',S3:'#1e88e5',S4:'#2196f3',G1:'#6a1b9a'};
   const esrsBadges = (q.esrs||[]).map(e=>`<span style="font-size:.62rem;padding:.18rem .5rem;border-radius:var(--r);background:${esrsColors[e]||'#546e7a'}22;color:${esrsColors[e]||'#546e7a'};border:1px solid ${esrsColors[e]||'#546e7a'}44;font-weight:600">📋 ESRS ${e}</span>`).join('');
 
-  // Dates
-  const datesHtml = (q.dates && q.dates.length) ? `<div style="display:flex;gap:.4rem;flex-wrap:wrap">
-    ${q.dates.map((d,i)=>`<span style="font-size:.68rem;padding:.3rem .7rem;border-radius:var(--r);background:rgba(46,102,66,.07);border:1px solid rgba(46,102,66,.15);color:var(--ink)">📅 ${edArr(EDinfos, 'dates', i, d)}</span>`).join('')}
-  </div>` : '';
+  // Date de la quête — choisie au calendrier (input type=date). Rétro-compat :
+  // à défaut de dateISO, on affiche les anciennes dates libres (q.dates).
+  const _dateSet = !!q.dateISO;
+  const _legacyDates = (!_dateSet && q.dates && q.dates.length) ? q.dates : null;
+  // Section visible si une date existe, ou pour le Pilote (qui peut en définir une).
+  const _showDates = _dateSet || _legacyDates || currentRole === 'pilote';
+  const _inp = 'font-family:inherit;font-size:.8rem;color:var(--ink);border:1px solid rgba(46,102,66,.25);border-radius:10px;padding:.45rem .6rem;background:#fff';
+  const dateBody = EDdates
+    ? `<div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+        <input type="date" value="${q.dateISO || ''}" onchange="qdSetDate(this.value)" style="${_inp}">
+        <input type="time" value="${q.heure || ''}" onchange="qdSetHeure(this.value)" title="Heure (optionnel)" style="${_inp}">
+        ${_dateSet ? `<button onclick="qdSetDate('');qdSetHeure('');qdRerender()" style="background:none;border:none;color:var(--moss);opacity:.6;font-size:.68rem;cursor:pointer;font-family:inherit;text-decoration:underline">effacer</button>` : ''}
+       </div>`
+    : _dateSet
+      ? `<div style="font-size:.78rem;color:var(--ink)">📅 ${qdFormatDateFr(q.dateISO, q.heure)}</div>`
+      : _legacyDates
+        ? `<div style="display:flex;gap:.4rem;flex-wrap:wrap">${_legacyDates.map(d=>`<span style="font-size:.68rem;padding:.3rem .7rem;border-radius:var(--r);background:rgba(46,102,66,.07);border:1px solid rgba(46,102,66,.15);color:var(--ink)">📅 ${d}</span>`).join('')}</div>`
+        : `<div style="font-size:.72rem;color:var(--moss);opacity:.7">Aucune date définie${currentRole === 'pilote' ? ' — clique sur ✏️ pour en choisir une.' : ''}</div>`;
 
   // Colonne principale (mode édition: champs contenteditable)
   document.getElementById('qd-main').innerHTML = `
@@ -6736,10 +6767,13 @@ function renderQueteDetail() {
       <p style="font-size:.8rem;color:var(--moss);line-height:1.6;margin:0">${edSec(EDdesc, 'desc', q.desc || '-')}</p>
     </div>
 
-    <!-- Dates -->
-    ${datesHtml ? `<div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-lg);padding:.9rem 1rem">
-      <div style="font-size:.72rem;font-weight:600;color:var(--ink);margin-bottom:.55rem">📅 Dates</div>
-      ${datesHtml}
+    <!-- Date (calendrier) -->
+    ${_showDates ? `<div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-lg);padding:.9rem 1rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.55rem">
+        <div style="font-size:.72rem;font-weight:600;color:var(--ink)">📅 Date</div>
+        ${secCtrl('dates', EDdates)}
+      </div>
+      ${dateBody}
     </div>` : ''}
 
     <!-- Matériel nécessaire (checklist · Bibliothèque) · replié par défaut -->
