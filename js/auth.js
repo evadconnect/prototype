@@ -61,7 +61,20 @@ async function authSubmit(){
     const role = result.data.user?.user_metadata?.role || _authSelectedRole || 'batisseur';
     currentRole = role;
     closeAuthModal();
-    showScreen(({ pilote:'lieu', batisseur:'batisseur', semeur:'semeur' })[role] || 'batisseur');
+    // Router vers le bon onboarding selon le profil (pilote / batisseur / semeur).
+    splashRole = role;
+    const splash = document.getElementById('evad-splash');
+    if (splash) {
+      splash.classList.remove('hidden');
+      splash.style.opacity = '';
+      splash.style.pointerEvents = '';
+      splash.style.display = 'flex';
+    }
+    if (typeof splashEnter === 'function') {
+      splashEnter();
+    } else {
+      showScreen(({ pilote:'lieu', batisseur:'batisseur', semeur:'semeur' })[role] || 'batisseur');
+    }
   } catch (e) {
     authShowError(e.message || 'Connexion impossible.');
   } finally {

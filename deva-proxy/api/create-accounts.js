@@ -49,6 +49,43 @@ function sb(path, opts = {}) {
 async function sendWelcomeEmail(row, email, password) {
   if (!BREVO_API_KEY) return { ok: false, error: 'BREVO_API_KEY manquante' };
   const prenom = (row.prenom || '').trim();
+  const roleLabel = (row.role_label || '').trim();
+  const profilLine = roleLabel
+    ? '<p style="font-size:14px;color:#3d6b5a;margin:0 0 18px">Ton profil : <b style="color:#018262">' + roleLabel + '</b></p>'
+    : '';
+
+  const html =
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef5f1;padding:24px 12px;font-family:Arial,Helvetica,sans-serif"><tr><td align="center">' +
+    '<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.06)">' +
+      // En-tête vert
+      '<tr><td style="background:#018262;padding:26px 32px;text-align:center">' +
+        '<div style="font-size:26px;font-weight:800;letter-spacing:.5px;color:#ffffff">evad</div>' +
+        '<div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#cdeee3;margin-top:4px">Espace bêta-testeurs</div>' +
+      '</td></tr>' +
+      // Corps
+      '<tr><td style="padding:30px 32px 8px">' +
+        '<p style="font-size:16px;color:#0d2b22;margin:0 0 14px">Bonjour ' + (prenom || '') + ',</p>' +
+        '<p style="font-size:15px;line-height:1.6;color:#3d6b5a;margin:0 0 18px">Ton accès à la bêta EVAD est ouvert 🌱 Merci de faire partie des premières personnes à faire grandir l\'écosystème avec nous.</p>' +
+        profilLine +
+        // Encart identifiants
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f2f8f5;border:1px solid #d7ece3;border-radius:12px;margin:0 0 22px"><tr><td style="padding:16px 18px;font-size:14px;color:#0d2b22;line-height:1.7">' +
+          '<div style="color:#3d6b5a;font-size:12px">Identifiant</div><div><b>' + email + '</b></div>' +
+          '<div style="color:#3d6b5a;font-size:12px;margin-top:10px">Mot de passe</div><div><b style="font-family:monospace;font-size:15px">' + password + '</b></div>' +
+        '</td></tr></table>' +
+        // Bouton
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">' +
+          '<a href="' + APP_URL + '" style="display:inline-block;background:#018262;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 32px;border-radius:100px">Accéder à la bêta →</a>' +
+        '</td></tr></table>' +
+        '<p style="font-size:13px;color:#3d6b5a;line-height:1.6;margin:20px 0 0;text-align:center">Sur la page d\'accueil, clique sur «&nbsp;Déjà inscrit·e ? Se connecter&nbsp;».</p>' +
+      '</td></tr>' +
+      // Pied
+      '<tr><td style="padding:24px 32px;border-top:1px solid #eef2f0;text-align:center">' +
+        '<p style="font-size:13px;color:#3d6b5a;margin:0 0 4px">À très vite dans l\'écosystème 🌿</p>' +
+        '<p style="font-size:13px;color:#0d2b22;font-weight:700;margin:0">L\'équipe EVAD</p>' +
+        '<p style="font-size:11px;color:#9db3aa;margin:12px 0 0">EVAD · Écosystème Vivant Autonome &amp; Décentralisé</p>' +
+      '</td></tr>' +
+    '</table></td></tr></table>';
+
   const r = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: { 'api-key': BREVO_API_KEY, 'Content-Type': 'application/json', accept: 'application/json' },
@@ -56,18 +93,7 @@ async function sendWelcomeEmail(row, email, password) {
       sender: { email: SENDER_EMAIL, name: SENDER_NAME },
       to: [{ email, name: ((prenom + ' ' + (row.nom || '')).trim()) || email }],
       subject: 'Ton accès à la bêta EVAD est prêt 🌱',
-      htmlContent:
-        '<div style="font-family:Arial,sans-serif;color:#0d2b22;line-height:1.6;font-size:15px">' +
-        '<p>Bonjour ' + (prenom || '') + ',</p>' +
-        '<p>Bonne nouvelle : ton accès à la bêta EVAD est ouvert 🎉<br>Tu peux te connecter dès maintenant.</p>' +
-        '<p style="background:#f2f8f5;border-radius:10px;padding:14px 16px">' +
-        '<b>Adresse :</b> <a href="' + APP_URL + '">' + APP_URL + '</a><br>' +
-        '<b>Identifiant :</b> ' + email + '<br>' +
-        '<b>Mot de passe :</b> <code>' + password + '</code>' +
-        '</p>' +
-        '<p>Sur la page d’accueil, clique sur « <b>Déjà inscrit·e ? Se connecter</b> ».</p>' +
-        '<p>Merci de faire partie de l’aventure 🌿<br>L’équipe EVAD</p>' +
-        '</div>',
+      htmlContent: html,
     }),
   });
   if (!r.ok) {
@@ -99,7 +125,7 @@ export default async function handler(req, res) {
     // 1. Inscrits approuvés (pas encore de compte)
     const listRes = await sb(
       '/rest/v1/inscription_beta?statut=eq.' + encodeURIComponent('approuvé') +
-      '&select=id,email,prenom,nom,role'
+      '&select=id,email,prenom,nom,role,role_label'
     );
     const rows = await listRes.json();
     if (!Array.isArray(rows)) {
