@@ -3286,9 +3286,10 @@ function bddRenderListQuetes(el,q){
 }
 
 // Fiche quête (panneau détail) : les champs de la table quetes + liens croisés.
-function bddQueteDetailByIdx(i){
+// targetEl optionnel : permet d'afficher la fiche ailleurs (ex. modale du wizard).
+function bddQueteDetailByIdx(i, targetEl){
   const s=SOLS[i]; if(!s||!s.quete) return;
-  const el=document.getElementById('bdd-detail'); if(!el) return;
+  const el=targetEl||document.getElementById('bdd-detail'); if(!el) return;
   const icis=(typeof iciPourSolution==='function')?iciPourSolution(s.nom):[];
   const meta=(typeof ICI_LIVRE_META!=='undefined')?ICI_LIVRE_META:{};
   const champ=(l,v)=>'<div style="min-width:110px"><div style="font-size:.58rem;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.15rem">'+l+'</div><div style="font-size:.82rem;font-weight:700;color:var(--ink)">'+v+'</div></div>';
@@ -3371,9 +3372,10 @@ function bddRenderListIndicateurs(el,q){
 }
 
 // Fiche indicateur (panneau détail) : les champs de la table indicateurs + liens croisés.
-function bddIciDetail(id){
+// targetEl optionnel : permet d'afficher la fiche ailleurs (ex. modale du wizard).
+function bddIciDetail(id, targetEl){
   const ici=(typeof iciGetICI==='function')?iciGetICI(id):null; if(!ici) return;
-  const el=document.getElementById('bdd-detail'); if(!el) return;
+  const el=targetEl||document.getElementById('bdd-detail'); if(!el) return;
   const meta=(typeof ICI_LIVRE_META!=='undefined')?ICI_LIVRE_META:{};
   const m=meta[ici.livre]||{label:ici.livre,ic:'◆',col:'#4a8c5c'};
   // Solutions de la biblio qui portent cet indicateur (avec leur index → liens)
@@ -4497,7 +4499,7 @@ function creerStep3IndicateursHTML(){
     list.forEach(e => {
       const ici = e.ici;
       const chips = e.sols.map(sn => '<span style="font-size:.58rem;color:'+meta.col+';background:'+meta.col+'12;border:1px solid '+meta.col+'33;border-radius:100px;padding:.1rem .4rem">'+sn+'</span>').join(' ');
-      html += '<div style="background:white;border:1px solid '+meta.col+'22;border-left:3px solid '+meta.col+';border-radius:var(--r);padding:.5rem .6rem;margin-bottom:.35rem">'
+      html += '<div onclick="creerOpenIciDetail(\''+ici.id+'\')" title="Voir la fiche indicateur" style="background:white;border:1px solid '+meta.col+'22;border-left:3px solid '+meta.col+';border-radius:var(--r);padding:.5rem .6rem;margin-bottom:.35rem;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow=\'0 2px 10px rgba(46,102,66,.12)\'" onmouseout="this.style.boxShadow=\'none\'">'
         + '<div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.3rem">'
           + '<span style="font-size:.72rem;font-weight:700;color:var(--ink);line-height:1.2">'+ici.nom+'</span>'
           + '<span style="font-size:.56rem;color:'+meta.col+';font-weight:600;white-space:nowrap">'+(ici.unite||'')+'</span>'
@@ -4536,7 +4538,8 @@ function creerStep3QuetesHTML(){
   quetes.forEach(function(item){
     const sol = item.sol, q = item.q;
     const ic = sol.img || '⚡';
-    html += '<div style="background:white;border:1px solid rgba(46,102,66,.14);border-left:3px solid var(--amber);border-radius:var(--r);padding:.55rem .7rem;margin-bottom:.4rem">'
+    const safeNom = String(sol.nom).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    html += '<div onclick="creerOpenQueteDetail(\''+safeNom+'\')" title="Voir la fiche quête" style="background:white;border:1px solid rgba(46,102,66,.14);border-left:3px solid var(--amber);border-radius:var(--r);padding:.55rem .7rem;margin-bottom:.4rem;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow=\'0 2px 10px rgba(46,102,66,.12)\'" onmouseout="this.style.boxShadow=\'none\'">'
       + '<div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.3rem">'
         + '<span style="font-size:.9rem">'+ic+'</span>'
         + '<span style="font-size:.74rem;font-weight:700;color:var(--ink);line-height:1.2;flex:1">'+(q.titre||'Quête')+'</span>'

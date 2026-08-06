@@ -283,3 +283,24 @@ function creerOpenSolDetail(nomSol) {
 function creerCloseSolDetail() {
   document.getElementById('creer-sol-detail-modal').style.display = 'none';
 }
+
+// Ouvre la fiche QUÊTE (de la Bibliothèque) dans la modale du wizard.
+function creerOpenQueteDetail(nomSol) {
+  const i = (typeof SOLS !== 'undefined') ? SOLS.findIndex(x => x.nom === nomSol) : -1;
+  if (i < 0 || typeof bddQueteDetailByIdx !== 'function') return;
+  const modal = document.getElementById('creer-sol-detail-modal'); if (!modal) return;
+  const body = modal.querySelector('#creer-sol-detail-body');
+  bddQueteDetailByIdx(i, body);
+  body.scrollTop = 0;
+  modal.style.display = 'flex';
+}
+
+// Ouvre la fiche INDICATEUR (de la Bibliothèque) dans la modale du wizard.
+function creerOpenIciDetail(iciId) {
+  if (typeof bddIciDetail !== 'function') return;
+  const modal = document.getElementById('creer-sol-detail-modal'); if (!modal) return;
+  const body = modal.querySelector('#creer-sol-detail-body');
+  bddIciDetail(iciId, body);
+  body.scrollTop = 0;
+  modal.style.display = 'flex';
+}
