@@ -5106,6 +5106,7 @@ function genMM(espItems){
   // « Retour »), les timers de CE rendu doivent s'annuler pour ne pas dédoubler.
   window._mmGen = (window._mmGen || 0) + 1;
   const _gen = window._mmGen;
+  window._mmCollapsed = {};   // espaces repliés (clic sur l'espace = replier/déplier)
   const W=mmW(),H=mmH(),cx=W/2,cy=H/2;
   mmAdd('c',cData.nom||'Mon lieu',cx,cy,'center');
 
@@ -5140,7 +5141,10 @@ function genMM(espItems){
     setTimeout(()=>{
       if (_gen !== window._mmGen) return;   // rendu périmé (on a changé d'étape)
       mmLine(cx,cy,ex,ey,col+'99',false,'mn-c','mn-e-'+i);
-      mmAdd('e-'+i,label,ex,ey,'espace',col,bg).style.cursor='grab';
+      const eNode=mmAdd('e-'+i,label,ex,ey,'espace',col,bg);
+      eNode.style.cursor='pointer';
+      eNode.title='Replier / déplier les solutions';
+      eNode.onclick=()=>mmToggleEspace(i);
       sols.forEach((sol,j)=>{
         const sa=a+(j-(sols.length-1)/2)*.82; const rs=re+185;
         const sx=cx+rs*Math.cos(sa),sy=cy+rs*Math.sin(sa);
@@ -5148,6 +5152,7 @@ function genMM(espItems){
         const solDomId='mn-sol-'+i+'-'+j;
         setTimeout(()=>{
           if (_gen !== window._mmGen) return;   // rendu périmé
+          if (window._mmCollapsed && window._mmCollapsed[i]) return;   // espace replié entre-temps
           mmLine(ex,ey,sx,sy,col+'55',true,'mn-e-'+i,solDomId);
           const sc=isSel?col:'rgba(130,130,130,.55)';
           const sb=isSel?bg:'rgba(130,130,130,.05)';
@@ -5201,6 +5206,13 @@ function mmIciNodes(solNom, sx, sy, solDomId){
   });
 }
 
+// Clic sur un espace de la carte : replie/déplie ses solutions.
+function mmToggleEspace(idx){
+  window._mmCollapsed = window._mmCollapsed || {};
+  window._mmCollapsed[idx] = !window._mmCollapsed[idx];
+  mmRefreshSolsStep4();
+}
+
 function mmRefreshSolsStep4() {
   if (!window._mmStep4EspPos || !window._mmStep4State) return;
   // Remove all solution + ICI nodes
@@ -5211,7 +5223,14 @@ function mmRefreshSolsStep4() {
   const { cx, cy } = window._mmStep4State;
   window._mmStep4EspPos.forEach(({ x:ex, y:ey, a, re, item, idx }) => {
     const { c:col, bg } = item;
+    // Position actuelle du nœud espace (il a pu être déplacé à la main).
+    const eEl = document.getElementById('mn-e-'+idx);
+    if (eEl) { ex = parseFloat(eEl.style.left) || ex; ey = parseFloat(eEl.style.top) || ey; }
     mmLine(cx, cy, ex, ey, col+'99', false, 'mn-c', 'mn-e-'+idx);
+    // Espace replié : on garde la branche vers le centre, pas les solutions.
+    const closed = !!(window._mmCollapsed && window._mmCollapsed[idx]);
+    if (eEl) eEl.classList.toggle('mm-esp-closed', closed);
+    if (closed) return;
     const solNoms = cData.solsByEspace[idx] || [];
     solNoms.forEach((solNom, j) => {
       const sol = SOLS.find(s => s.nom === solNom);

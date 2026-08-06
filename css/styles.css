@@ -2882,24 +2882,13 @@ body {
   overflow:hidden;
   cursor:grab;
   background:
-    radial-gradient(circle at 50% 40%, rgba(240,186,72,0.17) 0%, rgba(240,186,72,0.06) 24%, transparent 48%),
+    radial-gradient(circle at 50% 45%, rgba(130,184,148,0.10) 0%, transparent 40%),
     radial-gradient(circle at 16% 82%, rgba(74,140,92,0.12) 0%, transparent 42%),
     radial-gradient(circle at 86% 74%, rgba(130,184,148,0.12) 0%, transparent 40%),
-    linear-gradient(175deg, #f6f8ec 0%, #eaf1e2 45%, #dceadd 100%);
+    linear-gradient(175deg, #f2f7ec 0%, #e7efe3 45%, #dceadd 100%);
 }
 
-/* Rayons de soleil très doux depuis le centre (à la place du quadrillage). */
-.mm-stage::before{
-  content:"";
-  position:absolute;
-  inset:-20%;
-  background: repeating-conic-gradient(from -8deg at 50% 42%,
-    rgba(240,186,72,0.05) 0deg 6deg,
-    transparent 6deg 24deg);
-  mask-image: radial-gradient(circle at 50% 42%, rgba(0,0,0,.9) 0%, rgba(0,0,0,.35) 38%, transparent 66%);
-  pointer-events:none;
-  z-index:0;
-}
+.mm-stage::before{ content:none; }
 
 .mm-stage::after{ content:none; }
 
@@ -2918,7 +2907,7 @@ body {
   height:320px;
   left:34%;
   top:14%;
-  background:rgba(240,186,72,0.14);
+  background:rgba(130,184,148,0.12);
 }
 
 .mm-stage-glow-2{
@@ -3582,14 +3571,11 @@ body {
 .step-dot{flex:1;height:4px;border-radius:100px;transition:background .3s;margin:0 2px;}
 .mm-node{position:absolute;transform:translate(-50%,-50%);border-radius:14px 5px 14px 5px;cursor:pointer;transition:all .2s;border:1.5px solid;user-select:none;font-family:'Satoshi', sans-serif;}
 .mm-node:hover{transform:translate(-50%,-50%) scale(1.07);z-index:10;}
-/* Le lieu = soleil : halo doré rayonnant qui respire doucement. */
-.mm-center{background:linear-gradient(140deg,var(--forest) 0%,var(--moss) 78%);color:var(--cream);border-color:rgba(240,186,72,.65);padding:.9rem 1.3rem;font-family:'Satoshi', sans-serif;font-weight:700;font-size:.9rem;text-align:center;border-radius:26px;box-shadow:0 0 0 7px rgba(240,186,72,.14), 0 0 0 15px rgba(240,186,72,.06), 0 8px 28px rgba(46,102,66,.28);animation:mmSunBreathe 5.5s ease-in-out infinite;}
-@keyframes mmSunBreathe{
-  0%,100%{box-shadow:0 0 0 7px rgba(240,186,72,.14), 0 0 0 15px rgba(240,186,72,.06), 0 8px 28px rgba(46,102,66,.28);}
-  50%{box-shadow:0 0 0 10px rgba(240,186,72,.18), 0 0 0 21px rgba(240,186,72,.08), 0 8px 28px rgba(46,102,66,.28);}
-}
-/* Les espaces = clairières (pastilles rondes). */
+.mm-center{background:linear-gradient(140deg,var(--forest) 0%,var(--moss) 78%);color:var(--cream);border-color:var(--fern);padding:.9rem 1.3rem;font-family:'Satoshi', sans-serif;font-weight:700;font-size:.9rem;text-align:center;border-radius:26px;box-shadow:0 6px 24px rgba(46,102,66,.28);}
+/* Les espaces = clairières (pastilles rondes) ; clic = replier/déplier leurs solutions. */
 .mm-espace{padding:.5rem .95rem;font-size:.72rem;font-weight:600;text-align:center;border-radius:100px;box-shadow:0 2px 10px rgba(46,102,66,0.12);backdrop-filter:blur(2px);}
+.mm-espace.mm-esp-closed{border-style:dashed;opacity:.85;}
+.mm-espace.mm-esp-closed::after{content:' ▸';opacity:.6;}
 /* Les solutions = feuilles (coins opposés arrondis). */
 .mm-sol{padding:.34rem .65rem;font-size:.62rem;font-weight:500;text-align:center;border-radius:16px 4px 16px 4px;opacity:0;transition:opacity .4s,transform .4s;}
 .mm-sol.vis{opacity:1;}
