@@ -37,8 +37,17 @@
     <div id="out"></div>
   </div>
 
+  <div class="card" style="margin-top:1.2rem">
+    <h1>👥 Comptes &amp; onboarding</h1>
+    <p class="sub">Liste des comptes bêta avec l'état de leur fiche par profil. « Fiche faite » = l'utilisateur arrive directement au tableau de bord (plus d'onboarding).</p>
+    <button id="load" onclick="loadUsers()">Afficher les comptes</button>
+    <p class="hint">« ↺ Onboarding » remet l'utilisateur en mode découverte (il reverra l'onboarding à sa prochaine connexion). Nota : un <b>Pilote</b> dont la fiche lieu existe déjà en base sera automatiquement re-marqué « fiche faite » à sa connexion (rattrapage anti-doublon) : pour lui, supprime d'abord sa fiche dans <code>fiche_pilote</code> si tu veux vraiment le faire repartir de zéro.</p>
+    <div id="users-out" style="margin-top:1rem;display:none"></div>
+  </div>
+
 <script>
   const ENDPOINT = 'https://prototype-theta-mocha.vercel.app/api/create-accounts';
+  const ADMIN_USERS_ENDPOINT = 'https://prototype-theta-mocha.vercel.app/api/admin-users';
 
   async function run() {
     const btn = document.getElementById('go');
@@ -76,6 +85,80 @@
       out.innerHTML = '<span class="ko">Erreur réseau : ' + e + '</span>';
     } finally {
       btn.disabled = false; btn.textContent = 'Créer les comptes approuvés';
+    }
+  }
+
+  // ── Comptes & onboarding ──
+  const ROLES = ['pilote', 'batisseur', 'semeur'];
+  const ROLE_IC = { pilote: '🏡', batisseur: '🌿', semeur: '🌰' };
+
+  function adminSecret() {
+    const s = document.getElementById('secret').value.trim();
+    if (!s) alert('Entre le secret admin (champ en haut de la page).');
+    return s;
+  }
+
+  async function loadUsers() {
+    const secret = adminSecret(); if (!secret) return;
+    const btn = document.getElementById('load');
+    const out = document.getElementById('users-out');
+    btn.disabled = true; btn.textContent = 'Chargement…';
+    out.style.display = 'block'; out.textContent = 'Patiente…';
+    try {
+      const res = await fetch(ADMIN_USERS_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+        body: JSON.stringify({ action: 'list' }),
+      });
+      const data = await res.json();
+      if (!res.ok) { out.innerHTML = '<span class="ko">Erreur : ' + (data.error || res.status) + '</span>'; return; }
+      if (!data.users || !data.users.length) { out.innerHTML = 'Aucun compte.'; return; }
+      let html = '<b>' + data.total + ' compte(s)</b>';
+      data.users.forEach(u => {
+        // Badges par profil : ✓ fiche faite (→ tableau de bord) / ○ onboarding à venir
+        const badges = (u.roles.length ? u.roles : ['?']).map(r => {
+          const done = u.fiches_faites.indexOf(r) !== -1;
+          return '<span title="' + r + (done ? ' : fiche faite (tableau de bord direct)' : ' : verra l\'onboarding') + '"'
+            + ' style="font-size:.72rem;padding:.1rem .45rem;border-radius:100px;margin-right:.25rem;white-space:nowrap;'
+            + (done ? 'background:rgba(10,122,75,.12);color:#0a7a4b;border:1px solid rgba(10,122,75,.3)'
+                    : 'background:rgba(0,0,0,.05);color:#666;border:1px solid rgba(0,0,0,.12)') + '">'
+            + (ROLE_IC[r] || '👤') + ' ' + r + ' ' + (done ? '✓' : '○') + '</span>';
+        }).join('');
+        const canReset = u.fiches_faites.length > 0;
+        const dernierLogin = u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString('fr-FR') : 'jamais';
+        html += '<div class="row" style="flex-wrap:wrap">'
+          + '<div style="flex:1;min-width:180px"><b style="font-size:.85rem">' + u.email + '</b>'
+          + '<div style="font-size:.72rem;color:#3d6b5a">' + ((u.prenom + ' ' + u.nom).trim() || '&nbsp;') + ' · dernière connexion : ' + dernierLogin + '</div></div>'
+          + '<div>' + badges + '</div>'
+          + (canReset
+              ? '<button onclick="resetOnboarding(\'' + u.id + '\',\'' + u.email + '\',this)" style="margin:0;width:auto;padding:.35rem .7rem;font-size:.72rem;background:#fff;color:#a06010;border:1px solid rgba(160,96,16,.4)">↺ Onboarding</button>'
+              : '')
+          + '</div>';
+      });
+      out.innerHTML = html;
+    } catch (e) {
+      out.innerHTML = '<span class="ko">Erreur réseau : ' + e + '</span>';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Afficher les comptes';
+    }
+  }
+
+  async function resetOnboarding(userId, email, btn) {
+    const secret = adminSecret(); if (!secret) return;
+    if (!confirm('Remettre « ' + email + ' » en mode onboarding ?\nIl reverra la visite guidée et la création de fiche à sa prochaine connexion.')) return;
+    btn.disabled = true; btn.textContent = '…';
+    try {
+      const res = await fetch(ADMIN_USERS_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+        body: JSON.stringify({ action: 'reset_onboarding', user_id: userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) { alert('Erreur : ' + (data.error || res.status)); btn.disabled = false; btn.textContent = '↺ Onboarding'; return; }
+      loadUsers(); // recharge la liste (badges à jour)
+    } catch (e) {
+      alert('Erreur réseau : ' + e);
+      btn.disabled = false; btn.textContent = '↺ Onboarding';
     }
   }
 </script>
