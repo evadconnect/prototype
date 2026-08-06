@@ -4520,15 +4520,18 @@ function creerStep3QuetesHTML(){
       if (sol && sol.quete) quetes.push({ sol: sol, q: sol.quete });
     });
   }
-  const total = quetes.length;
+  // Quêtes créées manuellement (custom) — visibles ici dès leur création.
+  const customs = (window.store) ? store.where('quetes', function(q){ return q.custom === true && q.statut !== 'retiree'; }) : [];
+  const total = quetes.length + customs.length;
+  const btnNouvelle = '<button onclick="creerQueteNouvelle()" style="width:100%;margin-top:.4rem;padding:.6rem;border:1.5px dashed rgba(1,130,98,.4);border-radius:var(--r);background:rgba(1,130,98,.05);color:var(--forest);font-family:inherit;font-size:.74rem;font-weight:700;cursor:pointer">＋ Créer une nouvelle quête</button>';
   let html = ''
     + '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem">'
       + '<div style="font-size:.72rem;font-weight:700;color:var(--ink)">⚡ Quêtes proposées</div>'
       + '<div style="margin-left:auto;font-size:.65rem;font-weight:700;background:rgba(1,130,98,.1);color:var(--forest);padding:.1rem .5rem;border-radius:100px">'+total+' quête'+(total!==1?'s':'')+'</div>'
     + '</div>'
-    + '<div style="font-size:.65rem;color:var(--moss);opacity:.75;margin-bottom:.9rem;line-height:1.55">Chaque solution propose une quête : l\'action concrète que les Bâtisseurs pourront rejoindre. Tu les retrouveras dans « Mes quêtes » pour les publier.</div>';
+    + '<div style="font-size:.65rem;color:var(--moss);opacity:.75;margin-bottom:.9rem;line-height:1.55">Chaque solution propose une quête : l\'action concrète que les Bâtisseurs pourront rejoindre. Tu peux aussi en créer une sur mesure. Tu les retrouveras dans « Mes quêtes » pour les publier.</div>';
   if (!total) {
-    return html + '<div style="padding:1rem;text-align:center;font-size:.7rem;color:var(--moss);opacity:.55;border:1px dashed rgba(46,102,66,.2);border-radius:var(--r)">Aucune quête pour l\'instant — ajoute des solutions qui portent une quête.</div>';
+    return html + '<div style="padding:1rem;text-align:center;font-size:.7rem;color:var(--moss);opacity:.55;border:1px dashed rgba(46,102,66,.2);border-radius:var(--r);margin-bottom:.5rem">Aucune quête pour l\'instant — ajoute des solutions qui en portent, ou crée-en une sur mesure.</div>' + btnNouvelle;
   }
   quetes.forEach(function(item){
     const sol = item.sol, q = item.q;
@@ -4546,7 +4549,37 @@ function creerStep3QuetesHTML(){
       + '<div style="font-size:.56rem;color:var(--moss);opacity:.5;margin-top:.3rem">issue de « '+sol.nom+' »</div>'
     + '</div>';
   });
-  return html;
+  customs.forEach(function(q){
+    html += '<div style="background:white;border:1px solid rgba(46,102,66,.14);border-left:3px solid var(--forest);border-radius:var(--r);padding:.55rem .7rem;margin-bottom:.4rem">'
+      + '<div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.3rem">'
+        + '<span style="font-size:.9rem">'+(q.sourceIc||'⚡')+'</span>'
+        + '<span style="font-size:.74rem;font-weight:700;color:var(--ink);line-height:1.2;flex:1">'+(q.titre||'Quête')+'</span>'
+      + '</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:.5rem;font-size:.62rem;color:var(--moss);opacity:.85">'
+        + (q.duree && q.duree!=='-' ? '<span>⏱ '+q.duree+'</span>' : '')
+        + (q.nb && q.nb!=='-' ? '<span>👥 '+q.nb+'</span>' : '')
+        + '<span style="color:var(--amber);font-weight:700">🌱 '+(q.graines||50)+'</span>'
+        + (q.impact ? '<span style="color:var(--fern);font-weight:600">🌿 '+q.impact+'</span>' : '')
+      + '</div>'
+      + '<div style="font-size:.56rem;color:var(--forest);opacity:.65;margin-top:.3rem;font-weight:600">✦ créée sur mesure</div>'
+    + '</div>';
+  });
+  return html + btnNouvelle;
+}
+
+// Bouton « Créer une nouvelle quête » de l'étape 3 : ouvre la fiche quête
+// vierge (même modale que « Mes quêtes »).
+function creerQueteNouvelle(){
+  if (typeof piloteQueteCreerOuvrir === 'function') piloteQueteCreerOuvrir();
+}
+
+// Recompose le pane « Quêtes » de l'étape 3 (après création manuelle d'une quête).
+function creerStep3RefreshQuetes(){
+  if (typeof creerStep3QuetesHTML !== 'function') return;
+  const html = creerStep3QuetesHTML();
+  if (window._creerS3Panes) window._creerS3Panes.quetes = html;
+  const pane = document.getElementById('creer-s3-pane');
+  if (pane && window._creerStep3Tab === 'quetes') pane.innerHTML = html;
 }
 
 /* Bascule entre les onglets « Solutions » / « Indicateurs » / « Quêtes » sans redessiner le mind map. */

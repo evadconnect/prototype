@@ -324,6 +324,8 @@ function piloteQueteCreerSave() {
   }
   piloteQueteCreerFermer();
   if (typeof renderPiloteQuetes === 'function') renderPiloteQuetes();
+  // Reflète aussi la nouvelle quête dans le pane Quêtes du wizard de création.
+  if (typeof creerStep3RefreshQuetes === 'function') creerStep3RefreshQuetes();
   if (typeof mmBubble === 'function') mmBubble('⚡ Quête créée · vérifie-la puis publie-la pour la rendre visible');
 }
 
