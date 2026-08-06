@@ -2875,64 +2875,35 @@ body {
 }
 
 
+/* ── Scène solarpunk : aube dorée, verts chauds, pas de grille technique ── */
 .mm-stage{
   flex:1;
   position:relative;
   overflow:hidden;
   cursor:grab;
   background:
-    radial-gradient(circle at 50% 50%, rgba(130,184,148,0.09) 0%, rgba(130,184,148,0.05) 18%, transparent 36%),
-    radial-gradient(circle at 22% 24%, rgba(74,140,92,0.10) 0%, transparent 28%),
-    radial-gradient(circle at 78% 30%, rgba(74,140,92,0.08) 0%, transparent 26%),
-    radial-gradient(circle at 68% 74%, rgba(28,61,40,0.07) 0%, transparent 30%),
-    linear-gradient(160deg, #e8f2ea 0%, #dde8df 52%, #d8e4dc 100%);
+    radial-gradient(circle at 50% 40%, rgba(240,186,72,0.17) 0%, rgba(240,186,72,0.06) 24%, transparent 48%),
+    radial-gradient(circle at 16% 82%, rgba(74,140,92,0.12) 0%, transparent 42%),
+    radial-gradient(circle at 86% 74%, rgba(130,184,148,0.12) 0%, transparent 40%),
+    linear-gradient(175deg, #f6f8ec 0%, #eaf1e2 45%, #dceadd 100%);
 }
 
+/* Rayons de soleil très doux depuis le centre (à la place du quadrillage). */
 .mm-stage::before{
   content:"";
   position:absolute;
-  inset:0;
-  background:
-    linear-gradient(rgba(46,102,66,0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(46,102,66,0.045) 1px, transparent 1px);
-  background-size: 64px 64px;
-  mask-image: radial-gradient(circle at center, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.75) 45%, rgba(0,0,0,0.2) 100%);
+  inset:-20%;
+  background: repeating-conic-gradient(from -8deg at 50% 42%,
+    rgba(240,186,72,0.05) 0deg 6deg,
+    transparent 6deg 24deg);
+  mask-image: radial-gradient(circle at 50% 42%, rgba(0,0,0,.9) 0%, rgba(0,0,0,.35) 38%, transparent 66%);
   pointer-events:none;
   z-index:0;
 }
 
-.mm-stage::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  background:
-    radial-gradient(circle at center, transparent 0 140px, rgba(74,140,92,0.035) 141px, transparent 142px),
-    radial-gradient(circle at center, transparent 0 245px, rgba(74,140,92,0.03) 246px, transparent 247px),
-    radial-gradient(circle at center, transparent 0 360px, rgba(74,140,92,0.025) 361px, transparent 362px);
-  pointer-events:none;
-  z-index:1;
-}
+.mm-stage::after{ content:none; }
 
-.mm-stage-grid{
-  position:absolute;
-  inset:0;
-  z-index:0;
-  background:
-    repeating-linear-gradient(
-      0deg,
-      transparent 0,
-      transparent 95px,
-      rgba(74,140,92,0.03) 96px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent 0,
-      transparent 95px,
-      rgba(74,140,92,0.03) 96px
-    );
-  opacity:.55;
-  pointer-events:none;
-}
+.mm-stage-grid{ display:none; }
 
 .mm-stage-glow{
   position:absolute;
@@ -2943,27 +2914,27 @@ body {
 }
 
 .mm-stage-glow-1{
-  width:280px;
-  height:280px;
-  left:8%;
-  top:12%;
-  background:rgba(74,140,92,0.10);
+  width:320px;
+  height:320px;
+  left:34%;
+  top:14%;
+  background:rgba(240,186,72,0.14);
 }
 
 .mm-stage-glow-2{
   width:340px;
   height:340px;
-  right:10%;
-  top:18%;
-  background:rgba(130,184,148,0.10);
+  right:8%;
+  bottom:12%;
+  background:rgba(130,184,148,0.13);
 }
 
 .mm-stage-glow-3{
   width:300px;
   height:300px;
-  left:38%;
-  bottom:8%;
-  background:rgba(28,61,40,0.07);
+  left:6%;
+  bottom:10%;
+  background:rgba(74,140,92,0.11);
 }
 
 
@@ -3609,12 +3580,20 @@ body {
 .esp-tag{display:inline-flex;align-items:center;gap:.3rem;padding:.28rem .55rem;border-radius:100px;font-size:0.65rem;font-weight:500;margin:.18rem;cursor:pointer;background:rgba(74,140,92,0.1);color:var(--forest);border:1px solid rgba(74,140,92,0.2);transition:all .15s;}
 .esp-tag.sel{background:var(--forest);color:var(--cream);border-color:var(--forest);}
 .step-dot{flex:1;height:4px;border-radius:100px;transition:background .3s;margin:0 2px;}
-.mm-node{position:absolute;transform:translate(-50%,-50%);border-radius:12px;cursor:pointer;transition:all .2s;border:1.5px solid;user-select:none;font-family:'Satoshi', sans-serif;}
+.mm-node{position:absolute;transform:translate(-50%,-50%);border-radius:14px 5px 14px 5px;cursor:pointer;transition:all .2s;border:1.5px solid;user-select:none;font-family:'Satoshi', sans-serif;}
 .mm-node:hover{transform:translate(-50%,-50%) scale(1.07);z-index:10;}
-.mm-center{background:linear-gradient(135deg,var(--forest),var(--moss));color:var(--cream);border-color:var(--fern);padding:.9rem 1.3rem;font-family:'Satoshi', sans-serif;font-weight:700;font-size:.9rem;text-align:center;box-shadow:0 4px 20px rgba(46,102,66,0.3);border-radius:16px;}
-.mm-espace{padding:.5rem .85rem;font-size:.72rem;font-weight:600;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
-.mm-sol{padding:.32rem .6rem;font-size:.62rem;font-weight:500;text-align:center;opacity:0;transition:opacity .4s,transform .4s;}
+/* Le lieu = soleil : halo doré rayonnant qui respire doucement. */
+.mm-center{background:linear-gradient(140deg,var(--forest) 0%,var(--moss) 78%);color:var(--cream);border-color:rgba(240,186,72,.65);padding:.9rem 1.3rem;font-family:'Satoshi', sans-serif;font-weight:700;font-size:.9rem;text-align:center;border-radius:26px;box-shadow:0 0 0 7px rgba(240,186,72,.14), 0 0 0 15px rgba(240,186,72,.06), 0 8px 28px rgba(46,102,66,.28);animation:mmSunBreathe 5.5s ease-in-out infinite;}
+@keyframes mmSunBreathe{
+  0%,100%{box-shadow:0 0 0 7px rgba(240,186,72,.14), 0 0 0 15px rgba(240,186,72,.06), 0 8px 28px rgba(46,102,66,.28);}
+  50%{box-shadow:0 0 0 10px rgba(240,186,72,.18), 0 0 0 21px rgba(240,186,72,.08), 0 8px 28px rgba(46,102,66,.28);}
+}
+/* Les espaces = clairières (pastilles rondes). */
+.mm-espace{padding:.5rem .95rem;font-size:.72rem;font-weight:600;text-align:center;border-radius:100px;box-shadow:0 2px 10px rgba(46,102,66,0.12);backdrop-filter:blur(2px);}
+/* Les solutions = feuilles (coins opposés arrondis). */
+.mm-sol{padding:.34rem .65rem;font-size:.62rem;font-weight:500;text-align:center;border-radius:16px 4px 16px 4px;opacity:0;transition:opacity .4s,transform .4s;}
 .mm-sol.vis{opacity:1;}
+.mm-sol.sol-sel{box-shadow:0 2px 10px rgba(74,140,92,.18);}
 .mm-ind{padding:.26rem .5rem;font-size:.58rem;font-weight:400;opacity:0;transition:opacity .4s;background:rgba(255,255,255,0.92);border-color:rgba(46,102,66,0.2);color:var(--moss);border-radius:8px;}
 .mm-ind.vis{opacity:1;}
 

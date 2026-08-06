@@ -4898,26 +4898,38 @@ function mmAdd(id,label,x,y,cls,col,bg){
   return el;
 }
 
+// Courbe organique (branche) entre deux points : léger arc perpendiculaire.
+function mmCurve(x1,y1,x2,y2){
+  const mx=(x1+x2)/2, my=(y1+y2)/2;
+  const dx=x2-x1, dy=y2-y1;
+  const bend=0.14;
+  return 'M '+x1+' '+y1+' Q '+(mx-dy*bend)+' '+(my+dx*bend)+' '+x2+' '+y2;
+}
+
 function mmLine(x1,y1,x2,y2,col,dash,fromId,toId){
-  const l=document.createElementNS('http://www.w3.org/2000/svg','line');
-  l.setAttribute('x1',x1);
-  l.setAttribute('y1',y1);
-  l.setAttribute('x2',x2);
-  l.setAttribute('y2',y2);
+  const l=document.createElementNS('http://www.w3.org/2000/svg','path');
+  l.setAttribute('d', mmCurve(x1,y1,x2,y2));
+  l.setAttribute('fill','none');
   l.setAttribute('stroke',col || 'rgba(46,102,66,.32)');
-  l.setAttribute('stroke-width', dash ? '1.8' : '2.2');
-  if(dash) l.setAttribute('stroke-dasharray','6,6');
+  l.setAttribute('stroke-width', dash ? '1.7' : '2.1');
+  if(dash) l.setAttribute('stroke-dasharray','1,7');   // pointillés « graines »
   l.setAttribute('stroke-linecap','round');
-  l.setAttribute('opacity', dash ? '0.75' : '0.95');
+  l.setAttribute('opacity', dash ? '0.7' : '0.9');
+  l.setAttribute('data-x1',x1); l.setAttribute('data-y1',y1);
+  l.setAttribute('data-x2',x2); l.setAttribute('data-y2',y2);
   if(fromId) l.setAttribute('data-from', fromId);
   if(toId) l.setAttribute('data-to', toId);
   document.getElementById('mm-svg').appendChild(l);
   return l;
 }
 
-// Met à jour les extrémités des lignes connectées à un nœud déplacé.
+// Met à jour les extrémités des branches connectées à un nœud déplacé.
 function mmUpdateLinesFor(domId, x, y){
   const svg = document.getElementById('mm-svg'); if(!svg) return;
+  const redraw = (l)=>{ l.setAttribute('d', mmCurve(+l.getAttribute('data-x1'), +l.getAttribute('data-y1'), +l.getAttribute('data-x2'), +l.getAttribute('data-y2'))); };
+  svg.querySelectorAll('path[data-from="'+domId+'"]').forEach(l=>{ l.setAttribute('data-x1', x); l.setAttribute('data-y1', y); redraw(l); });
+  svg.querySelectorAll('path[data-to="'+domId+'"]').forEach(l=>{ l.setAttribute('data-x2', x); l.setAttribute('data-y2', y); redraw(l); });
+  // Compatibilité : lignes droites résiduelles (anciens rendus)
   svg.querySelectorAll('line[data-from="'+domId+'"]').forEach(l=>{ l.setAttribute('x1', x); l.setAttribute('y1', y); });
   svg.querySelectorAll('line[data-to="'+domId+'"]').forEach(l=>{ l.setAttribute('x2', x); l.setAttribute('y2', y); });
 }
@@ -5153,11 +5165,15 @@ function genMM(espItems){
 }
 
 /* Sous-nœuds ICI sous une solution sélectionnée (mind map de création).
-   Montre l'impact projeté que porte la solution (couleur = capital). */
+   DÉSACTIVÉS (simplification solarpunk) : la 3e couronne d'indicateurs
+   surchargeait la carte ; les ICI vivent dans l'onglet « Indicateurs » de
+   l'étape et dans la Bibliothèque. On garde la fonction (appels en place)
+   pour nettoyer d'éventuels restes d'un ancien rendu. */
 function mmIciNodes(solNom, sx, sy, solDomId){
   const safe = String(solNom).replace(/[^a-zA-Z0-9]/g, '_');
   document.querySelectorAll('[id^="mn-ici-' + safe + '-"]').forEach(e => e.remove());
   document.querySelectorAll('line[data-ici="' + safe + '"]').forEach(e => e.remove());
+  return;
   if (!(cData.solutions || []).includes(solNom)) return;
   const icis = (typeof iciPourSolution === 'function') ? iciPourSolution(solNom) : [];
   if (!icis.length) return;
