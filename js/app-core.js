@@ -4228,7 +4228,7 @@ function renderStep(){
       <div id="creer-doc-status" style="display:none;align-items:center;gap:.55rem;background:rgba(46,102,66,.07);border:1px solid rgba(46,102,66,.18);border-radius:var(--r);padding:.5rem .7rem;margin-bottom:.8rem;font-size:.7rem;color:var(--forest)"><span id="creer-doc-status-spin" class="creer-doc-spin"></span><span id="creer-doc-status-txt"></span></div>
       <label class="creer-lbl">Description</label>
       <textarea class="creer-inp" placeholder="En quelques phrases, décris ton lieu, sa vision et ses activités…" style="height:90px;resize:none" oninput="cData.desc=this.value">${cData.desc||''}</textarea>
-      <label class="creer-lbl">Phase du projet</label>
+      <label class="creer-lbl">Phase du lieu</label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.8rem">
         ${[['idee','💭','Idée'],['conception','📐','Conception'],['chantier','🏗','Chantier'],['operationnel','🌿','Opérationnel']].map(([id,ic,l])=>`<button class="type-btn${cData.phase===id?' sel':''}" onclick="cData.phase='${id}';this.closest('div').querySelectorAll('.type-btn').forEach(b=>b.classList.remove('sel'));this.classList.add('sel')"><div style="font-size:1.1rem;margin-bottom:.2rem">${ic}</div><div>${l}</div></button>`).join('')}
       </div>
