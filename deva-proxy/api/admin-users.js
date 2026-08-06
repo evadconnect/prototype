@@ -77,8 +77,9 @@ export default async function handler(req, res) {
       const user = await getRes.json();
       if (!getRes.ok) return res.status(500).json({ error: 'Compte introuvable', http: getRes.status, detail: user });
 
-      const meta = Object.assign({}, user.user_metadata || {});
-      delete meta.fiches_faites;
+      // GoTrue FUSIONNE user_metadata : retirer la clé ne l'efface pas côté
+      // serveur. On force fiches_faites à null pour la vider réellement.
+      const meta = Object.assign({}, user.user_metadata || {}, { fiches_faites: null });
 
       const putRes = await sb('/auth/v1/admin/users/' + encodeURIComponent(userId), {
         method: 'PUT',
