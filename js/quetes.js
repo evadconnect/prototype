@@ -193,7 +193,8 @@ function syncPiloteQuetesFromLieu() {
   const L = (typeof myLieuData !== 'undefined' && myLieuData && (myLieuData.id || (myLieuData.solutions || []).length))
     ? myLieuData
     : (typeof cData !== 'undefined' ? cData : null);
-  const sols = (L && L.solutions) || [];
+  // Repli sur solsByEspace si le champ à plat est vide (fiches anciennes).
+  const sols = (typeof evadLieuSols === 'function') ? evadLieuSols(L) : ((L && L.solutions) || []);
   const solSet = new Set(sols);
   const myLieuId = (L && L.id) || null;
 

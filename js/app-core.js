@@ -5626,6 +5626,16 @@ try {
   }
 } catch (e) {}
 
+// Solutions retenues d'un lieu : le champ à plat `solutions`, sinon
+// reconstruites depuis `solsByEspace` (certaines fiches ont ce champ vide
+// alors que la répartition par espace est complète — c'est elle qui fait foi).
+function evadLieuSols(L){
+  if (!L) return [];
+  if (Array.isArray(L.solutions) && L.solutions.length) return L.solutions;
+  const byEsp = L.solsByEspace || {};
+  return [...new Set(Object.keys(byEsp).reduce((a,k)=>a.concat(byEsp[k]||[]),[]))];
+}
+
 // Dérive et persiste les solutions retenues + leurs indicateurs (ICI) d'un lieu
 // dans les tables dédiées Supabase (via store.replaceLieuChildren). Appelée à la
 // publication de la fiche lieu.
@@ -5633,7 +5643,7 @@ function evadSyncLieuChildren(lieuId){
   if (!window.store || !lieuId || typeof store.replaceLieuChildren !== 'function') return;
   const L = (typeof myLieuData !== 'undefined' && myLieuData) ? myLieuData
           : (typeof cData !== 'undefined' ? cData : {});
-  const sols = (L && L.solutions) || [];
+  const sols = evadLieuSols(L);
   const solsByEsp = (L && L.solsByEspace) || {};
   const slug = (s) => String(s).replace(/[^a-z0-9]+/gi, '-').toLowerCase();
 
@@ -5691,6 +5701,10 @@ async function createLieuOnMap(){
   try {
     myLieuData = Object.assign({}, cData);
     if (_existingId) myLieuData.id = _existingId;
+    // Normalisation : le champ à plat `solutions` doit toujours refléter la
+    // répartition par espace (sinon quêtes/indicateurs ne se génèrent pas).
+    myLieuData.solutions = evadLieuSols(myLieuData);
+    cData.solutions = myLieuData.solutions;
     // Vadance (promesse) figée au résultat de la création
     myLieuData.vadance = (typeof computeVadance === 'function') ? computeVadance(cData) : 0;
   } catch(e) {}

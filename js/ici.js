@@ -367,8 +367,12 @@ function iciRenderMesureImpact() {
 
 // Solutions déclarées par le Pilote pour son lieu (ou null si aucune).
 function iciSolutionsDuLieu() {
-  if (typeof myLieuData !== 'undefined' && myLieuData && Array.isArray(myLieuData.solutions) && myLieuData.solutions.length) return myLieuData.solutions;
-  if (typeof cData !== 'undefined' && cData && Array.isArray(cData.solutions) && cData.solutions.length) return cData.solutions;
+  // evadLieuSols retombe sur solsByEspace si le champ à plat est vide.
+  const sols = (L) => (typeof evadLieuSols === 'function')
+    ? evadLieuSols(L)
+    : ((L && Array.isArray(L.solutions)) ? L.solutions : []);
+  if (typeof myLieuData !== 'undefined' && myLieuData && sols(myLieuData).length) return sols(myLieuData);
+  if (typeof cData !== 'undefined' && cData && sols(cData).length) return sols(cData);
   return null;
 }
 
