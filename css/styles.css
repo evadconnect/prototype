@@ -3578,6 +3578,9 @@ body {
 /* === bloc style (lignes 6746-6782 de l'original) === */
 .bdd-cplx{padding:0.25rem 0.6rem;border-radius:100px;font-size:0.65rem;font-family:'Satoshi', sans-serif;cursor:pointer;border:1px solid rgba(46,102,66,0.2);background:transparent;color:var(--moss);transition:all .15s;}
 .bdd-cplx.active{background:var(--forest);color:var(--cream);border-color:var(--forest);}
+/* Filtre capital de l'onglet Indicateurs (même famille que .bdd-cplx) */
+.bdd-livre{padding:0.25rem 0.6rem;border-radius:100px;font-size:0.65rem;font-family:'Satoshi', sans-serif;cursor:pointer;border:1px solid rgba(46,102,66,0.2);background:transparent;color:var(--moss);transition:all .15s;white-space:nowrap;}
+.bdd-livre.active{background:var(--forest);color:var(--cream);border-color:var(--forest);}
 /* Onglets des 3 tables de la Bibliothèque (Solutions / Quêtes / Indicateurs) */
 .bdd-mode-tab{flex:1;max-width:180px;padding:0.42rem 0.6rem;border-radius:100px;font-size:0.72rem;font-weight:700;font-family:'Satoshi', sans-serif;cursor:pointer;border:1px solid rgba(46,102,66,0.2);background:#fff;color:var(--moss);transition:all .15s;white-space:nowrap;}
 .bdd-mode-tab.active{background:var(--forest);color:var(--cream);border-color:var(--forest);}

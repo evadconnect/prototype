@@ -3069,12 +3069,14 @@ let bddMode='solutions';   // onglet actif de la Bibliothèque : solutions | que
 function setBddMode(mode, btn){
   bddMode = mode;
   document.querySelectorAll('.bdd-mode-tab').forEach(b=>b.classList.toggle('active', b===btn || b.getAttribute('data-mode')===mode));
-  // Filtres propres aux solutions (type de lieu, catégories, complexité)
-  const solOnly = mode==='solutions';
-  const lieuRow=document.getElementById('bdd-lieu-row'); if(lieuRow) lieuRow.style.display=solOnly?'flex':'none';
-  const cats=document.getElementById('bdd-cats'); if(cats) cats.style.display=solOnly?'flex':'none';
-  const cplxRow=document.getElementById('bdd-cplx-row'); if(cplxRow) cplxRow.style.display=solOnly?'flex':'none';
-  const banner=document.getElementById('bdd-context-banner'); if(banner && !solOnly) banner.style.display='none';
+  // Filtres : les quêtes dérivent des solutions → mêmes filtres (type de lieu,
+  // catégorie, complexité). Les indicateurs ont leur filtre par capital.
+  const solFilters = mode==='solutions' || mode==='quetes';
+  const lieuRow=document.getElementById('bdd-lieu-row'); if(lieuRow) lieuRow.style.display=solFilters?'flex':'none';
+  const cats=document.getElementById('bdd-cats'); if(cats) cats.style.display=solFilters?'flex':'none';
+  const cplxRow=document.getElementById('bdd-cplx-row'); if(cplxRow) cplxRow.style.display=solFilters?'flex':'none';
+  const livreRow=document.getElementById('bdd-livre-row'); if(livreRow) livreRow.style.display=mode==='indicateurs'?'flex':'none';
+  const banner=document.getElementById('bdd-context-banner'); if(banner && mode!=='solutions') banner.style.display='none';
   const search=document.getElementById('bdd-search');
   if(search) search.placeholder = mode==='quetes' ? 'Rechercher une quête…' : mode==='indicateurs' ? 'Rechercher un indicateur…' : 'Rechercher solution…';
   const sub=document.getElementById('bdd-topbar-sub');
@@ -3164,6 +3166,15 @@ function setEspFilter(id, btn){
 
 function setCplx(c,btn){bddCplx=c;document.querySelectorAll('.bdd-cplx').forEach(b=>b.classList.remove('active'));btn.classList.add('active');bddRenderList();}
 
+// Filtre par capital de l'onglet Indicateurs (Écologie / Social / Éco locale).
+let bddLivre='tous';
+function setBddLivre(id,btn){
+  bddLivre=id;
+  document.querySelectorAll('.bdd-livre').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  bddRenderList();
+}
+
 // Retourne les solutions liées à un espace
 function solsForEsp(esp){
   return SOLS.filter(s=>esp.sols.includes(s.nom));
@@ -3243,7 +3254,14 @@ function bddRenderList(){
 function bddRenderListQuetes(el,q){
   const rows=[];
   SOLS.forEach((s,i)=>{ if(s.quete) rows.push({s,i}); });
-  const list=rows.filter(({s})=>!q || s.quete.titre.toLowerCase().includes(q) || s.nom.toLowerCase().includes(q));
+  // Mêmes filtres que l'onglet Solutions (la quête hérite de sa solution).
+  const list=rows.filter(({s})=>{
+    const matchCat=bddCat==='tous'||s.cat===bddCat;
+    const matchCplx=bddCplx==='tous'||s.cplx===bddCplx;
+    const matchLieu=bddLieu==='tous'||(s.lieux||[]).includes(bddLieu);
+    const matchQ=!q || s.quete.titre.toLowerCase().includes(q) || s.nom.toLowerCase().includes(q);
+    return matchCat&&matchCplx&&matchLieu&&matchQ;
+  });
   if(!list.length){ el.innerHTML='<div style="padding:2rem;text-align:center;color:var(--moss);opacity:.4;font-size:.78rem">Aucune quête</div>'; return; }
   list.forEach(({s,i})=>{
     const d=document.createElement('div'); d.className='sol-item'+(bddSel==='q'+i?' sel':'');
@@ -3320,6 +3338,8 @@ function bddRenderListIndicateurs(el,q){
   const order=['ecologie','social','economie_locale'];
   let shown=0;
   order.forEach(livre=>{
+    // Filtre par capital (chips Écologie / Social / Éco locale).
+    if(typeof bddLivre!=='undefined' && bddLivre!=='tous' && livre!==bddLivre) return;
     const list=ICI_CATALOG.filter(i=>i.livre===livre && (!q || i.nom.toLowerCase().includes(q) || (i.unite||'').toLowerCase().includes(q)));
     if(!list.length) return;
     const m=meta[livre]||{label:livre,ic:'◆',col:'#4a8c5c'};
