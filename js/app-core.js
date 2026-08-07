@@ -4545,17 +4545,23 @@ function creerEspaceSolBlockHTML(idx){
   const col = it.c || '#2e9970', bg = it.bg || 'rgba(46,153,112,.1)';
   const assigned = (cData.solsByEspace && cData.solsByEspace[idx]) || [];
   const isOpen = window._activeEspacePanel === idx;
-  const chips = assigned.length
+  // Présentation en cartes, comme les quêtes et les indicateurs.
+  const cards = assigned.length
     ? assigned.map(nom => {
         const safeNom = nom.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-        return '<span style="display:inline-flex;align-items:center;gap:0;border-radius:100px;background:' + bg + ';border:1.5px solid ' + col + '55;font-size:.65rem;font-weight:600;color:' + col + ';margin:.15rem;overflow:hidden">'
-          + '<span onclick="creerOpenSolDetail(\'' + safeNom + '\')" title="Voir la fiche" style="padding:.22rem .45rem .22rem .6rem;cursor:pointer;display:flex;align-items:center;gap:.28rem"><span>' + nom + '</span><span style="font-size:.58rem;opacity:.55">↗</span></span>'
-          + '<span style="width:1px;height:16px;background:' + col + '33;flex-shrink:0"></span>'
-          + '<button onclick="creerRemoveSol(' + idx + ',\'' + safeNom + '\')" title="Retirer" style="border:none;background:none;color:' + col + ';cursor:pointer;font-size:.72rem;line-height:1;padding:.22rem .5rem;opacity:.55" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'.55\'">✕</button>'
-          + '</span>';
+        const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === nom) : null;
+        const ic = (sol && sol.img) || '🧩';
+        const impact = (sol && sol.impact) || '';
+        return '<div style="display:flex;align-items:stretch;gap:0;margin-bottom:.3rem">'
+          + '<div onclick="creerOpenSolDetail(\'' + safeNom + '\')" title="Voir la fiche" style="flex:1;min-width:0;background:white;border:1px solid ' + col + '22;border-left:3px solid ' + col + ';border-radius:10px 0 0 10px;padding:.45rem .6rem;cursor:pointer">'
+            + '<div style="display:flex;align-items:center;gap:.4rem"><span style="font-size:.82rem">' + ic + '</span><span style="font-size:.7rem;font-weight:700;color:var(--ink);line-height:1.2;flex:1">' + nom + '</span><span style="font-size:.58rem;opacity:.5">↗</span></div>'
+            + (impact ? '<div style="font-size:.6rem;color:var(--fern);font-weight:600;margin-top:.22rem">🌿 ' + impact + '</div>' : '')
+          + '</div>'
+          + '<button onclick="creerRemoveSol(' + idx + ',\'' + safeNom + '\')" title="Retirer" style="flex-shrink:0;border:1px solid ' + col + '22;border-left:none;border-radius:0 10px 10px 0;background:' + col + '08;color:' + col + ';cursor:pointer;font-size:.78rem;line-height:1;padding:0 .55rem;opacity:.55" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'.55\'">✕</button>'
+          + '</div>';
       }).join('')
-    : '<span style="font-size:.64rem;color:var(--moss);opacity:.45;font-style:italic">Aucune solution — ajoute-en depuis la bibliothèque</span>';
-  let html = '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:0">' + chips + '</div>';
+    : '<div style="font-size:.62rem;color:var(--moss);opacity:.5;font-style:italic;padding:.15rem 0">Aucune solution — ajoute-en depuis la bibliothèque.</div>';
+  let html = cards;
   if (isOpen) {
     html += '<div style="margin-top:.5rem;padding:.55rem .6rem;background:white;border:1px solid rgba(46,102,66,.1);border-radius:10px">'
       + '<div style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem">Bibliothèque · ajouter une solution</div>'
@@ -4568,56 +4574,161 @@ function creerEspaceSolBlockHTML(idx){
   return html;
 }
 
-// Bloc quêtes d'un espace : dérivées de ses solutions (retrait) + création.
+// Bloc quêtes d'un espace : présentation en cartes (retrait) + ajout depuis
+// la bibliothèque + création sur mesure.
 function creerEspaceQuetesHTML(idx){
-  const sols = (cData.solsByEspace && cData.solsByEspace[idx]) || [];
   const retir = new Set(cData.quetesRetirees || []);
   const card = (ic, titre, duree, nb, impact, foot, footCol, removeCall, openCall) =>
     '<div style="display:flex;align-items:stretch;gap:0;margin-bottom:.35rem">'
     + '<div ' + (openCall ? 'onclick="' + openCall + '" style="cursor:pointer;' : 'style="') + 'flex:1;min-width:0;background:white;border:1px solid rgba(46,102,66,.14);border-left:3px solid var(--amber);border-radius:10px 0 0 10px;padding:.5rem .65rem">'
-      + '<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.25rem"><span style="font-size:.85rem">' + ic + '</span><span style="font-size:.72rem;font-weight:700;color:var(--ink);line-height:1.2;flex:1">' + titre + '</span></div>'
-      + '<div style="display:flex;flex-wrap:wrap;gap:.45rem;font-size:.6rem;color:var(--moss);opacity:.85">' + (duree && duree !== '-' ? '<span>⏱ ' + duree + '</span>' : '') + (nb && nb !== '-' ? '<span>👥 ' + nb + '</span>' : '') + (impact ? '<span style="color:var(--fern);font-weight:600">🌿 ' + impact + '</span>' : '') + '</div>'
+      + '<div style="display:flex;align-items:center;gap:.4rem"><span style="font-size:.85rem">' + ic + '</span><span style="font-size:.72rem;font-weight:700;color:var(--ink);line-height:1.2;flex:1">' + titre + '</span>' + (openCall ? '<span style="font-size:.58rem;opacity:.5">↗</span>' : '') + '</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:.45rem;font-size:.6rem;color:var(--moss);opacity:.85;margin-top:.22rem">' + (duree && duree !== '-' ? '<span>⏱ ' + duree + '</span>' : '') + (nb && nb !== '-' ? '<span>👥 ' + nb + '</span>' : '') + (impact ? '<span style="color:var(--fern);font-weight:600">🌿 ' + impact + '</span>' : '') + '</div>'
       + '<div style="font-size:.55rem;color:' + footCol + ';opacity:.6;margin-top:.25rem">' + foot + '</div>'
     + '</div>'
     + '<button onclick="' + removeCall + '" title="Retirer" style="flex-shrink:0;border:1px solid rgba(46,102,66,.14);border-left:none;border-radius:0 10px 10px 0;background:rgba(200,115,42,.05);color:var(--amber);cursor:pointer;font-size:.78rem;line-height:1;padding:0 .55rem;opacity:.55" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'.55\'">✕</button>'
     + '</div>';
   let cards = '', n = 0;
-  sols.forEach(nom => {
+  // Dérivées des solutions de l'espace.
+  ((cData.solsByEspace && cData.solsByEspace[idx]) || []).forEach(nom => {
     const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === nom) : null;
     if (!sol || !sol.quete || retir.has('sol:' + nom)) return;
     n++; const q = sol.quete; const safeNom = String(nom).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     cards += card(sol.img || '⚡', q.titre || 'Quête', q.duree, q.nb, q.impact_quete, 'issue de « ' + nom + ' »', 'var(--moss)', "creerRemoveQuete('sol:" + safeNom + "')", "creerOpenQueteDetail('" + safeNom + "')");
   });
+  // Ajoutées depuis la bibliothèque à cet espace.
+  const espMap = cData.quetesEspMap || {};
+  (cData.quetesAjoutees || []).forEach(nom => {
+    if (espMap[nom] !== idx || retir.has('sol:' + nom)) return;
+    const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === nom) : null;
+    if (!sol || !sol.quete) return;
+    n++; const q = sol.quete; const safeNom = String(nom).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    cards += card(sol.img || '⚡', q.titre || 'Quête', q.duree, q.nb, q.impact_quete, 'issue de « ' + nom + ' »', 'var(--moss)', "creerRemoveQuete('sol:" + safeNom + "')", "creerOpenQueteDetail('" + safeNom + "')");
+  });
+  // Sur mesure (custom, rattachées à cet espace).
   const customs = (window.store) ? store.where('quetes', q => q.custom === true && q.statut !== 'retiree' && ((q.espIdx === idx) || (q.donnees && q.donnees.espIdx === idx))) : [];
   customs.forEach(q => { n++; cards += card(q.sourceIc || '⚡', q.titre || 'Quête', q.duree, q.nb, q.impact, '✦ créée sur mesure', 'var(--forest)', "creerRemoveQuete('cst:" + q.id + "')", null); });
   if (!n) cards = '<div style="font-size:.62rem;color:var(--moss);opacity:.5;font-style:italic;padding:.15rem 0 .3rem">Les quêtes des solutions de cet espace apparaîtront ici.</div>';
-  return cards + '<button onclick="creerQueteNouvelleEsp(' + idx + ')" style="width:100%;margin-top:.3rem;padding:.5rem;border:1.5px dashed rgba(1,130,98,.4);border-radius:10px;background:rgba(1,130,98,.05);color:var(--forest);font-family:inherit;font-size:.68rem;font-weight:700;cursor:pointer">＋ Créer une quête sur mesure</button>';
+  let html = cards;
+  html += creerQueteBiblioBlockHTML(idx);
+  html += '<button onclick="creerQueteNouvelleEsp(' + idx + ')" style="width:100%;margin-top:.35rem;padding:.5rem;border:1.5px dashed rgba(1,130,98,.4);border-radius:10px;background:rgba(1,130,98,.05);color:var(--forest);font-family:inherit;font-size:.68rem;font-weight:700;cursor:pointer">＋ Créer une quête sur mesure</button>';
+  return html;
 }
 
-// Bloc indicateurs d'un espace : ICI portés par ses solutions (retrait).
+// Bloc indicateurs d'un espace : ICI portés par ses solutions + ajoutés,
+// avec ajout depuis la bibliothèque.
 function creerEspaceIndicsHTML(idx){
-  const sols = (cData.solsByEspace && cData.solsByEspace[idx]) || [];
   const retir = new Set(cData.icisRetires || []);
   const seen = new Set();
+  const row = (ici) => {
+    const meta = (typeof ICI_LIVRE_META !== 'undefined' && ICI_LIVRE_META[ici.livre]) || { ic:'◆', col:'#4a8c5c', label:ici.livre };
+    return '<div style="display:flex;align-items:stretch;gap:0;margin-bottom:.3rem">'
+      + '<div onclick="creerOpenIciDetail(\'' + ici.id + '\')" title="Voir la fiche" style="flex:1;min-width:0;background:white;border:1px solid ' + meta.col + '22;border-left:3px solid ' + meta.col + ';border-radius:10px 0 0 10px;padding:.45rem .6rem;cursor:pointer">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem">'
+          + '<span style="font-size:.7rem;font-weight:700;color:var(--ink);line-height:1.2">' + meta.ic + ' ' + ici.nom + '</span>'
+          + '<span style="font-size:.55rem;color:' + meta.col + ';font-weight:600;white-space:nowrap">' + (ici.unite || '') + '</span>'
+        + '</div>'
+      + '</div>'
+      + '<button onclick="creerRemoveIci(\'' + ici.id + '\')" title="Retirer" style="flex-shrink:0;border:1px solid ' + meta.col + '22;border-left:none;border-radius:0 10px 10px 0;background:' + meta.col + '08;color:' + meta.col + ';cursor:pointer;font-size:.78rem;line-height:1;padding:0 .55rem;opacity:.55" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'.55\'">✕</button>'
+      + '</div>';
+  };
   let cards = '', n = 0;
-  sols.forEach(nom => {
+  // Dérivés des solutions de l'espace.
+  ((cData.solsByEspace && cData.solsByEspace[idx]) || []).forEach(nom => {
     (typeof iciPourSolution === 'function' ? (iciPourSolution(nom) || []) : []).forEach(ici => {
       if (seen.has(ici.id) || retir.has(ici.id)) return;
-      seen.add(ici.id); n++;
-      const meta = (typeof ICI_LIVRE_META !== 'undefined' && ICI_LIVRE_META[ici.livre]) || { ic:'◆', col:'#4a8c5c', label:ici.livre };
-      cards += '<div style="display:flex;align-items:stretch;gap:0;margin-bottom:.3rem">'
-        + '<div onclick="creerOpenIciDetail(\'' + ici.id + '\')" title="Voir la fiche" style="flex:1;min-width:0;background:white;border:1px solid ' + meta.col + '22;border-left:3px solid ' + meta.col + ';border-radius:10px 0 0 10px;padding:.45rem .6rem;cursor:pointer">'
-          + '<div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem">'
-            + '<span style="font-size:.7rem;font-weight:700;color:var(--ink);line-height:1.2">' + meta.ic + ' ' + ici.nom + '</span>'
-            + '<span style="font-size:.55rem;color:' + meta.col + ';font-weight:600;white-space:nowrap">' + (ici.unite || '') + '</span>'
-          + '</div>'
-        + '</div>'
-        + '<button onclick="creerRemoveIci(\'' + ici.id + '\')" title="Retirer" style="flex-shrink:0;border:1px solid ' + meta.col + '22;border-left:none;border-radius:0 10px 10px 0;background:' + meta.col + '08;color:' + meta.col + ';cursor:pointer;font-size:.78rem;line-height:1;padding:0 .55rem;opacity:.55" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'.55\'">✕</button>'
-        + '</div>';
+      seen.add(ici.id); n++; cards += row(ici);
     });
   });
+  // Ajoutés depuis la bibliothèque à cet espace.
+  const espMap = cData.icisEspMap || {};
+  (cData.icisAjoutes || []).forEach(id => {
+    if (espMap[id] !== idx || seen.has(id) || retir.has(id)) return;
+    const ici = (typeof iciGetICI === 'function') ? iciGetICI(id) : null;
+    if (!ici) return;
+    seen.add(id); n++; cards += row(ici);
+  });
   if (!n) cards = '<div style="font-size:.62rem;color:var(--moss);opacity:.5;font-style:italic;padding:.15rem 0">Les indicateurs des solutions de cet espace apparaîtront ici.</div>';
-  return cards;
+  return cards + creerIciBiblioBlockHTML(idx);
+}
+
+// Panneau « ajouter une quête depuis la bibliothèque » d'un espace (chips +
+// recherche + tri par catégorie, comme les solutions).
+function creerQueteBiblioBlockHTML(idx){
+  const col = '#c8732a';
+  if (!window._creerQuetePanelOpen) {
+    return '<div style="margin-top:.4rem"><button onclick="creerToggleQuetePanel()" style="font-size:.66rem;color:' + col + ';background:' + col + '0d;border:1.5px dashed ' + col + '59;border-radius:10px;padding:.5rem;width:100%;cursor:pointer;font-family:inherit;font-weight:700">+ Ajouter une quête depuis la bibliothèque</button></div>';
+  }
+  const retir = new Set(cData.quetesRetirees || []);
+  const shown = new Set();
+  (cData.solutions || []).forEach(nom => { const s = (typeof SOLS !== 'undefined') ? SOLS.find(x => x.nom === nom) : null; if (s && s.quete && !retir.has('sol:' + nom)) shown.add(nom); });
+  (cData.quetesAjoutees || []).forEach(nom => { if (!retir.has('sol:' + nom)) shown.add(nom); });
+  const searchRaw = window._creerQueteSearch || '', search = searchRaw.toLowerCase().trim();
+  let dispo = (typeof SOLS !== 'undefined') ? SOLS.filter(s => s.quete && !shown.has(s.nom)) : [];
+  if (search) dispo = dispo.filter(s => ((((s.quete && s.quete.titre) || '') + ' ' + s.nom).toLowerCase().indexOf(search) >= 0));
+  const rowFor = (s) => { const safeNom = String(s.nom).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return '<div style="display:flex;align-items:center;gap:.5rem;padding:.38rem .5rem;border-radius:.6rem;background:rgba(46,102,66,.03);border:1px solid rgba(46,102,66,.08);margin-bottom:.2rem">'
+      + '<span style="font-size:.88rem;flex-shrink:0">' + (s.img || '⚡') + '</span>'
+      + '<div style="flex:1;min-width:0"><div style="font-size:.68rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + ((s.quete && s.quete.titre) || s.nom) + '</div><div style="font-size:.57rem;color:var(--moss);opacity:.65">issue de « ' + s.nom + ' »</div></div>'
+      + '<button onclick="creerOpenQueteDetail(\'' + safeNom + '\')" style="flex-shrink:0;padding:.25rem .45rem;border-radius:.45rem;border:1.5px solid rgba(46,102,66,.2);background:transparent;color:var(--forest);font-size:.6rem;cursor:pointer">👁</button>'
+      + '<button onclick="creerAddQuete(\'' + safeNom + '\')" style="flex-shrink:0;padding:.25rem .55rem;border-radius:.45rem;border:none;background:var(--forest);color:white;font-size:.6rem;font-weight:700;cursor:pointer">+ Ajouter</button>'
+    + '</div>';
+  };
+  let h = '<div style="margin-top:.5rem;padding:.55rem .6rem;background:white;border:1px solid rgba(46,102,66,.1);border-radius:10px">'
+    + '<div style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem">Bibliothèque · ajouter une quête</div>'
+    + '<input id="pq-bdd-search" type="text" value="' + searchRaw.replace(/"/g,'&quot;') + '" oninput="creerQueteSearchInput(this.value)" placeholder="🔍 Rechercher une quête…" style="width:100%;box-sizing:border-box;padding:.4rem .6rem;margin-bottom:.5rem;border:1.5px solid rgba(46,102,66,.2);border-radius:8px;font-size:.72rem;font-family:inherit;background:#f6faf7;outline:none">'
+    + '<div style="max-height:220px;overflow-y:auto">';
+  if (!dispo.length) {
+    h += '<div style="padding:.5rem;text-align:center;font-size:.66rem;color:var(--moss);opacity:.45;font-style:italic">' + (search ? 'Aucune quête ne correspond' : 'Toutes les quêtes sont déjà présentes') + '</div>';
+  } else {
+    const catMeta = (typeof CAT_META !== 'undefined') ? CAT_META : {}, catOrder = Object.keys(catMeta);
+    catOrder.forEach(cat => { const grp = dispo.filter(s => s.cat === cat); if (!grp.length) return; const cm = catMeta[cat] || {ic:'', l:cat, c:'#666'};
+      h += '<div style="font-size:.58rem;font-weight:700;color:' + cm.c + ';text-transform:uppercase;letter-spacing:.07em;margin:.5rem 0 .28rem;display:flex;align-items:center;gap:.3rem"><span>' + cm.ic + '</span><span>' + cm.l + '</span></div>';
+      grp.forEach(s => { h += rowFor(s); });
+    });
+    const rest = dispo.filter(s => catOrder.indexOf(s.cat) < 0);
+    if (rest.length) { h += '<div style="font-size:.58rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em;margin:.5rem 0 .28rem">Autres</div>'; rest.forEach(s => { h += rowFor(s); }); }
+  }
+  h += '</div><div style="margin-top:.4rem;text-align:right"><button onclick="creerToggleQuetePanel()" style="font-size:.62rem;color:var(--moss);background:none;border:none;cursor:pointer;font-family:inherit;opacity:.7">Fermer</button></div></div>';
+  return h;
+}
+
+// Panneau « ajouter un indicateur depuis la bibliothèque » d'un espace
+// (recherche + tri par capital, comme les solutions).
+function creerIciBiblioBlockHTML(idx){
+  const col = '#3a6e8c';
+  if (!window._creerIciPanelOpen) {
+    return '<div style="margin-top:.4rem"><button onclick="creerToggleIciPanel()" style="font-size:.66rem;color:' + col + ';background:' + col + '0d;border:1.5px dashed ' + col + '59;border-radius:10px;padding:.5rem;width:100%;cursor:pointer;font-family:inherit;font-weight:700">+ Ajouter un indicateur depuis la bibliothèque</button></div>';
+  }
+  if (typeof ICI_CATALOG === 'undefined') return '';
+  const retir = new Set(cData.icisRetires || []);
+  const shown = new Set();
+  (cData.solutions || []).forEach(nom => { (typeof iciPourSolution === 'function' ? (iciPourSolution(nom) || []) : []).forEach(i => { if (!retir.has(i.id)) shown.add(i.id); }); });
+  (cData.icisAjoutes || []).forEach(id => { if (!retir.has(id)) shown.add(id); });
+  const searchRaw = window._creerIciSearch || '', search = searchRaw.toLowerCase().trim();
+  let dispo = ICI_CATALOG.filter(i => !shown.has(i.id));
+  if (search) dispo = dispo.filter(i => ((i.nom + ' ' + (i.unite || '')).toLowerCase().indexOf(search) >= 0));
+  const rowFor = (ici) =>
+    '<div style="display:flex;align-items:center;gap:.5rem;padding:.38rem .5rem;border-radius:.6rem;background:rgba(46,102,66,.03);border:1px solid rgba(46,102,66,.08);margin-bottom:.2rem">'
+    + '<div style="flex:1;min-width:0"><div style="font-size:.68rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + ici.nom + '</div><div style="font-size:.57rem;color:var(--moss);opacity:.65">' + (ici.unite || '') + '</div></div>'
+    + '<button onclick="creerOpenIciDetail(\'' + ici.id + '\')" style="flex-shrink:0;padding:.25rem .45rem;border-radius:.45rem;border:1.5px solid rgba(46,102,66,.2);background:transparent;color:var(--forest);font-size:.6rem;cursor:pointer">👁</button>'
+    + '<button onclick="creerAddIci(\'' + ici.id + '\')" style="flex-shrink:0;padding:.25rem .55rem;border-radius:.45rem;border:none;background:var(--forest);color:white;font-size:.6rem;font-weight:700;cursor:pointer">+ Ajouter</button>'
+    + '</div>';
+  let h = '<div style="margin-top:.5rem;padding:.55rem .6rem;background:white;border:1px solid rgba(46,102,66,.1);border-radius:10px">'
+    + '<div style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem">Bibliothèque · ajouter un indicateur</div>'
+    + '<input id="pq-ici-search" type="text" value="' + searchRaw.replace(/"/g,'&quot;') + '" oninput="creerIciSearchInput(this.value)" placeholder="🔍 Rechercher un indicateur…" style="width:100%;box-sizing:border-box;padding:.4rem .6rem;margin-bottom:.5rem;border:1.5px solid rgba(46,102,66,.2);border-radius:8px;font-size:.72rem;font-family:inherit;background:#f6faf7;outline:none">'
+    + '<div style="max-height:220px;overflow-y:auto">';
+  if (!dispo.length) {
+    h += '<div style="padding:.5rem;text-align:center;font-size:.66rem;color:var(--moss);opacity:.45;font-style:italic">' + (search ? 'Aucun indicateur ne correspond' : 'Tous les indicateurs sont déjà présents') + '</div>';
+  } else {
+    ['ecologie','social','economie_locale'].forEach(livre => {
+      const grp = dispo.filter(i => i.livre === livre); if (!grp.length) return;
+      const meta = (typeof ICI_LIVRE_META !== 'undefined' && ICI_LIVRE_META[livre]) || { label: livre, ic:'◆', col:'#4a8c5c' };
+      h += '<div style="font-size:.58rem;font-weight:700;color:' + meta.col + ';text-transform:uppercase;letter-spacing:.07em;margin:.5rem 0 .28rem;display:flex;align-items:center;gap:.3rem"><span>' + meta.ic + '</span><span>' + meta.label + '</span></div>';
+      grp.forEach(i => { h += rowFor(i); });
+    });
+  }
+  h += '</div><div style="margin-top:.4rem;text-align:right"><button onclick="creerToggleIciPanel()" style="font-size:.62rem;color:var(--moss);background:none;border:none;cursor:pointer;font-family:inherit;opacity:.7">Fermer</button></div></div>';
+  return h;
 }
 
 // Rafraîchit uniquement la sidebar de l'étape 3 (sans redessiner le mind map).
@@ -4629,8 +4740,11 @@ function creerRefreshSidebar(){
 // Clique sur un bouton d'espace : focalise sidebar + mind map sur cet espace.
 function creerFocusEsp(idx){
   window._creerActiveEsp = idx;
+  // Referme les panneaux « ajouter depuis la bibliothèque » en changeant d'espace.
   window._activeEspacePanel = null;
-  window._creerSolSearch = '';
+  window._creerQuetePanelOpen = false;
+  window._creerIciPanelOpen = false;
+  window._creerSolSearch = ''; window._creerQueteSearch = ''; window._creerIciSearch = '';
   creerRefreshSidebar();
   creerApplyMapFocus();
 }
@@ -4758,17 +4872,20 @@ function creerStep3IndicateursHTML(){
   return html;
 }
 
-/* Ajout / retrait d'indicateurs (curation de l'onglet Indicateurs du wizard). */
+/* Ajout / retrait d'indicateurs. L'ajout rattache l'ICI à l'espace actif. */
 function creerAddIci(id){
   cData.icisAjoutes = cData.icisAjoutes || [];
   if (!cData.icisAjoutes.includes(id)) cData.icisAjoutes.push(id);
   cData.icisRetires = (cData.icisRetires || []).filter(x => x !== id);
+  cData.icisEspMap = cData.icisEspMap || {};
+  cData.icisEspMap[id] = (window._creerActiveEsp != null) ? window._creerActiveEsp : 0;
   creerStep3RefreshIndicateurs();
 }
 function creerRemoveIci(id){
   cData.icisRetires = cData.icisRetires || [];
   if (!cData.icisRetires.includes(id)) cData.icisRetires.push(id);
   cData.icisAjoutes = (cData.icisAjoutes || []).filter(x => x !== id);
+  if (cData.icisEspMap) delete cData.icisEspMap[id];
   creerStep3RefreshIndicateurs();
 }
 function creerToggleIciPanel(){
@@ -4944,6 +5061,8 @@ function creerAddQuete(solNom){
   cData.quetesAjoutees = cData.quetesAjoutees || [];
   if (!cData.quetesAjoutees.includes(solNom)) cData.quetesAjoutees.push(solNom);
   cData.quetesRetirees = (cData.quetesRetirees || []).filter(k => k !== 'sol:' + solNom);
+  cData.quetesEspMap = cData.quetesEspMap || {};
+  cData.quetesEspMap[solNom] = (window._creerActiveEsp != null) ? window._creerActiveEsp : 0;
   creerStep3RefreshQuetes();
 }
 function creerRemoveQuete(key){
@@ -4954,7 +5073,9 @@ function creerRemoveQuete(key){
   } else {
     cData.quetesRetirees = cData.quetesRetirees || [];
     if (!cData.quetesRetirees.includes(key)) cData.quetesRetirees.push(key);
-    cData.quetesAjoutees = (cData.quetesAjoutees || []).filter(n => 'sol:' + n !== key);
+    const nom = key.slice(4);
+    cData.quetesAjoutees = (cData.quetesAjoutees || []).filter(n => n !== nom);
+    if (cData.quetesEspMap) delete cData.quetesEspMap[nom];
   }
   creerStep3RefreshQuetes();
 }
@@ -5839,6 +5960,39 @@ function mmRevealEsp(idx){
       mmAdd('ici-' + base + '-' + k, '📊 ' + label, ix, iy, 'ici', '#3a6e8c', 'rgba(58,110,140,.1)');
     });
   });
+  // Quêtes / indicateurs ajoutés depuis la bibliothèque : rattachés au nœud
+  // espace (leur solution d'origine n'est pas dans l'espace).
+  const eEl = document.getElementById('mn-e-' + idx);
+  if (eEl) {
+    const ex = parseFloat(eEl.style.left), ey = parseFloat(eEl.style.top);
+    if (!isNaN(ex) && !isNaN(ey)) {
+      let edx = ex - cx, edy = ey - cy; const edl = Math.hypot(edx, edy) || 1; edx /= edl; edy /= edl;
+      const baseAng = Math.atan2(edy, edx);
+      const qEsp = cData.quetesEspMap || {};
+      const addedQ = (cData.quetesAjoutees || []).filter(nom => qEsp[nom] === idx && !retirQ.has('sol:' + nom));
+      addedQ.forEach((nom, k) => {
+        const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === nom) : null;
+        if (!sol || !sol.quete) return;
+        const ang = baseAng + (k - (addedQ.length - 1) / 2) * 0.4;
+        const qx = ex + Math.cos(ang) * 128, qy = ey + Math.sin(ang) * 128;
+        const p = mmLine(ex, ey, qx, qy, '#c8732a', '3,5', 'mn-e-' + idx, 'mn-q-' + idx + '-add' + k);
+        if (p) p.setAttribute('data-reveal', '1');
+        mmAdd('q-' + idx + '-add' + k, '⚡ ' + (sol.quete.titre || 'Quête'), qx, qy, 'quete', '#c8732a', 'rgba(200,115,42,.14)');
+      });
+      const iEsp = cData.icisEspMap || {};
+      const addedI = (cData.icisAjoutes || []).filter(id => iEsp[id] === idx && !retirI.has(id));
+      addedI.forEach((id, k) => {
+        const ici = (typeof iciGetICI === 'function') ? iciGetICI(id) : null;
+        if (!ici) return;
+        const ang = baseAng + (k - (addedI.length - 1) / 2) * 0.4 + 0.28;
+        const ix = ex + Math.cos(ang) * 104, iy = ey + Math.sin(ang) * 104;
+        const p = mmLine(ex, ey, ix, iy, '#3a6e8c', '2,5', 'mn-e-' + idx, 'mn-ici-' + idx + '-add' + k);
+        if (p) p.setAttribute('data-reveal', '1');
+        const label = ici.nom.length > 15 ? ici.nom.slice(0, 14) + '…' : ici.nom;
+        mmAdd('ici-' + idx + '-add' + k, '📊 ' + label, ix, iy, 'ici', '#3a6e8c', 'rgba(58,110,140,.1)');
+      });
+    }
+  }
 }
 
 // Rafraîchit uniquement la révélation quête/ICI (après retrait d'un élément).
