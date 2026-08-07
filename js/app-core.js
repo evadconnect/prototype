@@ -4789,8 +4789,13 @@ function _capSousTitre(livre){
   const m = _capMeta(livre);
   return '<div style="display:flex;align-items:center;gap:.32rem;margin:.55rem 0 .32rem"><span style="font-size:.72rem">' + m.ic + '</span><span style="font-size:.55rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:' + m.col + '">' + m.label + '</span></div>';
 }
-// Capital d'une solution = celui de la majorité des indicateurs qu'elle porte.
+// Capital d'une solution. Les catégories purement environnementales forcent
+// l'écologie (une mare reste écologique même si ses chantiers mobilisent des
+// bénévoles) ; sinon, capital majoritaire des indicateurs portés.
+const _CATS_ECOLOGIE = ['eau', 'electricite', 'biodiversite', 'adaptation'];
 function _solCapital(nom){
+  const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === nom) : null;
+  if (sol && _CATS_ECOLOGIE.includes(sol.cat)) return 'ecologie';
   const icis = (typeof iciPourSolution === 'function') ? (iciPourSolution(nom) || []) : [];
   const c = { ecologie: 0, social: 0, economie_locale: 0 };
   icis.forEach(i => { if (c[i.livre] != null) c[i.livre]++; });
