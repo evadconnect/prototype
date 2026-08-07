@@ -129,21 +129,26 @@ function openPiloteQueteFiche(qid) {
   const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === pq.source) : null;
   const lieuNom = (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom) ? myLieuData.nom : 'Mon lieu';
   const ville = (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.localisation) ? myLieuData.localisation : 'Bordeaux';
-  const _semPlan = ((sol && typeof SOLS_INDICATORS !== 'undefined' && SOLS_INDICATORS[sol.nom]) ? SOLS_INDICATORS[sol.nom].plan : null) || [];
+  const _solPlan = ((sol && typeof SOLS_INDICATORS !== 'undefined' && SOLS_INDICATORS[sol.nom]) ? SOLS_INDICATORS[sol.nom].plan : null) || [];
+  const _solMat = ((sol && typeof SOLS_INDICATORS !== 'undefined' && SOLS_INDICATORS[sol.nom]) ? SOLS_INDICATORS[sol.nom].materiel : null) || [];
+  // Quêtes sur mesure : on utilise les champs saisis par le Pilote ; sinon on
+  // dérive de la solution d'origine.
+  const _plan = (Array.isArray(pq.plan) && pq.plan.length) ? pq.plan : _solPlan;
+  const _mat  = (Array.isArray(pq.materiel) && pq.materiel.length) ? pq.materiel : _solMat;
   showQueteFiche({
     titre: pq.titre,
     type: (pq.sourceIc || (sol && sol.img) || '⚡') + ' ' + ((sol && sol.cat) || 'Quête'),
     lieu: lieuNom, pilote: lieuNom, ville: ville,
     desc: pq.desc || (sol && sol.desc) || pq.titre,
     impact: pq.impact || (sol && sol.impact) || '',
-    plan: _semPlan,
-    materiel: ((sol && typeof SOLS_INDICATORS !== 'undefined' && SOLS_INDICATORS[sol.nom]) ? SOLS_INDICATORS[sol.nom].materiel : null) || [],
-    preuve: 'Photos de l\'action réalisée + indicateurs mesurés.',
-    apprendre: 'Mise en œuvre de « ' + ((sol && sol.nom) || pq.titre) + ' ».',
+    plan: _plan,
+    materiel: _mat,
+    preuve: pq.preuve || 'Photos de l\'action réalisée + indicateurs mesurés.',
+    apprendre: pq.competence ? ('Compétence : ' + pq.competence) : ('Mise en œuvre de « ' + ((sol && sol.nom) || pq.titre) + ' ».'),
     duree: pq.duree || '1 journée',
     places: '0/' + (parseInt(pq.nb, 10) || 6),
-    etape_actuelle: 1, etapes: _semPlan.length || 4,
-    etapeLabels: _semPlan.length ? _semPlan.map(p => p.titre) : ['Lancement', 'Préparation', 'Réalisation', 'Certification'],
+    etape_actuelle: 1, etapes: _plan.length || 4,
+    etapeLabels: _plan.length ? _plan.map(p => p.titre) : ['Lancement', 'Préparation', 'Réalisation', 'Certification'],
     tokens: pq.graines || 50, co2: (sol && sol.co2) || 0,
     esrs: ((sol && sol.esrs) || []).map(e => String(e).replace('ESRS ', '').trim()),
     financement: { objectif: 0, montant: 0, semeur: null },
@@ -237,7 +242,12 @@ function syncPiloteQuetesFromLieu() {
       desc: r.desc || (r.donnees && r.donnees.desc) || null,
       // Date choisie au calendrier + heure (persistées dans donnees).
       dateISO: r.dateISO || (r.donnees && r.donnees.dateISO) || null,
-      heure: r.heure || (r.donnees && r.donnees.heure) || null
+      heure: r.heure || (r.donnees && r.donnees.heure) || null,
+      // Champs saisis à la création manuelle (quêtes sur mesure).
+      competence: r.competence || (r.donnees && r.donnees.competence) || null,
+      materiel: r.materiel || (r.donnees && r.donnees.materiel) || null,
+      plan: r.plan || (r.donnees && r.donnees.plan) || null,
+      preuve: r.preuve || (r.donnees && r.donnees.preuve) || null
     });
   });
 }
@@ -262,6 +272,8 @@ function piloteQueteCreerEnsureDom() {
   +   '</div>'
   +   '<label style="' + labelStyle + '" for="pq-create-titre">Titre de la quête *</label>'
   +   '<input id="pq-create-titre" style="' + inputStyle + '" placeholder="Ex : Planter la haie champêtre du verger">'
+  +   '<label style="' + labelStyle + '" for="pq-create-desc">📝 Description</label>'
+  +   '<textarea id="pq-create-desc" rows="2" style="' + inputStyle + ';resize:vertical" placeholder="L\'action concrète à réaliser sur le lieu…"></textarea>'
   +   '<div style="display:flex;gap:.6rem">'
   +     '<div style="flex:1"><label style="' + labelStyle + '" for="pq-create-duree">Durée</label>'
   +     '<input id="pq-create-duree" style="' + inputStyle + '" placeholder="Ex : 1 journée"></div>'
@@ -269,11 +281,23 @@ function piloteQueteCreerEnsureDom() {
   +     '<input id="pq-create-nb" style="' + inputStyle + '" placeholder="Ex : 2–4 pers."></div>'
   +   '</div>'
   +   '<div style="display:flex;gap:.6rem">'
-  +     '<div style="flex:1"><label style="' + labelStyle + '" for="pq-create-graines">Graines offertes</label>'
+  +     '<div style="flex:1"><label style="' + labelStyle + '" for="pq-create-graines">🌱 Graines gagnées</label>'
   +     '<input id="pq-create-graines" type="number" min="0" style="' + inputStyle + '" placeholder="50"></div>'
-  +     '<div style="flex:2"><label style="' + labelStyle + '" for="pq-create-impact">Impact visé (facultatif)</label>'
-  +     '<input id="pq-create-impact" style="' + inputStyle + '" placeholder="Ex : +8 pts eau · 200 m de haie"></div>'
+  +     '<div style="flex:1"><label style="' + labelStyle + '" for="pq-create-date">📅 Date de rencontre</label>'
+  +     '<input id="pq-create-date" type="date" style="' + inputStyle + '"></div>'
   +   '</div>'
+  +   '<label style="' + labelStyle + '" for="pq-create-competence">🎯 Compétence nécessaire</label>'
+  +   '<select id="pq-create-competence" style="' + inputStyle + '">'
+  +     ['— Aucune en particulier —','💧 Gestion de l\'eau','⚡ Énergie','🧱 Éco-construction','🌾 Maraîchage & permaculture','♻️ Réemploi & compostage','🌿 Biodiversité','🤝 Animation & facilitation','🌡 Adaptation climatique','🔧 Autre / polyvalent'].map(function(o){return '<option>'+o+'</option>';}).join('')
+  +   '</select>'
+  +   '<label style="' + labelStyle + '" for="pq-create-impact">🌿 Impact visé (facultatif)</label>'
+  +   '<input id="pq-create-impact" style="' + inputStyle + '" placeholder="Ex : +8 pts eau · 200 m de haie">'
+  +   '<label style="' + labelStyle + '" for="pq-create-materiel">🧰 Matériel nécessaire <span style="font-weight:400;opacity:.7">(un par ligne)</span></label>'
+  +   '<textarea id="pq-create-materiel" rows="3" style="' + inputStyle + ';resize:vertical" placeholder="Bêche\nPlants d\'arbustes locaux\nPaillage"></textarea>'
+  +   '<label style="' + labelStyle + '" for="pq-create-etapes">🪜 Étapes <span style="font-weight:400;opacity:.7">(une par ligne)</span></label>'
+  +   '<textarea id="pq-create-etapes" rows="3" style="' + inputStyle + ';resize:vertical" placeholder="Préparer le terrain\nPlanter\nPailler et arroser"></textarea>'
+  +   '<label style="' + labelStyle + '" for="pq-create-preuve">✅ Preuve pour valider la quête</label>'
+  +   '<textarea id="pq-create-preuve" rows="2" style="' + inputStyle + ';resize:vertical" placeholder="Ex : photos avant/après + nombre de plants installés">Photos de l\'action réalisée + indicateurs mesurés.</textarea>'
   +   '<div id="pq-create-hint" style="font-size:.7rem;color:var(--terracotta);margin-top:.45rem;min-height:1rem"></div>'
   +   '<div style="display:flex;align-items:center;justify-content:flex-end;gap:.6rem;margin-top:.4rem">'
   +     '<button onclick="piloteQueteCreerFermer()" style="background:none;border:none;color:var(--moss);font-size:.8rem;font-weight:600;cursor:pointer;padding:.5rem .6rem;font-family:inherit">Annuler</button>'
@@ -285,9 +309,11 @@ function piloteQueteCreerEnsureDom() {
 
 function piloteQueteCreerOuvrir() {
   piloteQueteCreerEnsureDom();
-  ['pq-create-titre', 'pq-create-duree', 'pq-create-nb', 'pq-create-graines', 'pq-create-impact'].forEach(id => {
+  ['pq-create-titre', 'pq-create-desc', 'pq-create-duree', 'pq-create-nb', 'pq-create-graines', 'pq-create-date', 'pq-create-impact', 'pq-create-materiel', 'pq-create-etapes'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
+  const cmp = document.getElementById('pq-create-competence'); if (cmp) cmp.selectedIndex = 0;
+  const prv = document.getElementById('pq-create-preuve'); if (prv) prv.value = 'Photos de l\'action réalisée + indicateurs mesurés.';
   const hint = document.getElementById('pq-create-hint'); if (hint) hint.textContent = '';
   document.getElementById('pq-create-modal').style.display = 'block';
   setTimeout(() => { const t = document.getElementById('pq-create-titre'); if (t) t.focus(); }, 60);
@@ -307,14 +333,23 @@ function piloteQueteCreerSave() {
     const t = document.getElementById('pq-create-titre'); if (t) t.focus();
     return;
   }
+  const lignes = (id) => val(id).split('\n').map(l => l.trim()).filter(Boolean);
+  const cmpEl = document.getElementById('pq-create-competence');
+  const competence = (cmpEl && cmpEl.selectedIndex > 0) ? cmpEl.value : '';
   const q = {
     id: 'q-' + (window.store ? store.uuid() : Date.now().toString(36)),
     titre: titre,
     statut: 'a_verifier',
+    desc: val('pq-create-desc'),
     duree: val('pq-create-duree') || '-',
     nb: val('pq-create-nb') || '-',
     graines: parseInt(val('pq-create-graines'), 10) || 50,
+    dateISO: val('pq-create-date') || null,
+    competence: competence,
     impact: val('pq-create-impact'),
+    materiel: lignes('pq-create-materiel'),
+    plan: lignes('pq-create-etapes').map(t => ({ ic: '🪜', titre: t, desc: '' })),
+    preuve: val('pq-create-preuve') || 'Photos de l\'action réalisée + indicateurs mesurés.',
     source: null, sourceIc: '⚡', custom: true
   };
   PILOTE_QUETES_DEMO.push(q);
