@@ -4665,11 +4665,11 @@ function creerStep3QuetesHTML(){
   if (!total) {
     return html + '<div style="padding:1rem;text-align:center;font-size:.7rem;color:var(--moss);opacity:.55;border:1px dashed rgba(46,102,66,.2);border-radius:var(--r);margin-bottom:.5rem">Aucune quête pour l\'instant — ajoute des solutions qui en portent, ajoute-en depuis la bibliothèque, ou crée-en une sur mesure.</div>' + bddPanel + btnNouvelle;
   }
-  quetes.forEach(function(item){
-    const sol = item.sol, q = item.q;
+  // Carte d'une quête portée par une solution (avec bouton retirer).
+  const queteCard = function(sol, q){
     const ic = sol.img || '⚡';
     const safeNom = String(sol.nom).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    html += '<div style="display:flex;align-items:stretch;gap:0;margin-bottom:.4rem">'
+    return '<div style="display:flex;align-items:stretch;gap:0;margin-bottom:.4rem">'
       + '<div onclick="creerOpenQueteDetail(\''+safeNom+'\')" title="Voir la fiche quête" style="flex:1;min-width:0;background:white;border:1px solid rgba(46,102,66,.14);border-left:3px solid var(--amber);border-radius:var(--r) 0 0 var(--r);padding:.55rem .7rem;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow=\'0 2px 10px rgba(46,102,66,.12)\'" onmouseout="this.style.boxShadow=\'none\'">'
         + '<div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.3rem">'
           + '<span style="font-size:.9rem">'+ic+'</span>'
@@ -4684,25 +4684,61 @@ function creerStep3QuetesHTML(){
       + '</div>'
       + '<button onclick="creerRemoveQuete(\'sol:'+safeNom+'\')" title="Retirer cette quête" style="flex-shrink:0;border:1px solid rgba(46,102,66,.14);border-left:none;border-radius:0 var(--r) var(--r) 0;background:rgba(200,115,42,.05);color:var(--amber);cursor:pointer;font-size:.8rem;line-height:1;padding:0 .6rem;opacity:.55;transition:opacity .15s" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'.55\'">✕</button>'
     + '</div>';
-  });
-  customs.forEach(function(q){
-    html += '<div style="display:flex;align-items:stretch;gap:0;margin-bottom:.4rem">'
-      + '<div style="flex:1;min-width:0;background:white;border:1px solid rgba(46,102,66,.14);border-left:3px solid var(--forest);border-radius:var(--r) 0 0 var(--r);padding:.55rem .7rem">'
-        + '<div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.3rem">'
-          + '<span style="font-size:.9rem">'+(q.sourceIc||'⚡')+'</span>'
-          + '<span style="font-size:.74rem;font-weight:700;color:var(--ink);line-height:1.2;flex:1">'+(q.titre||'Quête')+'</span>'
-        + '</div>'
-        + '<div style="display:flex;flex-wrap:wrap;gap:.5rem;font-size:.62rem;color:var(--moss);opacity:.85">'
-          + (q.duree && q.duree!=='-' ? '<span>⏱ '+q.duree+'</span>' : '')
-          + (q.nb && q.nb!=='-' ? '<span>👥 '+q.nb+'</span>' : '')
-          + '<span style="color:var(--amber);font-weight:700">🌱 '+(q.graines||50)+'</span>'
-          + (q.impact ? '<span style="color:var(--fern);font-weight:600">🌿 '+q.impact+'</span>' : '')
-        + '</div>'
-        + '<div style="font-size:.56rem;color:var(--forest);opacity:.65;margin-top:.3rem;font-weight:600">✦ créée sur mesure</div>'
-      + '</div>'
-      + '<button onclick="creerRemoveQuete(\'cst:'+q.id+'\')" title="Retirer cette quête" style="flex-shrink:0;border:1px solid rgba(46,102,66,.14);border-left:none;border-radius:0 var(--r) var(--r) 0;background:rgba(46,102,66,.04);color:var(--forest);cursor:pointer;font-size:.8rem;line-height:1;padding:0 .6rem;opacity:.55;transition:opacity .15s" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'.55\'">✕</button>'
+  };
+  // En-tête d'un groupe (espace, ajoutées, sur mesure).
+  const grpHeader = function(ic, nom, n){
+    return '<div style="display:flex;align-items:center;gap:.4rem;margin:.7rem 0 .45rem">'
+      + '<span style="font-size:.85rem">'+ic+'</span>'
+      + '<span style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--forest)">'+nom+'</span>'
+      + '<span style="margin-left:auto;font-size:.58rem;font-weight:700;color:var(--forest);background:rgba(1,130,98,.1);padding:.05rem .45rem;border-radius:100px">'+n+'</span>'
     + '</div>';
+  };
+
+  // Rattacher chaque quête-solution à son espace (comme pour les solutions).
+  const bySol = {};
+  quetes.forEach(item => { bySol[item.sol.nom] = item; });
+  const espItems = window._creerEspItems || [];
+  const sbe = cData.solsByEspace || {};
+  const espIdxList = espItems.length ? espItems.map((_, i) => i) : Object.keys(sbe).map(k => parseInt(k, 10));
+
+  const shownSols = new Set();
+  espIdxList.forEach(function(idx){
+    const it = espItems[idx] || {};
+    const names = (sbe[idx] || []).filter(nom => bySol[nom] && !shownSols.has(nom));
+    if (!names.length) return;
+    html += grpHeader(it.ic || '📦', (it.esp && it.esp.nom) || ('Espace ' + (idx + 1)), names.length);
+    names.forEach(nom => { shownSols.add(nom); html += queteCard(bySol[nom].sol, bySol[nom].q); });
   });
+
+  // Quêtes ajoutées depuis la bibliothèque (solution non rattachée à un espace).
+  const orphan = quetes.filter(item => !shownSols.has(item.sol.nom));
+  if (orphan.length) {
+    html += grpHeader('✦', 'Ajoutées', orphan.length);
+    orphan.forEach(item => { html += queteCard(item.sol, item.q); });
+  }
+
+  // Quêtes créées sur mesure.
+  if (customs.length) {
+    html += grpHeader('✦', 'Sur mesure', customs.length);
+    customs.forEach(function(q){
+      html += '<div style="display:flex;align-items:stretch;gap:0;margin-bottom:.4rem">'
+        + '<div style="flex:1;min-width:0;background:white;border:1px solid rgba(46,102,66,.14);border-left:3px solid var(--forest);border-radius:var(--r) 0 0 var(--r);padding:.55rem .7rem">'
+          + '<div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.3rem">'
+            + '<span style="font-size:.9rem">'+(q.sourceIc||'⚡')+'</span>'
+            + '<span style="font-size:.74rem;font-weight:700;color:var(--ink);line-height:1.2;flex:1">'+(q.titre||'Quête')+'</span>'
+          + '</div>'
+          + '<div style="display:flex;flex-wrap:wrap;gap:.5rem;font-size:.62rem;color:var(--moss);opacity:.85">'
+            + (q.duree && q.duree!=='-' ? '<span>⏱ '+q.duree+'</span>' : '')
+            + (q.nb && q.nb!=='-' ? '<span>👥 '+q.nb+'</span>' : '')
+            + '<span style="color:var(--amber);font-weight:700">🌱 '+(q.graines||50)+'</span>'
+            + (q.impact ? '<span style="color:var(--fern);font-weight:600">🌿 '+q.impact+'</span>' : '')
+          + '</div>'
+          + '<div style="font-size:.56rem;color:var(--forest);opacity:.65;margin-top:.3rem;font-weight:600">✦ créée sur mesure</div>'
+        + '</div>'
+        + '<button onclick="creerRemoveQuete(\'cst:'+q.id+'\')" title="Retirer cette quête" style="flex-shrink:0;border:1px solid rgba(46,102,66,.14);border-left:none;border-radius:0 var(--r) var(--r) 0;background:rgba(46,102,66,.04);color:var(--forest);cursor:pointer;font-size:.8rem;line-height:1;padding:0 .6rem;opacity:.55;transition:opacity .15s" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'.55\'">✕</button>'
+      + '</div>';
+    });
+  }
   return html + bddPanel + btnNouvelle;
 }
 
