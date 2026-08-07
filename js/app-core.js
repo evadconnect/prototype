@@ -4550,14 +4550,18 @@ function creerStep3IndicateursHTML(){
   } else {
     html += '<div style="padding:1rem;text-align:center;font-size:.7rem;color:var(--moss);opacity:.55;border:1px dashed rgba(46,102,66,.2);border-radius:var(--r);margin-bottom:.5rem">Aucun indicateur — ajoute des solutions qui en portent, ou ajoute-en depuis la bibliothèque.</div>';
   }
-  // Panneau « ajouter depuis la bibliothèque »
+  // Panneau « ajouter depuis la bibliothèque » (groupé par capital + recherche)
   const shown = new Set(effIds);
-  const dispo = ICI_CATALOG.filter(i => !shown.has(i.id));
+  const iSearchRaw = window._creerIciSearch || '';
+  const iSearch = iSearchRaw.toLowerCase().trim();
+  let dispo = ICI_CATALOG.filter(i => !shown.has(i.id));
+  if (iSearch) dispo = dispo.filter(i => ((i.nom + ' ' + (i.unite || '')).toLowerCase().indexOf(iSearch) >= 0));
   if (window._creerIciPanelOpen) {
     html += '<div style="margin-top:.5rem;padding:.6rem .7rem;background:rgba(46,102,66,.03);border:1px solid rgba(46,102,66,.12);border-radius:var(--r)">'
-      + '<div style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.45rem">Bibliothèque · ajouter un indicateur</div>';
+      + '<div style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.45rem">Bibliothèque · ajouter un indicateur</div>'
+      + '<input id="pq-ici-search" type="text" value="'+iSearchRaw.replace(/"/g,'&quot;')+'" oninput="creerIciSearchInput(this.value)" placeholder="🔍 Rechercher un indicateur…" style="width:100%;box-sizing:border-box;padding:.4rem .6rem;margin-bottom:.5rem;border:1.5px solid rgba(46,102,66,.2);border-radius:8px;font-size:.72rem;font-family:inherit;background:#f6faf7;outline:none">';
     if (!dispo.length) {
-      html += '<div style="padding:.5rem;text-align:center;font-size:.66rem;color:var(--moss);opacity:.45;font-style:italic">Tous les indicateurs sont déjà présents</div>';
+      html += '<div style="padding:.5rem;text-align:center;font-size:.66rem;color:var(--moss);opacity:.45;font-style:italic">'+(iSearch?'Aucun indicateur ne correspond à ta recherche':'Tous les indicateurs sont déjà présents')+'</div>';
     } else {
       const order2 = ['ecologie','social','economie_locale'];
       order2.forEach(livre => {
@@ -4600,7 +4604,13 @@ function creerRemoveIci(id){
 }
 function creerToggleIciPanel(){
   window._creerIciPanelOpen = !window._creerIciPanelOpen;
+  window._creerIciSearch = '';
   creerStep3RefreshIndicateurs();
+}
+function creerIciSearchInput(v){
+  window._creerIciSearch = v;
+  creerStep3RefreshIndicateurs();
+  _creerRefocusSearch('pq-ici-search');
 }
 function creerStep3RefreshIndicateurs(){
   if (typeof creerStep3IndicateursHTML !== 'function') return;
@@ -4627,28 +4637,47 @@ function creerStep3QuetesHTML(){
   const btnNouvelle = '<button onclick="creerQueteNouvelle()" style="width:100%;margin-top:.4rem;padding:.6rem;border:1.5px dashed rgba(1,130,98,.4);border-radius:var(--r);background:rgba(1,130,98,.05);color:var(--forest);font-family:inherit;font-size:.74rem;font-weight:700;cursor:pointer">＋ Créer une nouvelle quête</button>';
 
   // Panneau « ajouter une quête depuis la bibliothèque » : solutions de la BDD
-  // qui portent une quête et qui ne sont pas déjà affichées.
+  // qui portent une quête et qui ne sont pas déjà affichées, triées par
+  // catégorie (comme les solutions) et filtrables par une barre de recherche.
   const shown = new Set(queteSols);
-  const dispo = (typeof SOLS !== 'undefined') ? SOLS.filter(s => s.quete && !shown.has(s.nom)) : [];
+  const qSearchRaw = window._creerQueteSearch || '';
+  const qSearch = qSearchRaw.toLowerCase().trim();
+  let dispo = (typeof SOLS !== 'undefined') ? SOLS.filter(s => s.quete && !shown.has(s.nom)) : [];
+  if (qSearch) dispo = dispo.filter(s => ((((s.quete && s.quete.titre) || '') + ' ' + s.nom).toLowerCase().indexOf(qSearch) >= 0));
+  const queteBddRow = function(s){
+    const safeNom = String(s.nom).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return '<div style="display:flex;align-items:center;gap:.5rem;padding:.38rem .5rem;border-radius:.6rem;background:white;border:1px solid rgba(46,102,66,.08);margin-bottom:.2rem">'
+      + '<span style="font-size:.88rem;flex-shrink:0">'+(s.img||'⚡')+'</span>'
+      + '<div style="flex:1;min-width:0">'
+        + '<div style="font-size:.68rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+((s.quete&&s.quete.titre)||s.nom)+'</div>'
+        + '<div style="font-size:.57rem;color:var(--moss);opacity:.65">issue de « '+s.nom+' »</div>'
+      + '</div>'
+      + '<button onclick="creerOpenQueteDetail(\''+safeNom+'\')" style="flex-shrink:0;padding:.25rem .45rem;border-radius:.45rem;border:1.5px solid rgba(46,102,66,.2);background:transparent;color:var(--forest);font-size:.6rem;cursor:pointer">👁</button>'
+      + '<button onclick="creerAddQuete(\''+safeNom+'\')" style="flex-shrink:0;padding:.25rem .55rem;border-radius:.45rem;border:none;background:var(--forest);color:white;font-size:.6rem;font-weight:700;cursor:pointer">+ Ajouter</button>'
+    + '</div>';
+  };
   let bddPanel = '';
   if (window._creerQuetePanelOpen) {
     bddPanel = '<div style="margin-top:.5rem;padding:.6rem .7rem;background:rgba(46,102,66,.03);border:1px solid rgba(46,102,66,.12);border-radius:var(--r)">'
-      + '<div style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.45rem">Bibliothèque · ajouter une quête</div>';
+      + '<div style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.45rem">Bibliothèque · ajouter une quête</div>'
+      + '<input id="pq-bdd-search" type="text" value="'+qSearchRaw.replace(/"/g,'&quot;')+'" oninput="creerQueteSearchInput(this.value)" placeholder="🔍 Rechercher une quête…" style="width:100%;box-sizing:border-box;padding:.4rem .6rem;margin-bottom:.5rem;border:1.5px solid rgba(46,102,66,.2);border-radius:8px;font-size:.72rem;font-family:inherit;background:#f6faf7;outline:none">';
     if (!dispo.length) {
-      bddPanel += '<div style="padding:.5rem;text-align:center;font-size:.66rem;color:var(--moss);opacity:.45;font-style:italic">Toutes les quêtes de la bibliothèque sont déjà présentes</div>';
+      bddPanel += '<div style="padding:.5rem;text-align:center;font-size:.66rem;color:var(--moss);opacity:.45;font-style:italic">'+(qSearch?'Aucune quête ne correspond à ta recherche':'Toutes les quêtes de la bibliothèque sont déjà présentes')+'</div>';
     } else {
-      dispo.forEach(s => {
-        const safeNom = String(s.nom).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-        bddPanel += '<div style="display:flex;align-items:center;gap:.5rem;padding:.38rem .5rem;border-radius:.6rem;background:white;border:1px solid rgba(46,102,66,.08);margin-bottom:.2rem">'
-          + '<span style="font-size:.88rem;flex-shrink:0">'+(s.img||'⚡')+'</span>'
-          + '<div style="flex:1;min-width:0">'
-            + '<div style="font-size:.68rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+((s.quete&&s.quete.titre)||s.nom)+'</div>'
-            + '<div style="font-size:.57rem;color:var(--moss);opacity:.65">issue de « '+s.nom+' »</div>'
-          + '</div>'
-          + '<button onclick="creerOpenQueteDetail(\''+safeNom+'\')" style="flex-shrink:0;padding:.25rem .45rem;border-radius:.45rem;border:1.5px solid rgba(46,102,66,.2);background:transparent;color:var(--forest);font-size:.6rem;cursor:pointer">👁</button>'
-          + '<button onclick="creerAddQuete(\''+safeNom+'\')" style="flex-shrink:0;padding:.25rem .55rem;border-radius:.45rem;border:none;background:var(--forest);color:white;font-size:.6rem;font-weight:700;cursor:pointer">+ Ajouter</button>'
-        + '</div>';
+      const catMeta = (typeof CAT_META !== 'undefined') ? CAT_META : {};
+      const catOrder = Object.keys(catMeta);
+      catOrder.forEach(cat => {
+        const grp = dispo.filter(s => s.cat === cat);
+        if (!grp.length) return;
+        const cm = catMeta[cat] || {ic:'', l:cat, c:'#666'};
+        bddPanel += '<div style="font-size:.58rem;font-weight:700;color:'+cm.c+';text-transform:uppercase;letter-spacing:.07em;margin:.5rem 0 .28rem;display:flex;align-items:center;gap:.3rem"><span>'+cm.ic+'</span><span>'+cm.l+'</span></div>';
+        grp.forEach(s => { bddPanel += queteBddRow(s); });
       });
+      const rest = dispo.filter(s => catOrder.indexOf(s.cat) < 0);
+      if (rest.length) {
+        bddPanel += '<div style="font-size:.58rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em;margin:.5rem 0 .28rem">Autres</div>';
+        rest.forEach(s => { bddPanel += queteBddRow(s); });
+      }
     }
     bddPanel += '<div style="margin-top:.5rem;text-align:right"><button onclick="creerToggleQuetePanel()" style="font-size:.62rem;color:var(--moss);background:none;border:none;cursor:pointer;font-family:inherit;opacity:.7">Fermer</button></div>'
       + '</div>';
@@ -4763,7 +4792,19 @@ function creerRemoveQuete(key){
 }
 function creerToggleQuetePanel(){
   window._creerQuetePanelOpen = !window._creerQuetePanelOpen;
+  window._creerQueteSearch = '';   // repartir d'une recherche vierge à chaque ouverture
   creerStep3RefreshQuetes();
+}
+function creerQueteSearchInput(v){
+  window._creerQueteSearch = v;
+  creerStep3RefreshQuetes();
+  _creerRefocusSearch('pq-bdd-search');
+}
+// Rend le focus (et place le curseur en fin) à une barre de recherche après un
+// re-render du panneau, pour ne pas couper la saisie de l'utilisateur.
+function _creerRefocusSearch(id){
+  const el = document.getElementById(id);
+  if (el) { el.focus(); const n = el.value.length; try { el.setSelectionRange(n, n); } catch(e){} }
 }
 
 // Bouton « Créer une nouvelle quête » de l'étape 3 : ouvre la fiche quête
@@ -4811,7 +4852,13 @@ function creerSolSearch(q){
 
 function creerToggleEspacePanel(idx){
   window._activeEspacePanel = window._activeEspacePanel === idx ? null : idx;
+  window._creerSolSearch = '';   // recherche vierge à chaque ouverture de panneau
   renderStep();
+}
+function creerSolSearchInput(v){
+  window._creerSolSearch = v;
+  creerSolRefresh();
+  _creerRefocusSearch('creer-sol-search');
 }
 
 function creerAddSol(espIdx, solNom){
@@ -4876,18 +4923,24 @@ function creerBddPanelHTML(espIdx){
   const assigned = (cData.solsByEspace && cData.solsByEspace[espIdx]) || [];
   const eid = (window._creerEspItems && window._creerEspItems[espIdx]?.eid) || 'cafe';
   const relevantCats = EID_CATS[eid] || Object.keys(CAT_META);
+  const sSearchRaw = window._creerSolSearch || '';
+  const sSearch = sSearchRaw.toLowerCase().trim();
 
-  // Uniquement les solutions dans les catégories pertinentes pour cet espace
-  const available = SOLS.filter(s =>
-    !assigned.includes(s.nom) && relevantCats.includes(s.cat)
-  );
+  // Sans recherche : solutions des catégories pertinentes pour cet espace.
+  // Avec recherche : toutes les solutions non déjà ajoutées (pour en trouver
+  // au-delà des catégories de l'espace).
+  let available = SOLS.filter(s => !assigned.includes(s.nom) && (sSearch ? true : relevantCats.includes(s.cat)));
+  if (sSearch) available = available.filter(s => ((s.nom + ' ' + (s.impact || '')).toLowerCase().indexOf(sSearch) >= 0));
+
+  const searchInput = '<input id="creer-sol-search" type="text" value="'+sSearchRaw.replace(/"/g,'&quot;')+'" oninput="creerSolSearchInput(this.value)" placeholder="🔍 Rechercher une solution…" style="width:100%;box-sizing:border-box;padding:.4rem .6rem;margin-bottom:.5rem;border:1.5px solid rgba(46,102,66,.2);border-radius:8px;font-size:.72rem;font-family:inherit;background:#fff;outline:none">';
 
   if (!available.length)
-    return '<div style="padding:.65rem;text-align:center;font-size:.68rem;color:var(--moss);opacity:.45;font-style:italic">Toutes les solutions compatibles ont déjà été ajoutées</div>';
+    return searchInput + '<div style="padding:.65rem;text-align:center;font-size:.68rem;color:var(--moss);opacity:.45;font-style:italic">'+(sSearch?'Aucune solution ne correspond à ta recherche':'Toutes les solutions compatibles ont déjà été ajoutées')+'</div>';
 
-  // Grouper par catégorie (ordre EID_CATS)
-  let html = '';
-  relevantCats.forEach(cat => {
+  // Grouper par catégorie : pertinentes d'abord, puis les autres si recherche.
+  const cats = sSearch ? relevantCats.concat(Object.keys(CAT_META).filter(c => relevantCats.indexOf(c) < 0)) : relevantCats;
+  let html = searchInput;
+  cats.forEach(cat => {
     const group = available.filter(s => s.cat === cat);
     if (!group.length) return;
     const cm = CAT_META[cat] || {ic:'', l:cat, c:'#666'};
