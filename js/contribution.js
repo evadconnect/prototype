@@ -273,7 +273,7 @@ function creerOpenSolDetail(nomSol) {
   const s = (typeof SOLS !== 'undefined') ? SOLS.find(x => x.nom === nomSol) : null;
   if (!s) return;
   // Flux guidé étape 3 : fiche en extension inline plutôt qu'en modale.
-  if (typeof creerIsGuided === 'function' && creerIsGuided()) { creerShowInline('sol', nomSol); return; }
+  if (typeof creerIsGuided === 'function' && creerIsGuided()) { creerOpenPanel('sol-detail', nomSol); return; }
   const modal = document.getElementById('creer-sol-detail-modal');
   if (!modal) return;
   const body = modal.querySelector('#creer-sol-detail-body');
@@ -290,7 +290,7 @@ function creerCloseSolDetail() {
 function creerOpenQueteDetail(nomSol) {
   const i = (typeof SOLS !== 'undefined') ? SOLS.findIndex(x => x.nom === nomSol) : -1;
   if (i < 0 || typeof bddQueteDetailByIdx !== 'function') return;
-  if (typeof creerIsGuided === 'function' && creerIsGuided()) { creerShowInline('quete', nomSol); return; }
+  if (typeof creerIsGuided === 'function' && creerIsGuided()) { creerOpenPanel('quete-detail', nomSol); return; }
   const modal = document.getElementById('creer-sol-detail-modal'); if (!modal) return;
   const body = modal.querySelector('#creer-sol-detail-body');
   bddQueteDetailByIdx(i, body);
@@ -301,7 +301,7 @@ function creerOpenQueteDetail(nomSol) {
 // Ouvre la fiche INDICATEUR (de la Bibliothèque) dans la modale du wizard.
 function creerOpenIciDetail(iciId) {
   if (typeof bddIciDetail !== 'function') return;
-  if (typeof creerIsGuided === 'function' && creerIsGuided()) { creerShowInline('ici', iciId); return; }
+  if (typeof creerIsGuided === 'function' && creerIsGuided()) { creerOpenPanel('ici-detail', iciId); return; }
   const modal = document.getElementById('creer-sol-detail-modal'); if (!modal) return;
   const body = modal.querySelector('#creer-sol-detail-body');
   bddIciDetail(iciId, body);

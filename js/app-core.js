@@ -3810,7 +3810,8 @@ function initCreer(){
   if(!cOk){cOk=true;}
   cStep=0; cData=_CDATA_EMPTY();
   window._creerActiveEsp = 0;   // flux guidé étape 3 : repartir du premier espace
-  window._creerInlineView = null;
+  window._creerPhase = 'espaces';
+  if (typeof creerSidePanelClose === 'function') creerSidePanelClose();
   // Reprise d'un brouillon non publié (persisté en localStorage).
   if (window.store) {
     const _d = store.loadDraft('lieu');
@@ -4477,6 +4478,7 @@ window._solFilter = window._solFilter || {cat:'tous', q:''};
 window._activeEspacePanel = window._activeEspacePanel !== undefined ? window._activeEspacePanel : null;
 window._creerStep3Tab = window._creerStep3Tab || 'solutions';
 window._creerActiveEsp = (window._creerActiveEsp !== undefined) ? window._creerActiveEsp : 0;
+window._creerPhase = window._creerPhase || 'espaces';
 
 /* ───────────────────────────────────────────────────────────────────────────
    Étape 3 — flux guidé « espace par espace »
@@ -4515,107 +4517,144 @@ function creerStep3SidebarHTML(){
     + '<div style="font-size:.92rem;font-weight:800;color:var(--ink)">' + ((it.esp && it.esp.nom) || ('Espace ' + (active + 1))) + '</div>'
     + '<span style="margin-left:auto;font-size:.6rem;font-weight:700;color:' + col + ';background:' + col + '1f;padding:.12rem .5rem;border-radius:100px">' + (active + 1) + '/' + totalN + '</span>'
     + '</div>'
-    + '<div style="font-size:.64rem;color:var(--moss);opacity:.75;margin-bottom:.7rem;line-height:1.5">Choisis les solutions de cet espace, vérifie ses quêtes et indicateurs, puis valide pour passer au suivant.</div>';
+    + '<div style="font-size:.64rem;color:var(--moss);opacity:.75;margin-bottom:.7rem;line-height:1.5">Choisis les solutions de cet espace et vérifie ses indicateurs, puis valide pour passer au suivant. Deva choisira ensuite les quêtes.</div>';
 
   // 3. Sections
   const secTitle = (ic, txt, c) => '<div style="font-size:.64rem;font-weight:800;color:' + c + ';text-transform:uppercase;letter-spacing:.06em;margin:.9rem 0 .5rem">' + ic + ' ' + txt + '</div>';
 
-  // 4. Bouton valider
-  const isValid = valides.indexOf(active) >= 0;
-  const label = allDone ? '🎉 Tous les espaces sont validés' : (isValid ? '✓ Aller à l\'espace suivant' : '✓ Valider cet espace');
-  const validBtn = '<button onclick="creerValiderEsp()" style="width:100%;margin-top:1rem;padding:.72rem;border:none;border-radius:100px;background:' + (allDone ? 'rgba(46,102,66,.14)' : 'var(--forest)') + ';color:' + (allDone ? 'var(--forest)' : '#fff') + ';font-family:inherit;font-size:.8rem;font-weight:800;cursor:pointer">' + label + '</button>'
-    + (allDone ? '<div style="margin-top:.5rem;text-align:center;font-size:.66rem;color:var(--fern);font-weight:600">Tu peux maintenant créer le lieu 👉</div>' : '');
-
-  // Vue de détail / création en extension inline de la section (pas de modale).
-  if (window._creerInlineView) {
-    return btns
-      + '<div style="background:' + col + '0a;border:1px solid ' + col + '26;border-radius:14px;padding:.85rem .9rem">'
-      + head
-      + creerInlineViewHTML()
-      + '</div>';
+  // Phase QUÊTES : une fois tous les espaces validés, Deva propose les quêtes.
+  if (window._creerPhase === 'quetes') {
+    return btns + creerQuetesPhaseHTML();
   }
+
+  // 4. Bouton valider (phase ESPACES : solutions + indicateurs)
+  const isValid = valides.indexOf(active) >= 0;
+  const label = isValid ? '✓ Aller à l\'espace suivant' : '✓ Valider cet espace';
+  const validBtn = '<button onclick="creerValiderEsp()" style="width:100%;margin-top:1rem;padding:.72rem;border:none;border-radius:100px;background:var(--forest);color:#fff;font-family:inherit;font-size:.8rem;font-weight:800;cursor:pointer">' + label + '</button>';
 
   return btns
     + '<div style="background:' + col + '0a;border:1px solid ' + col + '26;border-radius:14px;padding:.85rem .9rem">'
     + head
     + secTitle('🧩', 'Solutions', col)
     + creerEspaceSolBlockHTML(active)
-    + secTitle('⚡', 'Quêtes', 'var(--amber)')
-    + creerEspaceQuetesHTML(active)
     + secTitle('📊', 'Indicateurs', 'var(--sky)')
     + creerEspaceIndicsHTML(active)
     + validBtn
     + '</div>';
 }
 
+// Phase finale : Deva a choisi les quêtes, présentées par espace.
+function creerQuetesPhaseHTML(){
+  const espItems = window._creerEspItems || [];
+  let h = '<div style="background:rgba(200,115,42,.06);border:1px solid rgba(200,115,42,.22);border-radius:14px;padding:.85rem .9rem">'
+    + '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem"><span style="font-size:1.15rem">⚡</span><div style="font-size:.92rem;font-weight:800;color:var(--ink)">Les quêtes de ton lieu</div></div>'
+    + '<div style="font-size:.64rem;color:var(--moss);opacity:.8;margin-bottom:.4rem;line-height:1.5">✦ Deva a choisi une quête par action, adaptée à chaque espace. Ajuste-les, ajoute-en ou crée les tiennes.</div>';
+  espItems.forEach((it, idx) => {
+    const c2 = it.c || '#2e9970';
+    h += '<div style="display:flex;align-items:center;gap:.4rem;margin:.9rem 0 .5rem"><span style="font-size:.85rem">' + (it.ic || '📦') + '</span><span style="font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:' + c2 + '">' + ((it.esp && it.esp.nom) || ('Espace ' + (idx + 1))) + '</span></div>';
+    h += creerEspaceQuetesHTML(idx);
+  });
+  h += '<button onclick="creerRevoirEspaces()" style="width:100%;margin-top:1rem;padding:.6rem;border:1.5px solid rgba(46,102,66,.2);border-radius:100px;background:white;color:var(--moss);font-family:inherit;font-size:.74rem;font-weight:700;cursor:pointer">← Revoir les solutions & indicateurs</button>'
+    + '<div style="margin-top:.5rem;text-align:center;font-size:.66rem;color:var(--fern);font-weight:600">🎉 Ton lieu est prêt — tu peux le créer 👉</div>'
+    + '</div>';
+  return h;
+}
+
+function creerRevoirEspaces(){
+  window._creerPhase = 'espaces';
+  window._creerActiveEsp = 0;
+  if (typeof creerSidePanelClose === 'function') creerSidePanelClose();
+  creerRefreshSidebar();
+  creerApplyMapFocus();
+}
+
 // Contenu de la vue inline (fiche solution/quête/indicateur ou formulaire de
 // création), affichée en extension de la section blanche au lieu d'une modale.
-function creerInlineViewHTML(){
-  const v = window._creerInlineView; if (!v) return '';
-  const titres = { sol: 'Fiche solution', quete: 'Fiche quête', ici: 'Fiche indicateur', creer: 'Nouvelle quête' };
-  let inner = '';
-  if (v.type === 'sol') {
-    const s = (typeof SOLS !== 'undefined') ? SOLS.find(x => x.nom === v.ref) : null;
-    inner = (s && typeof solFicheHTML === 'function') ? solFicheHTML(s, { context: 'modal' }) : '<div style="font-size:.7rem;color:var(--moss)">Fiche indisponible.</div>';
-  } else if (v.type === 'quete' || v.type === 'ici') {
-    // Rempli après le rendu par bddQueteDetailByIdx / bddIciDetail.
-    inner = '<div id="creer-inline-body"></div>';
-  } else if (v.type === 'creer') {
-    inner = creerQueteFormInlineHTML();
-  }
-  return '<div style="margin-top:.2rem;border-top:1px dashed ' + '#2e997055' + ';padding-top:.55rem">'
-    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">'
-      + '<span style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em">' + (titres[v.type] || 'Détail') + '</span>'
-      + '<button onclick="creerCloseInline()" style="font-size:.62rem;color:var(--moss);background:none;border:none;cursor:pointer;font-family:inherit;opacity:.7;font-weight:700">← Retour</button>'
-    + '</div>'
-    + inner
-    + '</div>';
-}
-
-function creerCloseInline(){
-  window._creerInlineView = null;
-  creerRefreshSidebar();
-}
-
-// Fait défiler la vue inline dans le champ visible après ouverture.
-function _creerScrollInline(){
-  setTimeout(function(){ const c = document.getElementById('creer-step-content'); if (c) c.scrollTop = 0; }, 30);
-}
-
-// L'étape 3 (flux guidé) est-elle affichée ? (sinon : fiches en modale).
+// L'étape 3 (flux guidé) est-elle affichée ? (sinon : fiches en modale classique)
 function creerIsGuided(){
-  return typeof cStep !== 'undefined' && cStep === 3 && !!document.getElementById('creer-step-content');
+  return typeof cStep !== 'undefined' && cStep === 3 && !!document.querySelector('#screen-creer .mm-stage');
 }
 
-// Affiche une fiche (solution / quête / indicateur) en extension inline.
-function creerShowInline(type, ref){
-  window._creerInlineView = { type: type, ref: ref };
-  creerRefreshSidebar();
-  if (type === 'quete') {
-    const el = document.getElementById('creer-inline-body');
-    const i = (typeof SOLS !== 'undefined') ? SOLS.findIndex(x => x.nom === ref) : -1;
-    if (el && i >= 0 && typeof bddQueteDetailByIdx === 'function') bddQueteDetailByIdx(i, el);
-  } else if (type === 'ici') {
-    const el = document.getElementById('creer-inline-body');
-    if (el && typeof bddIciDetail === 'function') bddIciDetail(ref, el);
+/* ─── Panneau latéral droit (comme « Nouvel espace ») ───
+   Sert à voir une fiche, créer une quête, ou ajouter depuis la bibliothèque.
+   Il recouvre la zone du mind map et laisse la colonne de gauche visible. */
+function creerEnsureSidePanel(){
+  let p = document.getElementById('creer-side-panel');
+  if (p) return p;
+  const stage = document.querySelector('#screen-creer .mm-stage');
+  if (!stage) return null;
+  p = document.createElement('div');
+  p.id = 'creer-side-panel';
+  p.style.cssText = 'display:none;position:absolute;inset:0;z-index:60;background:var(--paper,#fbfaf7);flex-direction:column;box-shadow:-14px 0 44px -16px rgba(14,26,18,.4)';
+  p.innerHTML = ''
+    + '<div style="padding:1.1rem 1.3rem .9rem;border-bottom:1px solid rgba(46,102,66,.1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">'
+      + '<span id="creer-side-panel-title" style="font-size:.95rem;font-weight:800;color:var(--ink)"></span>'
+      + '<button onclick="creerSidePanelClose()" aria-label="Fermer" style="background:rgba(46,102,66,.08);border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:.85rem;color:var(--moss);display:flex;align-items:center;justify-content:center;font-family:inherit">✕</button>'
+    + '</div>'
+    + '<div id="creer-side-panel-body" style="flex:1;min-height:0;overflow-y:auto;padding:1.1rem 1.3rem;max-width:560px;width:100%"></div>'
+    + '<div id="creer-side-panel-footer" style="display:none;padding:.9rem 1.3rem 1.1rem;border-top:1px solid rgba(46,102,66,.08);gap:.6rem;justify-content:flex-end;flex-shrink:0"></div>';
+  stage.appendChild(p);
+  return p;
+}
+
+function creerSidePanelClose(){
+  window._creerPanel = null;
+  window._creerSolSearch = ''; window._creerQueteSearch = ''; window._creerIciSearch = '';
+  const p = document.getElementById('creer-side-panel'); if (p) p.style.display = 'none';
+}
+
+// Ouvre / (re)dessine le panneau selon window._creerPanel = {kind, ref}.
+function creerPanelRefresh(){
+  const el = creerEnsureSidePanel(); if (!el) return;
+  const p = window._creerPanel; if (!p) { creerSidePanelClose(); return; }
+  const titleEl = document.getElementById('creer-side-panel-title');
+  const bodyEl = document.getElementById('creer-side-panel-body');
+  const footEl = document.getElementById('creer-side-panel-footer');
+  let title = '', body = '', footer = '', after = null;
+  if (p.kind === 'sol-detail') {
+    title = 'Fiche solution';
+    const s = (typeof SOLS !== 'undefined') ? SOLS.find(x => x.nom === p.ref) : null;
+    body = (s && typeof solFicheHTML === 'function') ? solFicheHTML(s, { context: 'modal' }) : '<div style="font-size:.75rem;color:var(--moss)">Fiche indisponible.</div>';
+  } else if (p.kind === 'quete-detail') {
+    title = 'Fiche quête'; body = '<div id="creer-panel-fiche"></div>';
+    after = function(){ const i = (typeof SOLS !== 'undefined') ? SOLS.findIndex(x => x.nom === p.ref) : -1; const t = document.getElementById('creer-panel-fiche'); if (i >= 0 && t && typeof bddQueteDetailByIdx === 'function') bddQueteDetailByIdx(i, t); };
+  } else if (p.kind === 'ici-detail') {
+    title = 'Fiche indicateur'; body = '<div id="creer-panel-fiche"></div>';
+    after = function(){ const t = document.getElementById('creer-panel-fiche'); if (t && typeof bddIciDetail === 'function') bddIciDetail(p.ref, t); };
+  } else if (p.kind === 'creer') {
+    title = 'Nouvelle quête'; body = creerQueteFormPanelHTML();
+    footer = '<button onclick="creerSidePanelClose()" style="background:rgba(46,102,66,.06);border:none;border-radius:100px;padding:.55rem 1.1rem;font-size:.78rem;font-weight:700;color:var(--moss);cursor:pointer;font-family:inherit">Annuler</button>'
+      + '<button onclick="creerQuetePanelSave()" style="background:var(--forest);color:#fff;border:none;border-radius:100px;padding:.55rem 1.3rem;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit">Créer la quête</button>';
+  } else if (p.kind === 'biblio-sol') {
+    title = 'Ajouter une solution'; body = creerBddPanelHTML(p.ref);
+  } else if (p.kind === 'biblio-quete') {
+    title = 'Ajouter une quête'; body = creerQueteBiblioPanelBody(p.ref);
+  } else if (p.kind === 'biblio-ici') {
+    title = 'Ajouter un indicateur'; body = creerIciBiblioPanelBody(p.ref);
   }
-  _creerScrollInline();
+  titleEl.textContent = title;
+  bodyEl.innerHTML = body; bodyEl.scrollTop = 0;
+  if (footer) { footEl.innerHTML = footer; footEl.style.display = 'flex'; } else { footEl.style.display = 'none'; footEl.innerHTML = ''; }
+  el.style.display = 'flex';
+  if (after) after();
 }
 
-// Formulaire de création de quête, en extension inline (mêmes ids de champs
-// que la modale → réutilise piloteQueteCreerSave).
-function creerQueteFormInlineHTML(){
-  const inS = 'width:100%;box-sizing:border-box;padding:.5rem .6rem;border-radius:8px;border:1px solid rgba(46,102,66,.2);font-family:inherit;font-size:.74rem;color:var(--ink);background:#fff';
-  const lbS = 'display:block;font-size:.64rem;font-weight:700;color:var(--moss);margin:.6rem 0 .25rem';
+function creerOpenPanel(kind, ref){ window._creerPanel = { kind: kind, ref: ref }; creerPanelRefresh(); }
+
+// Formulaire de création de quête (champs seuls ; boutons dans le pied du panneau).
+// Mêmes ids que la modale → réutilise piloteQueteCreerSave.
+function creerQueteFormPanelHTML(){
+  const inS = 'width:100%;box-sizing:border-box;padding:.55rem .7rem;border-radius:8px;border:1px solid rgba(46,102,66,.2);font-family:inherit;font-size:.8rem;color:var(--ink);background:#fff';
+  const lbS = 'display:block;font-size:.7rem;font-weight:700;color:var(--moss);margin:.75rem 0 .3rem';
   const comp = ['— Aucune en particulier —','💧 Gestion de l\'eau','⚡ Énergie','🧱 Éco-construction','🌾 Maraîchage & permaculture','♻️ Réemploi & compostage','🌿 Biodiversité','🤝 Animation & facilitation','🌡 Adaptation climatique','🔧 Autre / polyvalent'];
-  const icisChips = (typeof ICI_CATALOG !== 'undefined' ? ICI_CATALOG : []).map(function(ici){ var m = ((typeof ICI_LIVRE_META !== 'undefined') ? ICI_LIVRE_META[ici.livre] : null) || {ic:'◆', col:'#4a8c5c'}; return '<button type="button" data-ici="' + ici.id + '" data-col="' + m.col + '" data-sel="0" onclick="pqCreerToggleIci(this)" style="font-size:.64rem;font-weight:600;color:' + m.col + ';background:transparent;border:1px solid ' + m.col + '55;border-radius:100px;padding:.26rem .55rem;cursor:pointer;font-family:inherit">' + m.ic + ' ' + ici.nom + '</button>'; }).join('');
+  const icisChips = (typeof ICI_CATALOG !== 'undefined' ? ICI_CATALOG : []).map(function(ici){ var m = ((typeof ICI_LIVRE_META !== 'undefined') ? ICI_LIVRE_META[ici.livre] : null) || {ic:'◆', col:'#4a8c5c'}; return '<button type="button" data-ici="' + ici.id + '" data-col="' + m.col + '" data-sel="0" onclick="pqCreerToggleIci(this)" style="font-size:.66rem;font-weight:600;color:' + m.col + ';background:transparent;border:1px solid ' + m.col + '55;border-radius:100px;padding:.28rem .6rem;cursor:pointer;font-family:inherit">' + m.ic + ' ' + ici.nom + '</button>'; }).join('');
   return ''
     + '<label style="' + lbS + '" for="pq-create-titre">Titre de la quête *</label>'
     + '<input id="pq-create-titre" style="' + inS + '" placeholder="Ex : Planter la haie champêtre du verger">'
     + '<label style="' + lbS + '" for="pq-create-desc">📝 Description</label>'
     + '<textarea id="pq-create-desc" rows="2" style="' + inS + ';resize:vertical" placeholder="L\'action concrète à réaliser sur le lieu…"></textarea>'
-    + '<div style="display:flex;gap:.5rem"><div style="flex:1"><label style="' + lbS + '" for="pq-create-duree">Durée</label><input id="pq-create-duree" style="' + inS + '" placeholder="1 journée"></div><div style="flex:1"><label style="' + lbS + '" for="pq-create-nb">Participants</label><input id="pq-create-nb" style="' + inS + '" placeholder="2–4 pers."></div></div>'
-    + '<div style="display:flex;gap:.5rem"><div style="flex:1"><label style="' + lbS + '" for="pq-create-graines">🌱 Graines</label><input id="pq-create-graines" type="number" min="0" style="' + inS + '" placeholder="50"></div><div style="flex:1"><label style="' + lbS + '" for="pq-create-date">📅 Date</label><input id="pq-create-date" type="date" style="' + inS + '"></div></div>'
+    + '<div style="display:flex;gap:.6rem"><div style="flex:1"><label style="' + lbS + '" for="pq-create-duree">Durée</label><input id="pq-create-duree" style="' + inS + '" placeholder="1 journée"></div><div style="flex:1"><label style="' + lbS + '" for="pq-create-nb">Participants</label><input id="pq-create-nb" style="' + inS + '" placeholder="2–4 pers."></div></div>'
+    + '<div style="display:flex;gap:.6rem"><div style="flex:1"><label style="' + lbS + '" for="pq-create-graines">🌱 Graines</label><input id="pq-create-graines" type="number" min="0" style="' + inS + '" placeholder="50"></div><div style="flex:1"><label style="' + lbS + '" for="pq-create-date">📅 Date</label><input id="pq-create-date" type="date" style="' + inS + '"></div></div>'
     + '<label style="' + lbS + '" for="pq-create-competence">🎯 Compétence nécessaire</label>'
     + '<select id="pq-create-competence" style="' + inS + '">' + comp.map(function(o){ return '<option>' + o + '</option>'; }).join('') + '</select>'
     + '<label style="' + lbS + '" for="pq-create-impact">🌿 Impact visé (facultatif)</label>'
@@ -4628,19 +4667,71 @@ function creerQueteFormInlineHTML(){
     + '<textarea id="pq-create-preuve" rows="2" style="' + inS + ';resize:vertical">Photos de l\'action réalisée + indicateurs mesurés.</textarea>'
     + '<label style="' + lbS + '">📊 Indicateurs validés par la preuve</label>'
     + '<div id="pq-create-icis" style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.1rem">' + icisChips + '</div>'
-    + '<div id="pq-create-hint" style="font-size:.68rem;color:var(--terracotta);margin-top:.45rem;min-height:1rem"></div>'
-    + '<div style="display:flex;gap:.5rem;margin-top:.3rem">'
-      + '<button onclick="creerCloseInline()" style="flex:1;background:rgba(46,102,66,.06);border:none;border-radius:100px;padding:.6rem;font-size:.75rem;font-weight:700;color:var(--moss);cursor:pointer;font-family:inherit">Annuler</button>'
-      + '<button onclick="creerQueteInlineSave()" style="flex:2;background:var(--forest);color:#fff;border:none;border-radius:100px;padding:.6rem;font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit">Créer la quête</button>'
-    + '</div>';
+    + '<div id="pq-create-hint" style="font-size:.7rem;color:var(--terracotta);margin-top:.45rem;min-height:1rem"></div>';
 }
 
-function creerQueteInlineSave(){
+function creerQuetePanelSave(){
   const ok = (typeof piloteQueteCreerSave === 'function') ? piloteQueteCreerSave() : false;
   if (ok === false) return;   // validation échouée : on garde le formulaire ouvert
-  window._creerInlineView = null;
+  creerSidePanelClose();
   creerRefreshSidebar();
   if (typeof creerMapRevealRefresh === 'function') creerMapRevealRefresh();
+}
+
+// Corps du panneau « ajouter une quête » : recherche + tri par catégorie.
+function creerQueteBiblioPanelBody(idx){
+  const retir = new Set(cData.quetesRetirees || []);
+  const shown = new Set();
+  (cData.solutions || []).forEach(nom => { const s = (typeof SOLS !== 'undefined') ? SOLS.find(x => x.nom === nom) : null; if (s && s.quete && !retir.has('sol:' + nom)) shown.add(nom); });
+  (cData.quetesAjoutees || []).forEach(nom => { if (!retir.has('sol:' + nom)) shown.add(nom); });
+  const searchRaw = window._creerQueteSearch || '', search = searchRaw.toLowerCase().trim();
+  let dispo = (typeof SOLS !== 'undefined') ? SOLS.filter(s => s.quete && !shown.has(s.nom)) : [];
+  if (search) dispo = dispo.filter(s => ((((s.quete && s.quete.titre) || '') + ' ' + s.nom).toLowerCase().indexOf(search) >= 0));
+  const rowFor = (s) => { const safeNom = String(s.nom).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return '<div style="display:flex;align-items:center;gap:.55rem;padding:.45rem .6rem;border-radius:.6rem;background:rgba(46,102,66,.03);border:1px solid rgba(46,102,66,.08);margin-bottom:.3rem">'
+      + '<span style="font-size:1rem;flex-shrink:0">' + (s.img || '⚡') + '</span>'
+      + '<div style="flex:1;min-width:0"><div style="font-size:.76rem;font-weight:600;color:var(--ink)">' + ((s.quete && s.quete.titre) || s.nom) + '</div><div style="font-size:.62rem;color:var(--moss);opacity:.65">issue de « ' + s.nom + ' »</div></div>'
+      + '<button onclick="creerOpenPanel(\'quete-detail\',\'' + safeNom + '\')" style="flex-shrink:0;padding:.3rem .5rem;border-radius:.45rem;border:1.5px solid rgba(46,102,66,.2);background:transparent;color:var(--forest);font-size:.66rem;cursor:pointer">👁</button>'
+      + '<button onclick="creerAddQuete(\'' + safeNom + '\',' + idx + ')" style="flex-shrink:0;padding:.3rem .65rem;border-radius:.45rem;border:none;background:var(--forest);color:white;font-size:.66rem;font-weight:700;cursor:pointer">+ Ajouter</button>'
+    + '</div>';
+  };
+  let h = '<input id="pq-bdd-search" type="text" value="' + searchRaw.replace(/"/g,'&quot;') + '" oninput="creerQueteSearchInput(this.value)" placeholder="🔍 Rechercher une quête…" style="width:100%;box-sizing:border-box;padding:.5rem .7rem;margin-bottom:.6rem;border:1.5px solid rgba(46,102,66,.2);border-radius:8px;font-size:.78rem;font-family:inherit;background:#f6faf7;outline:none">';
+  if (!dispo.length) { h += '<div style="padding:.6rem;text-align:center;font-size:.72rem;color:var(--moss);opacity:.45;font-style:italic">' + (search ? 'Aucune quête ne correspond' : 'Toutes les quêtes sont déjà présentes') + '</div>'; return h; }
+  const catMeta = (typeof CAT_META !== 'undefined') ? CAT_META : {}, catOrder = Object.keys(catMeta);
+  catOrder.forEach(cat => { const grp = dispo.filter(s => s.cat === cat); if (!grp.length) return; const cm = catMeta[cat] || {ic:'', l:cat, c:'#666'};
+    h += '<div style="font-size:.62rem;font-weight:700;color:' + cm.c + ';text-transform:uppercase;letter-spacing:.07em;margin:.6rem 0 .35rem;display:flex;align-items:center;gap:.3rem"><span>' + cm.ic + '</span><span>' + cm.l + '</span></div>';
+    grp.forEach(s => { h += rowFor(s); });
+  });
+  const rest = dispo.filter(s => catOrder.indexOf(s.cat) < 0);
+  if (rest.length) { h += '<div style="font-size:.62rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em;margin:.6rem 0 .35rem">Autres</div>'; rest.forEach(s => { h += rowFor(s); }); }
+  return h;
+}
+
+// Corps du panneau « ajouter un indicateur » : recherche + tri par capital.
+function creerIciBiblioPanelBody(idx){
+  if (typeof ICI_CATALOG === 'undefined') return '';
+  const retir = new Set(cData.icisRetires || []);
+  const shown = new Set();
+  (cData.solutions || []).forEach(nom => { (typeof iciPourSolution === 'function' ? (iciPourSolution(nom) || []) : []).forEach(i => { if (!retir.has(i.id)) shown.add(i.id); }); });
+  (cData.icisAjoutes || []).forEach(id => { if (!retir.has(id)) shown.add(id); });
+  const searchRaw = window._creerIciSearch || '', search = searchRaw.toLowerCase().trim();
+  let dispo = ICI_CATALOG.filter(i => !shown.has(i.id));
+  if (search) dispo = dispo.filter(i => ((i.nom + ' ' + (i.unite || '')).toLowerCase().indexOf(search) >= 0));
+  const rowFor = (ici) =>
+    '<div style="display:flex;align-items:center;gap:.55rem;padding:.45rem .6rem;border-radius:.6rem;background:rgba(46,102,66,.03);border:1px solid rgba(46,102,66,.08);margin-bottom:.3rem">'
+    + '<div style="flex:1;min-width:0"><div style="font-size:.76rem;font-weight:600;color:var(--ink)">' + ici.nom + '</div><div style="font-size:.62rem;color:var(--moss);opacity:.65">' + (ici.unite || '') + '</div></div>'
+    + '<button onclick="creerOpenPanel(\'ici-detail\',\'' + ici.id + '\')" style="flex-shrink:0;padding:.3rem .5rem;border-radius:.45rem;border:1.5px solid rgba(46,102,66,.2);background:transparent;color:var(--forest);font-size:.66rem;cursor:pointer">👁</button>'
+    + '<button onclick="creerAddIci(\'' + ici.id + '\',' + idx + ')" style="flex-shrink:0;padding:.3rem .65rem;border-radius:.45rem;border:none;background:var(--forest);color:white;font-size:.66rem;font-weight:700;cursor:pointer">+ Ajouter</button>'
+    + '</div>';
+  let h = '<input id="pq-ici-search" type="text" value="' + searchRaw.replace(/"/g,'&quot;') + '" oninput="creerIciSearchInput(this.value)" placeholder="🔍 Rechercher un indicateur…" style="width:100%;box-sizing:border-box;padding:.5rem .7rem;margin-bottom:.6rem;border:1.5px solid rgba(46,102,66,.2);border-radius:8px;font-size:.78rem;font-family:inherit;background:#f6faf7;outline:none">';
+  if (!dispo.length) { h += '<div style="padding:.6rem;text-align:center;font-size:.72rem;color:var(--moss);opacity:.45;font-style:italic">' + (search ? 'Aucun indicateur ne correspond' : 'Tous les indicateurs sont déjà présents') + '</div>'; return h; }
+  ['ecologie','social','economie_locale'].forEach(livre => {
+    const grp = dispo.filter(i => i.livre === livre); if (!grp.length) return;
+    const meta = (typeof ICI_LIVRE_META !== 'undefined' && ICI_LIVRE_META[livre]) || { label: livre, ic:'◆', col:'#4a8c5c' };
+    h += '<div style="font-size:.62rem;font-weight:700;color:' + meta.col + ';text-transform:uppercase;letter-spacing:.07em;margin:.6rem 0 .35rem;display:flex;align-items:center;gap:.3rem"><span>' + meta.ic + '</span><span>' + meta.label + '</span></div>';
+    grp.forEach(i => { h += rowFor(i); });
+  });
+  return h;
 }
 
 // Bloc solutions d'un espace : chips (retrait) + ajout depuis la bibliothèque.
@@ -4649,7 +4740,6 @@ function creerEspaceSolBlockHTML(idx){
   const it = espItems[idx] || {};
   const col = it.c || '#2e9970', bg = it.bg || 'rgba(46,153,112,.1)';
   const assigned = (cData.solsByEspace && cData.solsByEspace[idx]) || [];
-  const isOpen = window._activeEspacePanel === idx;
   // Présentation en cartes, comme les quêtes et les indicateurs.
   const cards = assigned.length
     ? assigned.map(nom => {
@@ -4667,17 +4757,7 @@ function creerEspaceSolBlockHTML(idx){
       }).join('')
     : '<div style="font-size:.62rem;color:var(--moss);opacity:.5;font-style:italic;padding:.15rem 0">Aucune solution — ajoute-en depuis la bibliothèque.</div>';
   let html = cards;
-  if (isOpen) {
-    html += '<div style="margin-top:.5rem;border-top:1px dashed ' + col + '40;padding-top:.5rem">'
-      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem">'
-        + '<span style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em">Bibliothèque · ajouter une solution</span>'
-        + '<button onclick="creerToggleEspacePanel(' + idx + ')" style="font-size:.62rem;color:var(--moss);background:none;border:none;cursor:pointer;font-family:inherit;opacity:.7">Fermer ✕</button>'
-      + '</div>'
-      + '<div id="creer-bdd-panel-' + idx + '">' + creerBddPanelHTML(idx) + '</div>'
-      + '</div>';
-  } else {
-    html += '<div style="margin-top:.4rem"><button onclick="creerToggleEspacePanel(' + idx + ')" style="font-size:.66rem;color:' + col + ';background:' + col + '0d;border:1.5px dashed ' + col + '59;border-radius:10px;padding:.5rem;width:100%;cursor:pointer;font-family:inherit;font-weight:700">+ Ajouter une solution depuis la bibliothèque</button></div>';
-  }
+  html += '<div style="margin-top:.4rem"><button onclick="creerOpenPanel(\'biblio-sol\',' + idx + ')" style="font-size:.66rem;color:' + col + ';background:' + col + '0d;border:1.5px dashed ' + col + '59;border-radius:10px;padding:.5rem;width:100%;cursor:pointer;font-family:inherit;font-weight:700">+ Ajouter une solution depuis la bibliothèque</button></div>';
   return html;
 }
 
@@ -4716,7 +4796,7 @@ function creerEspaceQuetesHTML(idx){
   customs.forEach(q => { n++; cards += card(q.sourceIc || '⚡', q.titre || 'Quête', q.duree, q.nb, q.impact, '✦ créée sur mesure', 'var(--forest)', "creerRemoveQuete('cst:" + q.id + "')", null); });
   if (!n) cards = '<div style="font-size:.62rem;color:var(--moss);opacity:.5;font-style:italic;padding:.15rem 0 .3rem">Les quêtes des solutions de cet espace apparaîtront ici.</div>';
   let html = cards;
-  html += creerQueteBiblioBlockHTML(idx);
+  html += '<div style="margin-top:.4rem"><button onclick="creerOpenPanel(\'biblio-quete\',' + idx + ')" style="font-size:.66rem;color:#c8732a;background:#c8732a0d;border:1.5px dashed #c8732a59;border-radius:10px;padding:.5rem;width:100%;cursor:pointer;font-family:inherit;font-weight:700">+ Ajouter une quête depuis la bibliothèque</button></div>';
   html += '<button onclick="creerQueteNouvelleEsp(' + idx + ')" style="width:100%;margin-top:.35rem;padding:.5rem;border:1.5px dashed rgba(1,130,98,.4);border-radius:10px;background:rgba(1,130,98,.05);color:var(--forest);font-family:inherit;font-size:.68rem;font-weight:700;cursor:pointer">＋ Créer une quête sur mesure</button>';
   return html;
 }
@@ -4755,7 +4835,7 @@ function creerEspaceIndicsHTML(idx){
     seen.add(id); n++; cards += row(ici);
   });
   if (!n) cards = '<div style="font-size:.62rem;color:var(--moss);opacity:.5;font-style:italic;padding:.15rem 0">Les indicateurs des solutions de cet espace apparaîtront ici.</div>';
-  return cards + creerIciBiblioBlockHTML(idx);
+  return cards + '<div style="margin-top:.4rem"><button onclick="creerOpenPanel(\'biblio-ici\',' + idx + ')" style="font-size:.66rem;color:#3a6e8c;background:#3a6e8c0d;border:1.5px dashed #3a6e8c59;border-radius:10px;padding:.5rem;width:100%;cursor:pointer;font-family:inherit;font-weight:700">+ Ajouter un indicateur depuis la bibliothèque</button></div>';
 }
 
 // Panneau « ajouter une quête depuis la bibliothèque » d'un espace (chips +
@@ -4851,12 +4931,8 @@ function creerRefreshSidebar(){
 // Clique sur un bouton d'espace : focalise sidebar + mind map sur cet espace.
 function creerFocusEsp(idx){
   window._creerActiveEsp = idx;
-  // Referme les panneaux « ajouter depuis la bibliothèque » et la vue inline.
-  window._activeEspacePanel = null;
-  window._creerQuetePanelOpen = false;
-  window._creerIciPanelOpen = false;
-  window._creerInlineView = null;
-  window._creerSolSearch = ''; window._creerQueteSearch = ''; window._creerIciSearch = '';
+  window._creerPhase = 'espaces';   // cliquer un espace = revenir l'éditer
+  if (typeof creerSidePanelClose === 'function') creerSidePanelClose();   // referme le panneau latéral
   creerRefreshSidebar();
   creerApplyMapFocus();
 }
@@ -4876,17 +4952,21 @@ function creerValiderEsp(){
     creerFocusEsp(next);
     if (typeof mmBubble === 'function') mmBubble('✓ Espace validé · au suivant');
   } else {
+    // Tous les espaces validés → Deva choisit les quêtes par espace.
+    window._creerPhase = 'quetes';
+    if (typeof creerSidePanelClose === 'function') creerSidePanelClose();
     creerRefreshSidebar();
     creerApplyMapFocus();
-    if (typeof mmBubble === 'function') mmBubble('🎉 Tous les espaces validés !');
+    if (typeof mmBubble === 'function') mmBubble('⚡ Deva a choisi les quêtes de ton lieu !');
   }
 }
 
-// « Créer une quête sur mesure » depuis un espace : formulaire en extension
-// inline de la section (plus de modale), rattaché à cet espace.
+// « Créer une quête sur mesure » depuis un espace : formulaire dans le panneau
+// latéral droit (comme « Nouvel espace »), rattaché à cet espace.
 function creerQueteNouvelleEsp(idx){
   window._creerQueteEspIdx = idx;
-  if (creerIsGuided()) { window._creerInlineView = { type: 'creer', ref: idx }; creerRefreshSidebar(); _creerScrollInline(); return; }
+  window._creerActiveEsp = idx;
+  if (creerIsGuided()) { creerOpenPanel('creer', idx); return; }
   if (typeof piloteQueteCreerOuvrir === 'function') piloteQueteCreerOuvrir();
 }
 
@@ -4985,13 +5065,13 @@ function creerStep3IndicateursHTML(){
   return html;
 }
 
-/* Ajout / retrait d'indicateurs. L'ajout rattache l'ICI à l'espace actif. */
-function creerAddIci(id){
+/* Ajout / retrait d'indicateurs. L'ajout rattache l'ICI à l'espace donné. */
+function creerAddIci(id, espIdx){
   cData.icisAjoutes = cData.icisAjoutes || [];
   if (!cData.icisAjoutes.includes(id)) cData.icisAjoutes.push(id);
   cData.icisRetires = (cData.icisRetires || []).filter(x => x !== id);
   cData.icisEspMap = cData.icisEspMap || {};
-  cData.icisEspMap[id] = (window._creerActiveEsp != null) ? window._creerActiveEsp : 0;
+  cData.icisEspMap[id] = (espIdx != null) ? espIdx : ((window._creerActiveEsp != null) ? window._creerActiveEsp : 0);
   creerStep3RefreshIndicateurs();
 }
 function creerRemoveIci(id){
@@ -5008,14 +5088,15 @@ function creerToggleIciPanel(){
 }
 function creerIciSearchInput(v){
   window._creerIciSearch = v;
-  creerStep3RefreshIndicateurs();
+  if (window._creerPanel && typeof creerPanelRefresh === 'function') creerPanelRefresh();
   _creerRefocusSearch('pq-ici-search');
 }
 function creerStep3RefreshIndicateurs(){
-  // Flux guidé : la sidebar montre les indicateurs de l'espace actif, et le
-  // mind map met à jour sa révélation (indicateur retiré → nœud enlevé).
+  // La sidebar montre les indicateurs de l'espace, le mind map met à jour sa
+  // révélation, et le panneau latéral (s'il est ouvert) retire l'ajouté.
   if (typeof creerRefreshSidebar === 'function') creerRefreshSidebar();
   if (typeof creerMapRevealRefresh === 'function') creerMapRevealRefresh();
+  if (window._creerPanel && typeof creerPanelRefresh === 'function') creerPanelRefresh();
 }
 
 /* Onglet « Quêtes » de l'étape 3 : l'aperçu des quêtes portées par les
@@ -5170,12 +5251,12 @@ function creerStep3QuetesHTML(){
 }
 
 /* Ajout / retrait de quêtes (curation de l'onglet Quêtes du wizard). */
-function creerAddQuete(solNom){
+function creerAddQuete(solNom, espIdx){
   cData.quetesAjoutees = cData.quetesAjoutees || [];
   if (!cData.quetesAjoutees.includes(solNom)) cData.quetesAjoutees.push(solNom);
   cData.quetesRetirees = (cData.quetesRetirees || []).filter(k => k !== 'sol:' + solNom);
   cData.quetesEspMap = cData.quetesEspMap || {};
-  cData.quetesEspMap[solNom] = (window._creerActiveEsp != null) ? window._creerActiveEsp : 0;
+  cData.quetesEspMap[solNom] = (espIdx != null) ? espIdx : ((window._creerActiveEsp != null) ? window._creerActiveEsp : 0);
   creerStep3RefreshQuetes();
 }
 function creerRemoveQuete(key){
@@ -5199,7 +5280,7 @@ function creerToggleQuetePanel(){
 }
 function creerQueteSearchInput(v){
   window._creerQueteSearch = v;
-  creerStep3RefreshQuetes();
+  if (window._creerPanel && typeof creerPanelRefresh === 'function') creerPanelRefresh();
   _creerRefocusSearch('pq-bdd-search');
 }
 // Rend le focus (et place le curseur en fin) à une barre de recherche après un
@@ -5220,6 +5301,7 @@ function creerQueteNouvelle(){
 function creerStep3RefreshQuetes(){
   if (typeof creerRefreshSidebar === 'function') creerRefreshSidebar();
   if (typeof creerMapRevealRefresh === 'function') creerMapRevealRefresh();
+  if (window._creerPanel && typeof creerPanelRefresh === 'function') creerPanelRefresh();
 }
 
 /* Bascule entre les onglets « Solutions » / « Indicateurs » / « Quêtes » sans redessiner le mind map. */
@@ -5259,7 +5341,7 @@ function creerToggleEspacePanel(idx){
 }
 function creerSolSearchInput(v){
   window._creerSolSearch = v;
-  creerSolRefresh();
+  if (window._creerPanel && typeof creerPanelRefresh === 'function') creerPanelRefresh();
   _creerRefocusSearch('creer-sol-search');
 }
 
@@ -5275,6 +5357,7 @@ function creerSolChangeRefresh(){
     renderStep();
     if (typeof mmRefreshSolsStep4 === 'function') mmRefreshSolsStep4();
   }
+  if (window._creerPanel && typeof creerPanelRefresh === 'function') creerPanelRefresh();
 }
 
 function creerAddSol(espIdx, solNom){
@@ -5285,8 +5368,6 @@ function creerAddSol(espIdx, solNom){
     cData.solutions = [...new Set(Object.values(cData.solsByEspace).flat())];
     cData._solsCustomized = true;   // choix manuel : la présélection ne l'écrasera plus
   }
-  // Garder le panneau ouvert sur cet espace après ajout
-  window._activeEspacePanel = espIdx;
   creerSolChangeRefresh();
 }
 
@@ -5370,7 +5451,7 @@ function creerBddPanelHTML(espIdx){
         + '<div style="font-size:.57rem;color:var(--moss);opacity:.65">' + (s.impact || '') + '</div>'
         + '</div>'
         + '<button onclick="creerOpenSolDetail(\''+safeNom+'\')" style="flex-shrink:0;padding:.25rem .45rem;border-radius:.45rem;border:1.5px solid rgba(46,102,66,.2);background:transparent;color:var(--forest);font-size:.6rem;cursor:pointer">👁</button>'
-        + '<button onclick="creerAddSol('+espIdx+',\''+safeNom+'\');creerSolRefresh()" style="flex-shrink:0;padding:.25rem .55rem;border-radius:.45rem;border:none;background:var(--forest);color:white;font-size:.6rem;font-weight:700;cursor:pointer">+ Ajouter</button>'
+        + '<button onclick="creerAddSol('+espIdx+',\''+safeNom+'\')" style="flex-shrink:0;padding:.3rem .65rem;border-radius:.45rem;border:none;background:var(--forest);color:white;font-size:.66rem;font-weight:700;cursor:pointer">+ Ajouter</button>'
         + '</div>';
     });
   });
@@ -5998,6 +6079,14 @@ function mmRefreshSolsStep4() {
 // Zoome/centre le canvas sur l'espace `window._creerActiveEsp`, atténue les
 // autres espaces et révèle quête + indicateurs de chaque solution retenue.
 function creerApplyMapFocus(){
+  // Phase QUÊTES : vue d'ensemble, sans zoom ni atténuation, et on révèle les
+  // quêtes choisies pour tous les espaces.
+  if (window._creerPhase === 'quetes') {
+    if (window.mmPanReset) window.mmPanReset();
+    mmSetDim(null);
+    mmRevealQuetesAll();
+    return;
+  }
   const idx = window._creerActiveEsp;
   const st = window._mmStep4State, pos = window._mmStep4EspPos;
   if (idx == null || !st || !pos || !pos[idx]) {
@@ -6013,6 +6102,28 @@ function creerApplyMapFocus(){
   if (window.mmSetView) window.mmSetView(s * (st.cx - fx), s * (st.cy - fy), s);
   mmRevealEsp(idx);
   mmSetDim(idx);
+}
+
+// Phase quêtes : révèle la quête de chaque solution de tous les espaces.
+function mmRevealQuetesAll(){
+  document.querySelectorAll('#mm-nodes [id^="mn-q-"], #mm-nodes [id^="mn-ici-"]').forEach(n => n.remove());
+  document.querySelectorAll('#mm-svg path[data-reveal="1"]').forEach(p => p.remove());
+  const st = window._mmStep4State; if (!st) return;
+  const cx = st.cx, cy = st.cy;
+  const retirQ = new Set(cData.quetesRetirees || []);
+  document.querySelectorAll('#mm-nodes [id^="mn-sol-"]').forEach(sn => {
+    const solNom = sn.dataset.solnom; if (!solNom || retirQ.has('sol:' + solNom)) return;
+    const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === solNom) : null;
+    if (!sol || !sol.quete) return;
+    const sx = parseFloat(sn.style.left), sy = parseFloat(sn.style.top);
+    if (isNaN(sx) || isNaN(sy)) return;
+    let dx = sx - cx, dy = sy - cy; const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
+    const base = sn.id.replace('mn-sol-', '');
+    const qx = sx + dx * 112, qy = sy + dy * 112;
+    const p = mmLine(sx, sy, qx, qy, '#c8732a', '3,5', 'mn-sol-' + base, 'mn-q-' + base);
+    if (p) p.setAttribute('data-reveal', '1');
+    mmAdd('q-' + base, '⚡ ' + (sol.quete.titre || 'Quête'), qx, qy, 'quete', '#c8732a', 'rgba(200,115,42,.14)');
+  });
 }
 
 // Atténue tout ce qui n'appartient pas à l'espace `active` (null = tout montrer).
@@ -6053,8 +6164,8 @@ function mmRevealEsp(idx){
     let dx = sx - cx, dy = sy - cy; const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
     const base = sn.id.replace('mn-sol-', '');           // "idx-j"
     const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === solNom) : null;
-    // Quête (au-delà de la solution)
-    if (sol && sol.quete && !retirQ.has('sol:' + solNom)) {
+    // Quête (au-delà de la solution) — seulement en phase quêtes (choisie plus tard).
+    if (window._creerPhase === 'quetes' && sol && sol.quete && !retirQ.has('sol:' + solNom)) {
       const qx = sx + dx * 118, qy = sy + dy * 118;
       const p = mmLine(sx, sy, qx, qy, '#c8732a', '3,5', 'mn-sol-' + base, 'mn-q-' + base);
       if (p) p.setAttribute('data-reveal', '1');
@@ -6110,6 +6221,7 @@ function mmRevealEsp(idx){
 
 // Rafraîchit uniquement la révélation quête/ICI (après retrait d'un élément).
 function creerMapRevealRefresh(){
+  if (window._creerPhase === 'quetes') { mmRevealQuetesAll(); return; }
   if (window._creerActiveEsp != null) { mmRevealEsp(window._creerActiveEsp); mmSetDim(window._creerActiveEsp); }
 }
 
