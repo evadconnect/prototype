@@ -3292,7 +3292,14 @@ function bddQueteDetailByIdx(i, targetEl){
   const el=targetEl||document.getElementById('bdd-detail'); if(!el) return;
   const icis=(typeof iciPourSolution==='function')?iciPourSolution(s.nom):[];
   const meta=(typeof ICI_LIVRE_META!=='undefined')?ICI_LIVRE_META:{};
+  const ind2=(typeof SOLS_INDICATORS!=='undefined' && SOLS_INDICATORS[s.nom])?SOLS_INDICATORS[s.nom]:{};
+  const materiel=ind2.materiel||[];
+  const plan=ind2.plan||[];
+  // Compétence requise, déduite de la catégorie de la solution.
+  const COMP={ eau:'💧 Gestion de l\'eau', electricite:'⚡ Énergie', construction:'🧱 Éco-construction', alimentaire:'🌾 Maraîchage & permaculture', dechets:'♻️ Réemploi & compostage', biodiversite:'🌿 Biodiversité', social:'🤝 Animation & facilitation', adaptation:'🌡 Adaptation climatique' };
+  const competence=COMP[s.cat]||'🌱 Transition régénérative';
   const champ=(l,v)=>'<div style="min-width:110px"><div style="font-size:.58rem;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.15rem">'+l+'</div><div style="font-size:.82rem;font-weight:700;color:var(--ink)">'+v+'</div></div>';
+  const sectTitre=(t)=>'<div style="font-size:.62rem;font-weight:700;color:var(--moss);opacity:.65;text-transform:uppercase;letter-spacing:.08em;margin:1.1rem 0 .45rem">'+t+'</div>';
   // Hero avec l'image de la solution d'origine (comme la fiche solution).
   const hero = s.photo
     ? '<div style="position:relative;overflow:hidden;min-height:170px">'
@@ -3313,18 +3320,44 @@ function bddQueteDetailByIdx(i, targetEl){
         +'<div><div style="font-family:\'Satoshi\',sans-serif;font-size:1.25rem;font-weight:900;color:var(--ink);line-height:1.15">'+s.quete.titre+'</div>'
         +'<div style="font-size:.68rem;color:var(--moss);opacity:.7">Quête de la biblio · issue de la solution « '+s.nom+' »</div></div>'
       +'</div>')
-      +'<div style="display:flex;gap:1.2rem;flex-wrap:wrap;background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:.9rem 1.1rem;margin:0 0 1rem">'
+      // Caractéristiques : durée, participants, graines, date de rencontre
+      +'<div style="display:flex;gap:1.2rem;flex-wrap:wrap;background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:.9rem 1.1rem;margin:0 0 .4rem">'
         +champ('Durée', s.quete.duree||'-')
         +champ('Participants', s.quete.nb||'-')
-        +champ('Graines', '🌱 '+(s.tok||50))
-        +champ('Impact', s.quete.impact_quete||s.impact||'-')
+        +champ('Graines gagnées', '🌱 '+(s.tok||50))
+        +champ('Date de rencontre', 'À définir à la publication')
+      +'</div>'
+      // Description
+      +sectTitre('📝 Description')
+      +'<p style="font-size:.78rem;color:var(--ink);opacity:.9;line-height:1.6;margin:0">'+(s.desc||s.quete.impact_quete||'')+'</p>'
+      // Compétence nécessaire
+      +sectTitre('🎯 Compétence nécessaire')
+      +'<span style="display:inline-flex;align-items:center;font-size:.74rem;font-weight:700;color:var(--forest);background:rgba(1,130,98,.08);border:1px solid rgba(1,130,98,.25);border-radius:100px;padding:.35rem .8rem">'+competence+'</span>'
+      // Matériel nécessaire
+      +(materiel.length?(sectTitre('🧰 Matériel nécessaire')
+        +'<div style="background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:.7rem .9rem;display:flex;flex-direction:column;gap:.3rem">'
+        +materiel.map(m=>'<div style="display:flex;align-items:center;gap:.5rem;font-size:.72rem;color:var(--ink)"><span style="width:5px;height:5px;border-radius:50%;background:var(--fern);flex-shrink:0"></span>'+m+'</div>').join('')
+        +'</div>'):'')
+      // Étapes
+      +(plan.length?(sectTitre('🪜 Étapes · '+plan.length)
+        +'<div style="display:flex;flex-direction:column;gap:.35rem">'
+        +plan.map((p,k)=>'<div style="display:flex;gap:.7rem;background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:var(--r);padding:.55rem .7rem;align-items:flex-start">'
+            +'<div style="width:30px;height:30px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem;background:rgba(46,102,66,.07)">'+(p.ic||(k+1))+'</div>'
+            +'<div style="flex:1;min-width:0"><div style="font-size:.74rem;font-weight:700;color:var(--ink);margin-bottom:.15rem">'+(k+1)+'. '+(p.titre||'Étape')+'</div>'
+            +(p.desc?'<div style="font-size:.66rem;color:var(--moss);opacity:.85;line-height:1.45">'+p.desc+'</div>':'')+'</div>'
+          +'</div>').join('')
+        +'</div>'):'')
+      // Preuve pour valider la quête
+      +sectTitre('✅ Preuve pour valider la quête')
+      +'<div style="background:rgba(74,140,92,.06);border:1px solid rgba(74,140,92,.22);border-radius:var(--r-lg);padding:.75rem .9rem;font-size:.72rem;color:var(--ink);line-height:1.55">'
+        +'Photos de l\'action réalisée + relevé des indicateurs mesurés.'
+        +(icis.length?'<div style="margin-top:.4rem;display:flex;gap:.3rem;flex-wrap:wrap">'+icis.map(ici=>{const m=meta[ici.livre]||{col:'#4a8c5c'};return '<span style="font-size:.62rem;color:'+m.col+';background:'+m.col+'12;border:1px solid '+m.col+'33;border-radius:100px;padding:.1rem .45rem">'+ici.nom+(ici.unite?' ('+ici.unite+')':'')+'</span>';}).join('')+'</div>':'')
       +'</div>'
       // Lien → solution d'origine
-      +'<div style="font-size:.62rem;font-weight:700;color:var(--moss);opacity:.65;text-transform:uppercase;letter-spacing:.08em;margin:.9rem 0 .4rem">🧩 Solution d\'origine</div>'
+      +sectTitre('🧩 Solution d\'origine')
       +'<button onclick="bddOpenSolByIdx('+i+')" style="display:inline-flex;align-items:center;gap:.4rem;background:#fff;border:1px solid rgba(46,102,66,.25);border-radius:100px;padding:.45rem .9rem;font-size:.74rem;font-weight:700;color:var(--forest);cursor:pointer;font-family:inherit">'+s.img+' '+s.nom+' →</button>'
       // Liens → indicateurs portés par la solution
-      +(icis.length?(''
-        +'<div style="font-size:.62rem;font-weight:700;color:var(--moss);opacity:.65;text-transform:uppercase;letter-spacing:.08em;margin:1rem 0 .4rem">📊 Indicateurs mesurés</div>'
+      +(icis.length?(sectTitre('📊 Indicateurs mesurés')
         +'<div style="display:flex;gap:.35rem;flex-wrap:wrap">'
         +icis.map(ici=>{const m=meta[ici.livre]||{ic:'◆',col:'#4a8c5c'};
           return '<button onclick="bddOpenIci(\''+ici.id+'\')" style="display:inline-flex;align-items:center;gap:.3rem;background:'+m.col+'12;border:1px solid '+m.col+'44;border-radius:100px;padding:.3rem .7rem;font-size:.66rem;font-weight:600;color:'+m.col+';cursor:pointer;font-family:inherit">'+m.ic+' '+ici.nom+' →</button>';}).join('')
