@@ -4585,7 +4585,7 @@ function creerEnsureSidePanel(){
   if (!stage) return null;
   p = document.createElement('div');
   p.id = 'creer-side-panel';
-  p.style.cssText = 'display:none;position:absolute;top:0;right:0;bottom:0;width:min(600px,78%);z-index:60;background:var(--paper,#fbfaf7);flex-direction:column;box-shadow:-16px 0 48px -16px rgba(14,26,18,.42);border-left:1px solid rgba(46,102,66,.12)';
+  p.style.cssText = 'display:none;position:absolute;top:0;left:0;bottom:0;width:min(600px,78%);z-index:60;background:var(--paper,#fbfaf7);flex-direction:column;box-shadow:16px 0 48px -16px rgba(14,26,18,.42);border-right:1px solid rgba(46,102,66,.12)';
   p.innerHTML = ''
     + '<div style="padding:1.1rem 1.3rem .9rem;border-bottom:1px solid rgba(46,102,66,.1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">'
       + '<span id="creer-side-panel-title" style="font-size:.95rem;font-weight:800;color:var(--ink)"></span>'
