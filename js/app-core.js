@@ -6192,17 +6192,20 @@ function mmRevealEsp(idx){
     if (!isNaN(ex) && !isNaN(ey)) {
       let edx = ex - cx, edy = ey - cy; const edl = Math.hypot(edx, edy) || 1; edx /= edl; edy /= edl;
       const baseAng = Math.atan2(edy, edx);
-      const qEsp = cData.quetesEspMap || {};
-      const addedQ = (cData.quetesAjoutees || []).filter(nom => qEsp[nom] === idx && !retirQ.has('sol:' + nom));
-      addedQ.forEach((nom, k) => {
-        const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === nom) : null;
-        if (!sol || !sol.quete) return;
-        const ang = baseAng + (k - (addedQ.length - 1) / 2) * 0.4;
-        const qx = ex + Math.cos(ang) * 128, qy = ey + Math.sin(ang) * 128;
-        const p = mmLine(ex, ey, qx, qy, '#c8732a', '3,5', 'mn-e-' + idx, 'mn-q-' + idx + '-add' + k);
-        if (p) p.setAttribute('data-reveal', '1');
-        mmAdd('q-' + idx + '-add' + k, '⚡ ' + (sol.quete.titre || 'Quête'), qx, qy, 'quete', '#c8732a', 'rgba(200,115,42,.14)');
-      });
+      // Quêtes ajoutées : uniquement en phase quêtes (masquées à l'étape solutions/indicateurs).
+      if (window._creerPhase === 'quetes') {
+        const qEsp = cData.quetesEspMap || {};
+        const addedQ = (cData.quetesAjoutees || []).filter(nom => qEsp[nom] === idx && !retirQ.has('sol:' + nom));
+        addedQ.forEach((nom, k) => {
+          const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === nom) : null;
+          if (!sol || !sol.quete) return;
+          const ang = baseAng + (k - (addedQ.length - 1) / 2) * 0.4;
+          const qx = ex + Math.cos(ang) * 128, qy = ey + Math.sin(ang) * 128;
+          const p = mmLine(ex, ey, qx, qy, '#c8732a', '3,5', 'mn-e-' + idx, 'mn-q-' + idx + '-add' + k);
+          if (p) p.setAttribute('data-reveal', '1');
+          mmAdd('q-' + idx + '-add' + k, '⚡ ' + (sol.quete.titre || 'Quête'), qx, qy, 'quete', '#c8732a', 'rgba(200,115,42,.14)');
+        });
+      }
       const iEsp = cData.icisEspMap || {};
       const addedI = (cData.icisAjoutes || []).filter(id => iEsp[id] === idx && !retirI.has(id));
       addedI.forEach((id, k) => {
