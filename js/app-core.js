@@ -4497,60 +4497,126 @@ window._creerStep3Tab = window._creerStep3Tab || 'solutions';
 /* Onglet « Indicateurs » de l'étape 3 : les ICI portés par les solutions
    sélectionnées, regroupés par capital (écologie / social / économie locale). */
 function creerStep3IndicateursHTML(){
+  if (typeof iciPourSolution !== 'function' || typeof ICI_CATALOG === 'undefined') return '';
   const selSols = cData.solutions || [];
-  if (typeof iciPourSolution !== 'function') return '';
-  const iciMap = {}; // id -> {ici, sols:[]}
+  // Origine (solutions) de chaque ICI, pour l'afficher en chips.
+  const solsParIci = {};
   selSols.forEach(sn => {
     (iciPourSolution(sn) || []).forEach(ici => {
-      if (!iciMap[ici.id]) iciMap[ici.id] = { ici: ici, sols: [] };
-      if (!iciMap[ici.id].sols.includes(sn)) iciMap[ici.id].sols.push(sn);
+      (solsParIci[ici.id] = solsParIci[ici.id] || []);
+      if (!solsParIci[ici.id].includes(sn)) solsParIci[ici.id].push(sn);
     });
   });
-  const entries = Object.values(iciMap);
+  // Ensemble effectif = solutions (∪ ajoutés) − retirés.
+  const effIds = (typeof evadLieuIciIds === 'function') ? evadLieuIciIds(cData) : Object.keys(solsParIci);
+  const entries = effIds.map(id => iciGetICI(id)).filter(Boolean);
   const total = entries.length;
   let html = ''
     + '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem">'
       + '<div style="font-size:.72rem;font-weight:700;color:var(--ink)">📊 Indicateurs de Changement d\'Impact</div>'
       + '<div style="margin-left:auto;font-size:.65rem;font-weight:700;background:rgba(1,130,98,.1);color:var(--forest);padding:.1rem .5rem;border-radius:100px">'+total+' ICI</div>'
     + '</div>'
-    + '<div style="font-size:.65rem;color:var(--moss);opacity:.75;margin-bottom:.9rem;line-height:1.55">Chaque solution porte ses ICI : les changements concrets et mesurables que ton lieu projette (la base de ta Vadance).</div>';
-  if (!total) {
-    return html + '<div style="padding:1rem;text-align:center;font-size:.7rem;color:var(--moss);opacity:.55;border:1px dashed rgba(46,102,66,.2);border-radius:var(--r)">Aucun indicateur, ajoute des solutions qui portent des ICI.</div>';
-  }
-  const order = ['ecologie','social','economie_locale'];
-  const byLivre = {};
-  entries.forEach(e => { (byLivre[e.ici.livre] = byLivre[e.ici.livre] || []).push(e); });
-  order.forEach(livre => {
-    const list = byLivre[livre];
-    if (!list || !list.length) return;
-    const meta = (typeof ICI_LIVRE_META !== 'undefined' && ICI_LIVRE_META[livre]) || { label: livre, ic: '◆', col: '#4a8c5c' };
-    html += '<div style="display:flex;align-items:center;gap:.4rem;margin:.7rem 0 .45rem">'
-      + '<span style="font-size:.85rem">'+meta.ic+'</span>'
-      + '<span style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:'+meta.col+'">'+meta.label+'</span>'
-      + '<span style="margin-left:auto;font-size:.58rem;font-weight:700;color:'+meta.col+';background:'+meta.col+'18;padding:.05rem .45rem;border-radius:100px">'+list.length+'</span>'
-      + '</div>';
-    list.forEach(e => {
-      const ici = e.ici;
-      const chips = e.sols.map(sn => '<span style="font-size:.58rem;color:'+meta.col+';background:'+meta.col+'12;border:1px solid '+meta.col+'33;border-radius:100px;padding:.1rem .4rem">'+sn+'</span>').join(' ');
-      html += '<div onclick="creerOpenIciDetail(\''+ici.id+'\')" title="Voir la fiche indicateur" style="background:white;border:1px solid '+meta.col+'22;border-left:3px solid '+meta.col+';border-radius:var(--r);padding:.5rem .6rem;margin-bottom:.35rem;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow=\'0 2px 10px rgba(46,102,66,.12)\'" onmouseout="this.style.boxShadow=\'none\'">'
-        + '<div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.3rem">'
-          + '<span style="font-size:.72rem;font-weight:700;color:var(--ink);line-height:1.2">'+ici.nom+'</span>'
-          + '<span style="font-size:.56rem;color:'+meta.col+';font-weight:600;white-space:nowrap">'+(ici.unite||'')+'</span>'
-        + '</div>'
-        + '<div style="display:flex;flex-wrap:wrap;gap:.25rem">'+chips+'</div>'
-      + '</div>';
+    + '<div style="font-size:.65rem;color:var(--moss);opacity:.75;margin-bottom:.9rem;line-height:1.55">Chaque solution porte ses ICI : les changements concrets et mesurables que ton lieu projette. Retire ceux qui ne te concernent pas ou ajoute-en d\'autres depuis la bibliothèque.</div>';
+  if (total) {
+    const order = ['ecologie','social','economie_locale'];
+    const byLivre = {};
+    entries.forEach(ici => { (byLivre[ici.livre] = byLivre[ici.livre] || []).push(ici); });
+    order.forEach(livre => {
+      const list = byLivre[livre];
+      if (!list || !list.length) return;
+      const meta = (typeof ICI_LIVRE_META !== 'undefined' && ICI_LIVRE_META[livre]) || { label: livre, ic: '◆', col: '#4a8c5c' };
+      html += '<div style="display:flex;align-items:center;gap:.4rem;margin:.7rem 0 .45rem">'
+        + '<span style="font-size:.85rem">'+meta.ic+'</span>'
+        + '<span style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:'+meta.col+'">'+meta.label+'</span>'
+        + '<span style="margin-left:auto;font-size:.58rem;font-weight:700;color:'+meta.col+';background:'+meta.col+'18;padding:.05rem .45rem;border-radius:100px">'+list.length+'</span>'
+        + '</div>';
+      list.forEach(ici => {
+        const origine = solsParIci[ici.id] || [];
+        const chips = origine.length
+          ? origine.map(sn => '<span style="font-size:.58rem;color:'+meta.col+';background:'+meta.col+'12;border:1px solid '+meta.col+'33;border-radius:100px;padding:.1rem .4rem">'+sn+'</span>').join(' ')
+          : '<span style="font-size:.56rem;color:var(--moss);opacity:.6;font-style:italic">✦ ajouté à la main</span>';
+        html += '<div style="display:flex;align-items:stretch;gap:0;margin-bottom:.35rem">'
+          + '<div onclick="creerOpenIciDetail(\''+ici.id+'\')" title="Voir la fiche indicateur" style="flex:1;min-width:0;background:white;border:1px solid '+meta.col+'22;border-left:3px solid '+meta.col+';border-radius:var(--r) 0 0 var(--r);padding:.5rem .6rem;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow=\'0 2px 10px rgba(46,102,66,.12)\'" onmouseout="this.style.boxShadow=\'none\'">'
+            + '<div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.3rem">'
+              + '<span style="font-size:.72rem;font-weight:700;color:var(--ink);line-height:1.2">'+ici.nom+'</span>'
+              + '<span style="font-size:.56rem;color:'+meta.col+';font-weight:600;white-space:nowrap">'+(ici.unite||'')+'</span>'
+            + '</div>'
+            + '<div style="display:flex;flex-wrap:wrap;gap:.25rem">'+chips+'</div>'
+          + '</div>'
+          + '<button onclick="creerRemoveIci(\''+ici.id+'\')" title="Retirer cet indicateur" style="flex-shrink:0;border:1px solid '+meta.col+'22;border-left:none;border-radius:0 var(--r) var(--r) 0;background:'+meta.col+'08;color:'+meta.col+';cursor:pointer;font-size:.8rem;line-height:1;padding:0 .6rem;opacity:.55;transition:opacity .15s" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'.55\'">✕</button>'
+        + '</div>';
+      });
     });
-  });
+  } else {
+    html += '<div style="padding:1rem;text-align:center;font-size:.7rem;color:var(--moss);opacity:.55;border:1px dashed rgba(46,102,66,.2);border-radius:var(--r);margin-bottom:.5rem">Aucun indicateur — ajoute des solutions qui en portent, ou ajoute-en depuis la bibliothèque.</div>';
+  }
+  // Panneau « ajouter depuis la bibliothèque »
+  const shown = new Set(effIds);
+  const dispo = ICI_CATALOG.filter(i => !shown.has(i.id));
+  if (window._creerIciPanelOpen) {
+    html += '<div style="margin-top:.5rem;padding:.6rem .7rem;background:rgba(46,102,66,.03);border:1px solid rgba(46,102,66,.12);border-radius:var(--r)">'
+      + '<div style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.45rem">Bibliothèque · ajouter un indicateur</div>';
+    if (!dispo.length) {
+      html += '<div style="padding:.5rem;text-align:center;font-size:.66rem;color:var(--moss);opacity:.45;font-style:italic">Tous les indicateurs sont déjà présents</div>';
+    } else {
+      const order2 = ['ecologie','social','economie_locale'];
+      order2.forEach(livre => {
+        const grp = dispo.filter(i => i.livre === livre);
+        if (!grp.length) return;
+        const meta = (typeof ICI_LIVRE_META !== 'undefined' && ICI_LIVRE_META[livre]) || { label: livre, ic: '◆', col: '#4a8c5c' };
+        html += '<div style="font-size:.58rem;font-weight:700;color:'+meta.col+';text-transform:uppercase;letter-spacing:.07em;margin:.5rem 0 .28rem;display:flex;align-items:center;gap:.3rem"><span>'+meta.ic+'</span><span>'+meta.label+'</span></div>';
+        grp.forEach(ici => {
+          html += '<div style="display:flex;align-items:center;gap:.5rem;padding:.38rem .5rem;border-radius:.6rem;background:white;border:1px solid rgba(46,102,66,.08);margin-bottom:.2rem">'
+            + '<div style="flex:1;min-width:0">'
+              + '<div style="font-size:.68rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+ici.nom+'</div>'
+              + '<div style="font-size:.57rem;color:var(--moss);opacity:.65">'+(ici.unite||'')+'</div>'
+            + '</div>'
+            + '<button onclick="creerOpenIciDetail(\''+ici.id+'\')" style="flex-shrink:0;padding:.25rem .45rem;border-radius:.45rem;border:1.5px solid rgba(46,102,66,.2);background:transparent;color:var(--forest);font-size:.6rem;cursor:pointer">👁</button>'
+            + '<button onclick="creerAddIci(\''+ici.id+'\')" style="flex-shrink:0;padding:.25rem .55rem;border-radius:.45rem;border:none;background:var(--forest);color:white;font-size:.6rem;font-weight:700;cursor:pointer">+ Ajouter</button>'
+          + '</div>';
+        });
+      });
+    }
+    html += '<div style="margin-top:.5rem;text-align:right"><button onclick="creerToggleIciPanel()" style="font-size:.62rem;color:var(--moss);background:none;border:none;cursor:pointer;font-family:inherit;opacity:.7">Fermer</button></div>'
+      + '</div>';
+  } else {
+    html += '<div style="margin-top:.4rem"><button onclick="creerToggleIciPanel()" style="font-size:.66rem;color:var(--forest);background:rgba(1,130,98,.05);border:1.5px dashed rgba(1,130,98,.35);border-radius:var(--r);padding:.55rem;width:100%;cursor:pointer;font-family:inherit;font-weight:700">+ Ajouter un indicateur depuis la bibliothèque</button></div>';
+  }
   return html;
+}
+
+/* Ajout / retrait d'indicateurs (curation de l'onglet Indicateurs du wizard). */
+function creerAddIci(id){
+  cData.icisAjoutes = cData.icisAjoutes || [];
+  if (!cData.icisAjoutes.includes(id)) cData.icisAjoutes.push(id);
+  cData.icisRetires = (cData.icisRetires || []).filter(x => x !== id);
+  creerStep3RefreshIndicateurs();
+}
+function creerRemoveIci(id){
+  cData.icisRetires = cData.icisRetires || [];
+  if (!cData.icisRetires.includes(id)) cData.icisRetires.push(id);
+  cData.icisAjoutes = (cData.icisAjoutes || []).filter(x => x !== id);
+  creerStep3RefreshIndicateurs();
+}
+function creerToggleIciPanel(){
+  window._creerIciPanelOpen = !window._creerIciPanelOpen;
+  creerStep3RefreshIndicateurs();
+}
+function creerStep3RefreshIndicateurs(){
+  if (typeof creerStep3IndicateursHTML !== 'function') return;
+  const html = creerStep3IndicateursHTML();
+  if (window._creerS3Panes) window._creerS3Panes.indicateurs = html;
+  const pane = document.getElementById('creer-s3-pane');
+  if (pane && window._creerStep3Tab === 'indicateurs') pane.innerHTML = html;
 }
 
 /* Onglet « Quêtes » de l'étape 3 : l'aperçu des quêtes portées par les
    solutions sélectionnées (l'action concrète que rejoindront les Bâtisseurs). */
 function creerStep3QuetesHTML(){
-  const selSols = cData.solutions || [];
+  const queteSols = (typeof evadLieuQueteSols === 'function') ? evadLieuQueteSols(cData) : (cData.solutions || []);
   const quetes = [];
   if (typeof SOLS !== 'undefined') {
-    selSols.forEach(sn => {
+    queteSols.forEach(sn => {
       const sol = SOLS.find(s => s.nom === sn);
       if (sol && sol.quete) quetes.push({ sol: sol, q: sol.quete });
     });
@@ -4559,48 +4625,109 @@ function creerStep3QuetesHTML(){
   const customs = (window.store) ? store.where('quetes', function(q){ return q.custom === true && q.statut !== 'retiree'; }) : [];
   const total = quetes.length + customs.length;
   const btnNouvelle = '<button onclick="creerQueteNouvelle()" style="width:100%;margin-top:.4rem;padding:.6rem;border:1.5px dashed rgba(1,130,98,.4);border-radius:var(--r);background:rgba(1,130,98,.05);color:var(--forest);font-family:inherit;font-size:.74rem;font-weight:700;cursor:pointer">＋ Créer une nouvelle quête</button>';
+
+  // Panneau « ajouter une quête depuis la bibliothèque » : solutions de la BDD
+  // qui portent une quête et qui ne sont pas déjà affichées.
+  const shown = new Set(queteSols);
+  const dispo = (typeof SOLS !== 'undefined') ? SOLS.filter(s => s.quete && !shown.has(s.nom)) : [];
+  let bddPanel = '';
+  if (window._creerQuetePanelOpen) {
+    bddPanel = '<div style="margin-top:.5rem;padding:.6rem .7rem;background:rgba(46,102,66,.03);border:1px solid rgba(46,102,66,.12);border-radius:var(--r)">'
+      + '<div style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.45rem">Bibliothèque · ajouter une quête</div>';
+    if (!dispo.length) {
+      bddPanel += '<div style="padding:.5rem;text-align:center;font-size:.66rem;color:var(--moss);opacity:.45;font-style:italic">Toutes les quêtes de la bibliothèque sont déjà présentes</div>';
+    } else {
+      dispo.forEach(s => {
+        const safeNom = String(s.nom).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        bddPanel += '<div style="display:flex;align-items:center;gap:.5rem;padding:.38rem .5rem;border-radius:.6rem;background:white;border:1px solid rgba(46,102,66,.08);margin-bottom:.2rem">'
+          + '<span style="font-size:.88rem;flex-shrink:0">'+(s.img||'⚡')+'</span>'
+          + '<div style="flex:1;min-width:0">'
+            + '<div style="font-size:.68rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+((s.quete&&s.quete.titre)||s.nom)+'</div>'
+            + '<div style="font-size:.57rem;color:var(--moss);opacity:.65">issue de « '+s.nom+' »</div>'
+          + '</div>'
+          + '<button onclick="creerOpenQueteDetail(\''+safeNom+'\')" style="flex-shrink:0;padding:.25rem .45rem;border-radius:.45rem;border:1.5px solid rgba(46,102,66,.2);background:transparent;color:var(--forest);font-size:.6rem;cursor:pointer">👁</button>'
+          + '<button onclick="creerAddQuete(\''+safeNom+'\')" style="flex-shrink:0;padding:.25rem .55rem;border-radius:.45rem;border:none;background:var(--forest);color:white;font-size:.6rem;font-weight:700;cursor:pointer">+ Ajouter</button>'
+        + '</div>';
+      });
+    }
+    bddPanel += '<div style="margin-top:.5rem;text-align:right"><button onclick="creerToggleQuetePanel()" style="font-size:.62rem;color:var(--moss);background:none;border:none;cursor:pointer;font-family:inherit;opacity:.7">Fermer</button></div>'
+      + '</div>';
+  } else {
+    bddPanel = '<div style="margin-top:.4rem"><button onclick="creerToggleQuetePanel()" style="font-size:.66rem;color:var(--forest);background:rgba(1,130,98,.05);border:1.5px dashed rgba(1,130,98,.35);border-radius:var(--r);padding:.55rem;width:100%;cursor:pointer;font-family:inherit;font-weight:700">+ Ajouter une quête depuis la bibliothèque</button></div>';
+  }
+
   let html = ''
     + '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem">'
       + '<div style="font-size:.72rem;font-weight:700;color:var(--ink)">⚡ Quêtes proposées</div>'
       + '<div style="margin-left:auto;font-size:.65rem;font-weight:700;background:rgba(1,130,98,.1);color:var(--forest);padding:.1rem .5rem;border-radius:100px">'+total+' quête'+(total!==1?'s':'')+'</div>'
     + '</div>'
-    + '<div style="font-size:.65rem;color:var(--moss);opacity:.75;margin-bottom:.9rem;line-height:1.55">Chaque solution propose une quête : l\'action concrète que les Bâtisseurs pourront rejoindre. Tu peux aussi en créer une sur mesure. Tu les retrouveras dans « Mes quêtes » pour les publier.</div>';
+    + '<div style="font-size:.65rem;color:var(--moss);opacity:.75;margin-bottom:.9rem;line-height:1.55">Chaque solution propose une quête : l\'action concrète que les Bâtisseurs pourront rejoindre. Retire celles qui ne conviennent pas, ajoute-en depuis la bibliothèque ou crée-en une sur mesure. Tu les retrouveras dans « Mes quêtes » pour les publier.</div>';
   if (!total) {
-    return html + '<div style="padding:1rem;text-align:center;font-size:.7rem;color:var(--moss);opacity:.55;border:1px dashed rgba(46,102,66,.2);border-radius:var(--r);margin-bottom:.5rem">Aucune quête pour l\'instant — ajoute des solutions qui en portent, ou crée-en une sur mesure.</div>' + btnNouvelle;
+    return html + '<div style="padding:1rem;text-align:center;font-size:.7rem;color:var(--moss);opacity:.55;border:1px dashed rgba(46,102,66,.2);border-radius:var(--r);margin-bottom:.5rem">Aucune quête pour l\'instant — ajoute des solutions qui en portent, ajoute-en depuis la bibliothèque, ou crée-en une sur mesure.</div>' + bddPanel + btnNouvelle;
   }
   quetes.forEach(function(item){
     const sol = item.sol, q = item.q;
     const ic = sol.img || '⚡';
     const safeNom = String(sol.nom).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    html += '<div onclick="creerOpenQueteDetail(\''+safeNom+'\')" title="Voir la fiche quête" style="background:white;border:1px solid rgba(46,102,66,.14);border-left:3px solid var(--amber);border-radius:var(--r);padding:.55rem .7rem;margin-bottom:.4rem;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow=\'0 2px 10px rgba(46,102,66,.12)\'" onmouseout="this.style.boxShadow=\'none\'">'
-      + '<div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.3rem">'
-        + '<span style="font-size:.9rem">'+ic+'</span>'
-        + '<span style="font-size:.74rem;font-weight:700;color:var(--ink);line-height:1.2;flex:1">'+(q.titre||'Quête')+'</span>'
+    html += '<div style="display:flex;align-items:stretch;gap:0;margin-bottom:.4rem">'
+      + '<div onclick="creerOpenQueteDetail(\''+safeNom+'\')" title="Voir la fiche quête" style="flex:1;min-width:0;background:white;border:1px solid rgba(46,102,66,.14);border-left:3px solid var(--amber);border-radius:var(--r) 0 0 var(--r);padding:.55rem .7rem;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow=\'0 2px 10px rgba(46,102,66,.12)\'" onmouseout="this.style.boxShadow=\'none\'">'
+        + '<div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.3rem">'
+          + '<span style="font-size:.9rem">'+ic+'</span>'
+          + '<span style="font-size:.74rem;font-weight:700;color:var(--ink);line-height:1.2;flex:1">'+(q.titre||'Quête')+'</span>'
+        + '</div>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:.5rem;font-size:.62rem;color:var(--moss);opacity:.85">'
+          + (q.duree ? '<span>⏱ '+q.duree+'</span>' : '')
+          + (q.nb ? '<span>👥 '+q.nb+'</span>' : '')
+          + (q.impact_quete ? '<span style="color:var(--fern);font-weight:600">🌿 '+q.impact_quete+'</span>' : '')
+        + '</div>'
+        + '<div style="font-size:.56rem;color:var(--moss);opacity:.5;margin-top:.3rem">issue de « '+sol.nom+' »</div>'
       + '</div>'
-      + '<div style="display:flex;flex-wrap:wrap;gap:.5rem;font-size:.62rem;color:var(--moss);opacity:.85">'
-        + (q.duree ? '<span>⏱ '+q.duree+'</span>' : '')
-        + (q.nb ? '<span>👥 '+q.nb+'</span>' : '')
-        + (q.impact_quete ? '<span style="color:var(--fern);font-weight:600">🌿 '+q.impact_quete+'</span>' : '')
-      + '</div>'
-      + '<div style="font-size:.56rem;color:var(--moss);opacity:.5;margin-top:.3rem">issue de « '+sol.nom+' »</div>'
+      + '<button onclick="creerRemoveQuete(\'sol:'+safeNom+'\')" title="Retirer cette quête" style="flex-shrink:0;border:1px solid rgba(46,102,66,.14);border-left:none;border-radius:0 var(--r) var(--r) 0;background:rgba(200,115,42,.05);color:var(--amber);cursor:pointer;font-size:.8rem;line-height:1;padding:0 .6rem;opacity:.55;transition:opacity .15s" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'.55\'">✕</button>'
     + '</div>';
   });
   customs.forEach(function(q){
-    html += '<div style="background:white;border:1px solid rgba(46,102,66,.14);border-left:3px solid var(--forest);border-radius:var(--r);padding:.55rem .7rem;margin-bottom:.4rem">'
-      + '<div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.3rem">'
-        + '<span style="font-size:.9rem">'+(q.sourceIc||'⚡')+'</span>'
-        + '<span style="font-size:.74rem;font-weight:700;color:var(--ink);line-height:1.2;flex:1">'+(q.titre||'Quête')+'</span>'
+    html += '<div style="display:flex;align-items:stretch;gap:0;margin-bottom:.4rem">'
+      + '<div style="flex:1;min-width:0;background:white;border:1px solid rgba(46,102,66,.14);border-left:3px solid var(--forest);border-radius:var(--r) 0 0 var(--r);padding:.55rem .7rem">'
+        + '<div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.3rem">'
+          + '<span style="font-size:.9rem">'+(q.sourceIc||'⚡')+'</span>'
+          + '<span style="font-size:.74rem;font-weight:700;color:var(--ink);line-height:1.2;flex:1">'+(q.titre||'Quête')+'</span>'
+        + '</div>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:.5rem;font-size:.62rem;color:var(--moss);opacity:.85">'
+          + (q.duree && q.duree!=='-' ? '<span>⏱ '+q.duree+'</span>' : '')
+          + (q.nb && q.nb!=='-' ? '<span>👥 '+q.nb+'</span>' : '')
+          + '<span style="color:var(--amber);font-weight:700">🌱 '+(q.graines||50)+'</span>'
+          + (q.impact ? '<span style="color:var(--fern);font-weight:600">🌿 '+q.impact+'</span>' : '')
+        + '</div>'
+        + '<div style="font-size:.56rem;color:var(--forest);opacity:.65;margin-top:.3rem;font-weight:600">✦ créée sur mesure</div>'
       + '</div>'
-      + '<div style="display:flex;flex-wrap:wrap;gap:.5rem;font-size:.62rem;color:var(--moss);opacity:.85">'
-        + (q.duree && q.duree!=='-' ? '<span>⏱ '+q.duree+'</span>' : '')
-        + (q.nb && q.nb!=='-' ? '<span>👥 '+q.nb+'</span>' : '')
-        + '<span style="color:var(--amber);font-weight:700">🌱 '+(q.graines||50)+'</span>'
-        + (q.impact ? '<span style="color:var(--fern);font-weight:600">🌿 '+q.impact+'</span>' : '')
-      + '</div>'
-      + '<div style="font-size:.56rem;color:var(--forest);opacity:.65;margin-top:.3rem;font-weight:600">✦ créée sur mesure</div>'
+      + '<button onclick="creerRemoveQuete(\'cst:'+q.id+'\')" title="Retirer cette quête" style="flex-shrink:0;border:1px solid rgba(46,102,66,.14);border-left:none;border-radius:0 var(--r) var(--r) 0;background:rgba(46,102,66,.04);color:var(--forest);cursor:pointer;font-size:.8rem;line-height:1;padding:0 .6rem;opacity:.55;transition:opacity .15s" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'.55\'">✕</button>'
     + '</div>';
   });
-  return html + btnNouvelle;
+  return html + bddPanel + btnNouvelle;
+}
+
+/* Ajout / retrait de quêtes (curation de l'onglet Quêtes du wizard). */
+function creerAddQuete(solNom){
+  cData.quetesAjoutees = cData.quetesAjoutees || [];
+  if (!cData.quetesAjoutees.includes(solNom)) cData.quetesAjoutees.push(solNom);
+  cData.quetesRetirees = (cData.quetesRetirees || []).filter(k => k !== 'sol:' + solNom);
+  creerStep3RefreshQuetes();
+}
+function creerRemoveQuete(key){
+  if (key.indexOf('cst:') === 0) {
+    // Quête sur mesure : on la retire du store (statut « retiree »).
+    const id = key.slice(4);
+    if (window.store) { const r = store.get('quetes', id); if (r) store.upsert('quetes', Object.assign({}, r, { statut: 'retiree' })); }
+  } else {
+    cData.quetesRetirees = cData.quetesRetirees || [];
+    if (!cData.quetesRetirees.includes(key)) cData.quetesRetirees.push(key);
+    cData.quetesAjoutees = (cData.quetesAjoutees || []).filter(n => 'sol:' + n !== key);
+  }
+  creerStep3RefreshQuetes();
+}
+function creerToggleQuetePanel(){
+  window._creerQuetePanelOpen = !window._creerQuetePanelOpen;
+  creerStep3RefreshQuetes();
 }
 
 // Bouton « Créer une nouvelle quête » de l'étape 3 : ouvre la fiche quête
@@ -5740,6 +5867,31 @@ function evadLieuSols(L){
   return [...new Set(Object.keys(byEsp).reduce((a,k)=>a.concat(byEsp[k]||[]),[]))];
 }
 
+// Indicateurs (ICI) effectivement retenus pour un lieu : ceux portés par ses
+// solutions, PLUS ceux ajoutés à la main, MOINS ceux retirés (curation faite
+// dans l'onglet « Indicateurs » du wizard, comme pour les solutions).
+function evadLieuIciIds(L){
+  const ids = []; const seen = new Set();
+  const sols = evadLieuSols(L);
+  if (typeof iciPourSolution === 'function'){
+    sols.forEach(nom => (iciPourSolution(nom) || []).forEach(ici => {
+      if (!seen.has(ici.id)) { seen.add(ici.id); ids.push(ici.id); }
+    }));
+  }
+  ((L && L.icisAjoutes) || []).forEach(id => { if (!seen.has(id)) { seen.add(id); ids.push(id); } });
+  const retir = new Set((L && L.icisRetires) || []);
+  return ids.filter(id => !retir.has(id));
+}
+
+// Solutions dont la quête est effectivement retenue pour un lieu : celles de la
+// fiche PLUS celles ajoutées à la main, MOINS celles retirées (clé « sol:<nom> »).
+function evadLieuQueteSols(L){
+  const sols = evadLieuSols(L);
+  const ajout = (L && L.quetesAjoutees) || [];
+  const retir = new Set((L && L.quetesRetirees) || []);
+  return [...new Set([...sols, ...ajout])].filter(nom => !retir.has('sol:' + nom));
+}
+
 // Dérive et persiste les solutions retenues + leurs indicateurs (ICI) d'un lieu
 // dans les tables dédiées Supabase (via store.replaceLieuChildren). Appelée à la
 // publication de la fiche lieu.
@@ -5771,23 +5923,26 @@ function evadSyncLieuChildren(lieuId){
     };
   });
 
-  // Indicateurs (ICI) dérivés des solutions retenues, dédupliqués par id.
-  const iciMap = {};
+  // Indicateurs (ICI) effectivement retenus (solutions ∪ ajoutés − retirés).
+  // On garde la trace des solutions d'origine pour l'affichage.
+  const origineParIci = {};
   if (typeof iciPourSolution === 'function') {
     sols.forEach(nom => {
       (iciPourSolution(nom) || []).forEach(ici => {
-        if (!iciMap[ici.id]) iciMap[ici.id] = { ici: ici, sols: [] };
-        if (iciMap[ici.id].sols.indexOf(nom) < 0) iciMap[ici.id].sols.push(nom);
+        (origineParIci[ici.id] = origineParIci[ici.id] || []);
+        if (origineParIci[ici.id].indexOf(nom) < 0) origineParIci[ici.id].push(nom);
       });
     });
   }
-  const iciRows = Object.keys(iciMap).map(id => {
-    const e = iciMap[id];
+  const effIciIds = (typeof evadLieuIciIds === 'function') ? evadLieuIciIds(L) : Object.keys(origineParIci);
+  const iciRows = effIciIds.map(id => {
+    const ici = (typeof iciGetICI === 'function') ? iciGetICI(id) : null;
+    if (!ici) return null;
     return {
-      id: lieuId + '-ici-' + id, lieu_id: lieuId, ici_id: id, nom: e.ici.nom,
-      livre: e.ici.livre, unite: e.ici.unite, solutions: e.sols
+      id: lieuId + '-ici-' + id, lieu_id: lieuId, ici_id: id, nom: ici.nom,
+      livre: ici.livre, unite: ici.unite, solutions: origineParIci[id] || []
     };
-  });
+  }).filter(Boolean);
 
   try { store.replaceLieuChildren(lieuId, solRows, iciRows); } catch (e) {}
 }

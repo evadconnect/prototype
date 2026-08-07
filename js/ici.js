@@ -366,22 +366,35 @@ function iciRenderMesureImpact() {
 /* ════════════════════ SAISIE PILOTE (une saisie → des preuves) ════════════════════ */
 
 // Solutions déclarées par le Pilote pour son lieu (ou null si aucune).
-function iciSolutionsDuLieu() {
-  // evadLieuSols retombe sur solsByEspace si le champ à plat est vide.
+// Lieu actif : celui dont les solutions font foi (fiche publiée sinon brouillon).
+function _iciLieuActif() {
   const sols = (L) => (typeof evadLieuSols === 'function')
     ? evadLieuSols(L)
     : ((L && Array.isArray(L.solutions)) ? L.solutions : []);
-  if (typeof myLieuData !== 'undefined' && myLieuData && sols(myLieuData).length) return sols(myLieuData);
-  if (typeof cData !== 'undefined' && cData && sols(cData).length) return sols(cData);
+  if (typeof myLieuData !== 'undefined' && myLieuData && sols(myLieuData).length) return myLieuData;
+  if (typeof cData !== 'undefined' && cData && sols(cData).length) return cData;
   return null;
 }
 
-// ICI portés par les solutions déclarées (sinon tout le référentiel, pour la démo).
+function iciSolutionsDuLieu() {
+  const L = _iciLieuActif();
+  if (!L) return null;
+  return (typeof evadLieuSols === 'function') ? evadLieuSols(L) : (L.solutions || []);
+}
+
+// ICI effectivement retenus par le lieu : portés par ses solutions, plus ceux
+// ajoutés à la main, moins ceux retirés (curation du wizard). Sinon, pour la
+// démo, tout le référentiel.
 function iciIcisDuLieu() {
-  const sols = iciSolutionsDuLieu();
-  if (!sols) return ICI_CATALOG.slice();
-  const set = new Set(sols);
-  const matched = ICI_CATALOG.filter((i) => (i.solutionIds || []).some((s) => set.has(s)));
+  const L = _iciLieuActif();
+  if (!L) return ICI_CATALOG.slice();
+  const ids = (typeof evadLieuIciIds === 'function')
+    ? evadLieuIciIds(L)
+    : (function () {
+        const set = new Set(iciSolutionsDuLieu() || []);
+        return ICI_CATALOG.filter((i) => (i.solutionIds || []).some((s) => set.has(s))).map((i) => i.id);
+      })();
+  const matched = ids.map((id) => iciGetICI(id)).filter(Boolean);
   return matched.length ? matched : ICI_CATALOG.slice();
 }
 

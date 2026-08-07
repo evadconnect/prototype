@@ -206,13 +206,17 @@ function syncPiloteQuetesFromLieu() {
     : (typeof cData !== 'undefined' ? cData : null);
   // Repli sur solsByEspace si le champ à plat est vide (fiches anciennes).
   const sols = (typeof evadLieuSols === 'function') ? evadLieuSols(L) : ((L && L.solutions) || []);
-  const solSet = new Set(sols);
+  // Quêtes effectivement retenues (curation de l'onglet Quêtes du wizard) :
+  // solutions de la fiche ∪ quêtes ajoutées − quêtes retirées.
+  const queteSols = (typeof evadLieuQueteSols === 'function') ? evadLieuQueteSols(L) : sols;
+  const queteSolSet = new Set(queteSols);
+  const quetesRetirees = new Set((L && L.quetesRetirees) || []);
   const myLieuId = (L && L.id) || null;
 
-  // 1. Proposer une quête « à publier » pour chaque solution qui en a une
+  // 1. Proposer une quête « à publier » pour chaque solution retenue qui en a une
   //    (créée une seule fois dans le store ; on ne réécrase pas si déjà publiée/retirée).
   if (typeof SOLS !== 'undefined') {
-    sols.forEach(function (nom) {
+    queteSols.forEach(function (nom) {
       const sol = SOLS.find(function (s) { return s.nom === nom; });
       if (!sol || !sol.quete) return;
       // id propre au lieu → pas de collision entre Pilotes en base.
@@ -232,12 +236,15 @@ function syncPiloteQuetesFromLieu() {
   //    depuis une solution actuellement dans la fiche. Hors quêtes retirées.
   store.where('quetes', function (r) {
     if (r.statut === 'retiree') return false;
+    // Quête d'une solution explicitement retirée dans l'onglet Quêtes : masquée
+    // (sauf si déjà publiée « ouverte » — on ne dépublie pas en douce).
+    if (!r.custom && r.source && quetesRetirees.has('sol:' + r.source) && r.statut !== 'ouverte') return false;
     // Toute quête rattachée au lieu du Pilote reste dans son onglet, quel que
     // soit son statut : une quête publiée (« ouverte ») ne disparaît donc plus,
     // même si la solution dont elle est issue n'est plus sélectionnée.
     if (myLieuId && r.lieu_id === myLieuId) return true;
-    // Repli : quête créée manuellement, ou issue d'une solution encore dans la fiche.
-    return r.custom === true || (r.source && solSet.has(r.source));
+    // Repli : quête créée manuellement, ou issue d'une solution retenue dans la fiche.
+    return r.custom === true || (r.source && queteSolSet.has(r.source));
   }).forEach(function (r) {
     PILOTE_QUETES_DEMO.push({
       id: r.id, titre: r.titre || 'Quête', statut: r.statut || 'a_verifier',
