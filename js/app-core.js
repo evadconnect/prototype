@@ -1631,6 +1631,48 @@ const SOLS=[
    esrs:['ESRS E1','ESRS E3'],esrs_detail:'Adaptation aux chaleurs et aux pluies intenses (E1), gestion de l\'eau (E3).',
    lieux:['ecolieu','habitat','tiers','jardin','ecole','autre'],
    quete:{titre:'Désimperméabiliser une cour',duree:'2 week-ends',nb:'5–10 pers.',impact_quete:'+8 pts adaptation · sol perméable'}},
+
+  // ── Social (transversal à tout espace) ──
+  {nom:'Atelier de transmission',cat:'social',cplx:'facile',impact:'~200 h de formation/an',co2:0,tok:40,img:'🎓',
+   desc:'Ouvrir régulièrement l\'espace à des ateliers de transmission des savoir-faire de la transition : jardinage, réparation, cuisine, éco-construction. Les habitants apprennent en faisant, les compétences essaiment sur le territoire et le lieu devient un point de rencontre et d\'apprentissage vivant.',
+   avantages:['Transmet des savoir-faire concrets et réplicables','Crée du lien et fait connaître le lieu au territoire','S\'adapte à tout espace : jardin, atelier, cuisine, salle'],
+   budget:'0–1 500 €',
+   ind:['Heures de formation h/an','Personnes sensibilisées'],
+   esrs:['ESRS S1','ESRS S3'],esrs_detail:'Développement des compétences (S1) et lien avec la communauté (S3).',
+   photo:'https://images.unsplash.com/photo-1544531586-fde5298cdd40?w=800&q=80&auto=format&fit=crop',
+   lieux:['ferme','jardin','ecolieu','habitat','tiers','cafe','epicerie','fablab','repair','ressourcerie','coworking','incubateur','ecole','autre'],
+   quete:{titre:'Animer un atelier de transmission',duree:'1 après-midi',nb:'1–3 pers.',impact_quete:'+10 pts social · savoir-faire transmis'}},
+
+  {nom:'Chantier participatif',cat:'social',cplx:'facile',impact:'~30 bénévoles/an',co2:0,tok:35,img:'🤝',
+   desc:'Mobiliser les habitants sur des chantiers collectifs pour construire, planter ou aménager l\'espace. Le faire-ensemble crée de l\'appartenance, accueille des personnes en insertion et réalise des aménagements à moindre coût. Chaque chantier est une fête de travail qui ancre le lieu dans sa communauté.',
+   avantages:['Mobilise et fédère les habitants autour du lieu','Accueille des personnes éloignées de l\'emploi','Réalise des aménagements à faible coût'],
+   budget:'0–2 000 €',
+   ind:['Bénévoles mobilisés','Personnes en insertion'],
+   esrs:['ESRS S1','ESRS S3'],esrs_detail:'Inclusion et insertion (S1) · engagement de la communauté (S3).',
+   photo:'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&q=80&auto=format&fit=crop',
+   lieux:['ferme','jardin','ecolieu','habitat','tiers','cafe','epicerie','fablab','repair','ressourcerie','coworking','incubateur','ecole','autre'],
+   quete:{titre:'Organiser un chantier participatif',duree:'1 journée',nb:'6–15 pers.',impact_quete:'+12 pts social · chantier collectif'}},
+
+  // ── Économie locale (transversal à tout espace) ──
+  {nom:'Approvisionnement local',cat:'alimentaire',cplx:'facile',impact:'~70 % achats locaux',co2:.4,tok:30,img:'🧺',
+   desc:'Réorienter les achats du lieu (alimentation, fournitures, matériaux) vers des producteurs et artisans du territoire. On cartographie les fournisseurs de proximité, on contractualise et on mesure la part locale du budget. Chaque euro dépensé localement fait vivre l\'économie de proximité plutôt que des chaînes mondiales.',
+   avantages:['Fait vivre les producteurs et artisans du territoire','Réduit l\'empreinte carbone du transport','Renforce la résilience et l\'ancrage local du lieu'],
+   budget:'0 € (réorientation d\'achats)',
+   ind:['Approvisionnement local %','Partenaires locaux'],
+   esrs:['ESRS S2'],esrs_detail:'Chaîne de valeur locale et équitable (S2).',
+   photo:'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=800&q=80&auto=format&fit=crop',
+   lieux:['ferme','jardin','ecolieu','habitat','tiers','cafe','epicerie','fablab','repair','ressourcerie','coworking','incubateur','ecole','autre'],
+   quete:{titre:'Référencer les producteurs locaux',duree:'2 réunions',nb:'2–4 pers.',impact_quete:'+10 pts éco locale · circuit court'}},
+
+  {nom:'Recyclerie & réemploi local',cat:'dechets',cplx:'moyen',impact:'~3 t réemployées/an',co2:.9,tok:45,img:'🛍️',
+   desc:'Ouvrir un point de collecte, réparation et revente d\'objets et matériaux de seconde main. Ce qui était déchet devient ressource et emploi local : mobilier, textile, matériaux. La recyclerie crée des postes en insertion, alimente les chantiers du territoire en matériaux de réemploi et détourne des tonnes de l\'enfouissement.',
+   avantages:['Détourne plusieurs tonnes de déchets par an','Crée des emplois locaux et de l\'insertion','Fournit des matériaux de réemploi au territoire'],
+   budget:'3 000–15 000 €',
+   ind:['Matériaux réemployés t/an','Emplois locaux ETP','Partenaires locaux'],
+   esrs:['ESRS E5','ESRS S1'],esrs_detail:'Économie circulaire (E5) et emploi/insertion locale (S1).',
+   photo:'https://images.unsplash.com/photo-1489274495757-95c7c837b101?w=800&q=80&auto=format&fit=crop',
+   lieux:['tiers','ecolieu','fablab','repair','ressourcerie','cafe','epicerie','coworking','incubateur','ecole','autre'],
+   quete:{titre:'Lancer un point de réemploi',duree:'3 week-ends',nb:'4–8 pers.',impact_quete:'+12 pts éco locale · réemploi'}},
 ];
 
 /* ── Dimension régénérative & enjeux de demain, par solution (clé = nom) ──
@@ -4357,6 +4399,9 @@ function renderStep(){
           if(chosen.length>=_CAP) break;
           if(!_seenSols.has(n)){ chosen.push(n); _seenSols.add(n); }
         }
+        // Deva garantit les 3 capitaux : au moins une solution écologique,
+        // sociale et économie locale par espace (indicateurs des 3 catégories).
+        CAPITAUX_ORDRE.forEach(cap => _devaEnsureCapital(chosen, cap, idx));
         cData.solsByEspace[idx]=chosen;
       });
       cData._solsFingerprint=_solsFp;
@@ -4739,6 +4784,23 @@ function _solCapital(nom){
   let best = 'ecologie', bestN = -1;
   CAPITAUX_ORDRE.forEach(k => { if (c[k] > bestN) { bestN = c[k]; best = k; } });
   return best;
+}
+
+// Solutions transversales que Deva peut proposer pour couvrir un capital manquant.
+const DEVA_CAPITAL_POOL = {
+  ecologie: ['Compostage partagé', 'Jardin permaculture', 'Récupération eau de pluie', 'Haie champêtre'],
+  social: ['Atelier de transmission', 'Chantier participatif'],
+  economie_locale: ['Approvisionnement local', 'Recyclerie & réemploi local', 'AMAP circuit court'],
+};
+// Garantit au moins une solution du capital `livre` dans la sélection d'un espace.
+function _devaEnsureCapital(chosen, livre, idx){
+  if (chosen.some(n => _solCapital(n) === livre)) return;
+  const pool = DEVA_CAPITAL_POOL[livre] || [];
+  const start = pool.length ? ((idx || 0) % pool.length) : 0;
+  for (let k = 0; k < pool.length; k++) {
+    const nom = pool[(start + k) % pool.length];
+    if ((typeof SOLS !== 'undefined') && SOLS.find(s => s.nom === nom) && !chosen.includes(nom)) { chosen.push(nom); return; }
+  }
 }
 
 // Bloc solutions d'un espace : cartes classées par capital (écologique /
