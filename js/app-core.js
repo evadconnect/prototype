@@ -4585,13 +4585,13 @@ function creerEnsureSidePanel(){
   if (!stage) return null;
   p = document.createElement('div');
   p.id = 'creer-side-panel';
-  p.style.cssText = 'display:none;position:absolute;inset:0;z-index:60;background:var(--paper,#fbfaf7);flex-direction:column;box-shadow:-14px 0 44px -16px rgba(14,26,18,.4)';
+  p.style.cssText = 'display:none;position:absolute;top:0;right:0;bottom:0;width:min(600px,78%);z-index:60;background:var(--paper,#fbfaf7);flex-direction:column;box-shadow:-16px 0 48px -16px rgba(14,26,18,.42);border-left:1px solid rgba(46,102,66,.12)';
   p.innerHTML = ''
     + '<div style="padding:1.1rem 1.3rem .9rem;border-bottom:1px solid rgba(46,102,66,.1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">'
       + '<span id="creer-side-panel-title" style="font-size:.95rem;font-weight:800;color:var(--ink)"></span>'
       + '<button onclick="creerSidePanelClose()" aria-label="Fermer" style="background:rgba(46,102,66,.08);border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:.85rem;color:var(--moss);display:flex;align-items:center;justify-content:center;font-family:inherit">✕</button>'
     + '</div>'
-    + '<div id="creer-side-panel-body" style="flex:1;min-height:0;overflow-y:auto;padding:1.1rem 1.3rem;max-width:560px;width:100%"></div>'
+    + '<div id="creer-side-panel-body" style="flex:1;min-height:0;overflow-y:auto;padding:1.1rem 1.3rem"></div>'
     + '<div id="creer-side-panel-footer" style="display:none;padding:.9rem 1.3rem 1.1rem;border-top:1px solid rgba(46,102,66,.08);gap:.6rem;justify-content:flex-end;flex-shrink:0"></div>';
   stage.appendChild(p);
   return p;
