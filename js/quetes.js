@@ -135,6 +135,11 @@ function openPiloteQueteFiche(qid) {
   // dérive de la solution d'origine.
   const _plan = (Array.isArray(pq.plan) && pq.plan.length) ? pq.plan : _solPlan;
   const _mat  = (Array.isArray(pq.materiel) && pq.materiel.length) ? pq.materiel : _solMat;
+  // Indicateurs (ICI) validés par la preuve : ceux choisis à la création
+  // (quête sur mesure) sinon ceux que la solution d'origine rend mesurables.
+  const _icis = (Array.isArray(pq.icis) && pq.icis.length && typeof iciGetICI === 'function')
+    ? pq.icis.map(id => iciGetICI(id)).filter(Boolean)
+    : ((sol && typeof iciPourSolution === 'function') ? (iciPourSolution(sol.nom) || []) : []);
   showQueteFiche({
     titre: pq.titre,
     type: (pq.sourceIc || (sol && sol.img) || '⚡') + ' ' + ((sol && sol.cat) || 'Quête'),
@@ -153,6 +158,7 @@ function openPiloteQueteFiche(qid) {
     esrs: ((sol && sol.esrs) || []).map(e => String(e).replace('ESRS ', '').trim()),
     financement: { objectif: 0, montant: 0, semeur: null },
     equipe: [], dates: [], dateISO: pq.dateISO || null, heure: pq.heure || null,
+    icis: _icis,
     srcId: pq.id, published: pq.statut === 'ouverte', paused: pq.statut === 'en_pause'
   }, 'pilote');
 }
@@ -247,7 +253,9 @@ function syncPiloteQuetesFromLieu() {
       competence: r.competence || (r.donnees && r.donnees.competence) || null,
       materiel: r.materiel || (r.donnees && r.donnees.materiel) || null,
       plan: r.plan || (r.donnees && r.donnees.plan) || null,
-      preuve: r.preuve || (r.donnees && r.donnees.preuve) || null
+      preuve: r.preuve || (r.donnees && r.donnees.preuve) || null,
+      // Indicateurs (ICI) que la preuve de la quête vient valider.
+      icis: r.icis || (r.donnees && r.donnees.icis) || null
     });
   });
 }
@@ -298,6 +306,10 @@ function piloteQueteCreerEnsureDom() {
   +   '<textarea id="pq-create-etapes" rows="3" style="' + inputStyle + ';resize:vertical" placeholder="Préparer le terrain\nPlanter\nPailler et arroser"></textarea>'
   +   '<label style="' + labelStyle + '" for="pq-create-preuve">✅ Preuve pour valider la quête</label>'
   +   '<textarea id="pq-create-preuve" rows="2" style="' + inputStyle + ';resize:vertical" placeholder="Ex : photos avant/après + nombre de plants installés">Photos de l\'action réalisée + indicateurs mesurés.</textarea>'
+  +   '<label style="' + labelStyle + '">📊 Indicateurs validés par la preuve <span style="font-weight:400;opacity:.7">(la preuve alimente leur suivi)</span></label>'
+  +   '<div id="pq-create-icis" style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.1rem">'
+  +     ((typeof ICI_CATALOG!=='undefined'?ICI_CATALOG:[]).map(function(ici){var m=((typeof ICI_LIVRE_META!=='undefined')?ICI_LIVRE_META[ici.livre]:null)||{ic:'◆',col:'#4a8c5c'};return '<button type="button" data-ici="'+ici.id+'" data-col="'+m.col+'" data-sel="0" onclick="pqCreerToggleIci(this)" style="font-size:.66rem;font-weight:600;color:'+m.col+';background:transparent;border:1px solid '+m.col+'55;border-radius:100px;padding:.28rem .6rem;cursor:pointer;font-family:inherit">'+m.ic+' '+ici.nom+'</button>';}).join(''))
+  +   '</div>'
   +   '<div id="pq-create-hint" style="font-size:.7rem;color:var(--terracotta);margin-top:.45rem;min-height:1rem"></div>'
   +   '<div style="display:flex;align-items:center;justify-content:flex-end;gap:.6rem;margin-top:.4rem">'
   +     '<button onclick="piloteQueteCreerFermer()" style="background:none;border:none;color:var(--moss);font-size:.8rem;font-weight:600;cursor:pointer;padding:.5rem .6rem;font-family:inherit">Annuler</button>'
@@ -314,6 +326,11 @@ function piloteQueteCreerOuvrir() {
   });
   const cmp = document.getElementById('pq-create-competence'); if (cmp) cmp.selectedIndex = 0;
   const prv = document.getElementById('pq-create-preuve'); if (prv) prv.value = 'Photos de l\'action réalisée + indicateurs mesurés.';
+  document.querySelectorAll('#pq-create-icis [data-ici]').forEach(b => {
+    b.setAttribute('data-sel', '0');
+    const col = b.getAttribute('data-col') || '#018262';
+    b.style.background = 'transparent'; b.style.borderColor = col + '55'; b.style.fontWeight = '600';
+  });
   const hint = document.getElementById('pq-create-hint'); if (hint) hint.textContent = '';
   document.getElementById('pq-create-modal').style.display = 'block';
   setTimeout(() => { const t = document.getElementById('pq-create-titre'); if (t) t.focus(); }, 60);
@@ -322,6 +339,16 @@ function piloteQueteCreerOuvrir() {
 function piloteQueteCreerFermer() {
   const m = document.getElementById('pq-create-modal');
   if (m) m.style.display = 'none';
+}
+
+/* Sélection d'un indicateur (ICI) que la preuve de la quête viendra valider. */
+function pqCreerToggleIci(el) {
+  const on = el.getAttribute('data-sel') === '1';
+  const col = el.getAttribute('data-col') || '#018262';
+  el.setAttribute('data-sel', on ? '0' : '1');
+  el.style.background = on ? 'transparent' : (col + '18');
+  el.style.borderColor = on ? (col + '55') : col;
+  el.style.fontWeight = on ? '600' : '800';
 }
 
 function piloteQueteCreerSave() {
@@ -350,6 +377,7 @@ function piloteQueteCreerSave() {
     materiel: lignes('pq-create-materiel'),
     plan: lignes('pq-create-etapes').map(t => ({ ic: '🪜', titre: t, desc: '' })),
     preuve: val('pq-create-preuve') || 'Photos de l\'action réalisée + indicateurs mesurés.',
+    icis: Array.from(document.querySelectorAll('#pq-create-icis [data-sel="1"]')).map(b => b.getAttribute('data-ici')),
     source: null, sourceIc: '⚡', custom: true
   };
   PILOTE_QUETES_DEMO.push(q);

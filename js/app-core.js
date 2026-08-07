@@ -7225,6 +7225,15 @@ function renderQueteDetail() {
       <div style="font-size:.78rem;color:var(--ink);line-height:1.6">${edSec(EDimpact, 'impact', q.impact)}</div>
       <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.6rem">${esrsBadges}</div>
     </div>
+
+    <!-- Preuve pour valider la quête + indicateurs qu'elle alimente -->
+    <div style="background:rgba(58,110,140,.05);border:1px solid rgba(58,110,140,.2);border-radius:var(--r-lg);padding:.9rem 1rem">
+      <div style="font-size:.72rem;font-weight:600;color:var(--sky);margin-bottom:.4rem">✅ Preuve pour valider la quête</div>
+      <div style="font-size:.78rem;color:var(--ink);line-height:1.6;margin-bottom:${(Array.isArray(q.icis)&&q.icis.length)?'.75rem':'0'}">${q.preuve||'Photos de l\'action réalisée + indicateurs mesurés.'}</div>
+      ${(Array.isArray(q.icis)&&q.icis.length)?`
+        <div style="font-size:.62rem;font-weight:700;color:var(--sky);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem">📊 Une preuve validée alimente ${q.icis.length} indicateur${q.icis.length>1?'s':''}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.35rem">${q.icis.map(ici=>`<span style="font-size:.66rem;font-weight:600;color:var(--sky);background:rgba(58,110,140,.1);border:1px solid rgba(58,110,140,.28);border-radius:100px;padding:.24rem .6rem">${ici.nom}${ici.unite?` · <span style="opacity:.7">${ici.unite}</span>`:''}</span>`).join('')}</div>`:''}
+    </div>
   `;
 
   // Panneau profil
@@ -7265,6 +7274,7 @@ function renderQueteDetail() {
       <div style="background:rgba(58,110,140,.06);border:1px solid rgba(58,110,140,.2);border-radius:var(--r-lg);padding:.9rem 1rem">
         <div style="font-size:.68rem;font-weight:600;color:var(--sky);margin-bottom:.45rem">📸 Preuve d'impact attendue</div>
         <div style="font-size:.72rem;color:var(--ink);line-height:1.5;margin-bottom:.7rem">${q.preuve}</div>
+        ${(Array.isArray(q.icis)&&q.icis.length)?`<div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.7rem">${q.icis.map(ici=>`<span style="font-size:.62rem;font-weight:600;color:var(--sky);background:rgba(58,110,140,.1);border:1px solid rgba(58,110,140,.25);border-radius:100px;padding:.2rem .5rem">📊 ${ici.nom}</span>`).join('')}</div>`:''}
         <button class="btn" style="width:100%;font-size:.68rem;padding:.45rem;background:rgba(58,110,140,.12);color:var(--sky);border:1px solid rgba(58,110,140,.25)" onclick="qdDeposerPreuve()">Soumettre une preuve →</button>
       </div>
 
