@@ -4563,10 +4563,12 @@ function creerEspaceSolBlockHTML(idx){
     : '<div style="font-size:.62rem;color:var(--moss);opacity:.5;font-style:italic;padding:.15rem 0">Aucune solution — ajoute-en depuis la bibliothèque.</div>';
   let html = cards;
   if (isOpen) {
-    html += '<div style="margin-top:.5rem;padding:.55rem .6rem;background:white;border:1px solid rgba(46,102,66,.1);border-radius:10px">'
-      + '<div style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem">Bibliothèque · ajouter une solution</div>'
-      + '<div id="creer-bdd-panel-' + idx + '" style="max-height:230px;overflow-y:auto">' + creerBddPanelHTML(idx) + '</div>'
-      + '<div style="margin-top:.4rem;text-align:right"><button onclick="creerToggleEspacePanel(' + idx + ')" style="font-size:.62rem;color:var(--moss);background:none;border:none;cursor:pointer;font-family:inherit;opacity:.7">Fermer</button></div>'
+    html += '<div style="margin-top:.5rem;border-top:1px dashed ' + col + '40;padding-top:.5rem">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem">'
+        + '<span style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em">Bibliothèque · ajouter une solution</span>'
+        + '<button onclick="creerToggleEspacePanel(' + idx + ')" style="font-size:.62rem;color:var(--moss);background:none;border:none;cursor:pointer;font-family:inherit;opacity:.7">Fermer ✕</button>'
+      + '</div>'
+      + '<div id="creer-bdd-panel-' + idx + '">' + creerBddPanelHTML(idx) + '</div>'
       + '</div>';
   } else {
     html += '<div style="margin-top:.4rem"><button onclick="creerToggleEspacePanel(' + idx + ')" style="font-size:.66rem;color:' + col + ';background:' + col + '0d;border:1.5px dashed ' + col + '59;border-radius:10px;padding:.5rem;width:100%;cursor:pointer;font-family:inherit;font-weight:700">+ Ajouter une solution depuis la bibliothèque</button></div>';
@@ -4673,10 +4675,12 @@ function creerQueteBiblioBlockHTML(idx){
       + '<button onclick="creerAddQuete(\'' + safeNom + '\')" style="flex-shrink:0;padding:.25rem .55rem;border-radius:.45rem;border:none;background:var(--forest);color:white;font-size:.6rem;font-weight:700;cursor:pointer">+ Ajouter</button>'
     + '</div>';
   };
-  let h = '<div style="margin-top:.5rem;padding:.55rem .6rem;background:white;border:1px solid rgba(46,102,66,.1);border-radius:10px">'
-    + '<div style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem">Bibliothèque · ajouter une quête</div>'
-    + '<input id="pq-bdd-search" type="text" value="' + searchRaw.replace(/"/g,'&quot;') + '" oninput="creerQueteSearchInput(this.value)" placeholder="🔍 Rechercher une quête…" style="width:100%;box-sizing:border-box;padding:.4rem .6rem;margin-bottom:.5rem;border:1.5px solid rgba(46,102,66,.2);border-radius:8px;font-size:.72rem;font-family:inherit;background:#f6faf7;outline:none">'
-    + '<div style="max-height:220px;overflow-y:auto">';
+  let h = '<div style="margin-top:.5rem;border-top:1px dashed ' + col + '40;padding-top:.5rem">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem">'
+      + '<span style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em">Bibliothèque · ajouter une quête</span>'
+      + '<button onclick="creerToggleQuetePanel()" style="font-size:.62rem;color:var(--moss);background:none;border:none;cursor:pointer;font-family:inherit;opacity:.7">Fermer ✕</button>'
+    + '</div>'
+    + '<input id="pq-bdd-search" type="text" value="' + searchRaw.replace(/"/g,'&quot;') + '" oninput="creerQueteSearchInput(this.value)" placeholder="🔍 Rechercher une quête…" style="width:100%;box-sizing:border-box;padding:.4rem .6rem;margin-bottom:.5rem;border:1.5px solid rgba(46,102,66,.2);border-radius:8px;font-size:.72rem;font-family:inherit;background:#f6faf7;outline:none">';
   if (!dispo.length) {
     h += '<div style="padding:.5rem;text-align:center;font-size:.66rem;color:var(--moss);opacity:.45;font-style:italic">' + (search ? 'Aucune quête ne correspond' : 'Toutes les quêtes sont déjà présentes') + '</div>';
   } else {
@@ -4688,7 +4692,7 @@ function creerQueteBiblioBlockHTML(idx){
     const rest = dispo.filter(s => catOrder.indexOf(s.cat) < 0);
     if (rest.length) { h += '<div style="font-size:.58rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em;margin:.5rem 0 .28rem">Autres</div>'; rest.forEach(s => { h += rowFor(s); }); }
   }
-  h += '</div><div style="margin-top:.4rem;text-align:right"><button onclick="creerToggleQuetePanel()" style="font-size:.62rem;color:var(--moss);background:none;border:none;cursor:pointer;font-family:inherit;opacity:.7">Fermer</button></div></div>';
+  h += '</div>';
   return h;
 }
 
@@ -4713,10 +4717,12 @@ function creerIciBiblioBlockHTML(idx){
     + '<button onclick="creerOpenIciDetail(\'' + ici.id + '\')" style="flex-shrink:0;padding:.25rem .45rem;border-radius:.45rem;border:1.5px solid rgba(46,102,66,.2);background:transparent;color:var(--forest);font-size:.6rem;cursor:pointer">👁</button>'
     + '<button onclick="creerAddIci(\'' + ici.id + '\')" style="flex-shrink:0;padding:.25rem .55rem;border-radius:.45rem;border:none;background:var(--forest);color:white;font-size:.6rem;font-weight:700;cursor:pointer">+ Ajouter</button>'
     + '</div>';
-  let h = '<div style="margin-top:.5rem;padding:.55rem .6rem;background:white;border:1px solid rgba(46,102,66,.1);border-radius:10px">'
-    + '<div style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem">Bibliothèque · ajouter un indicateur</div>'
-    + '<input id="pq-ici-search" type="text" value="' + searchRaw.replace(/"/g,'&quot;') + '" oninput="creerIciSearchInput(this.value)" placeholder="🔍 Rechercher un indicateur…" style="width:100%;box-sizing:border-box;padding:.4rem .6rem;margin-bottom:.5rem;border:1.5px solid rgba(46,102,66,.2);border-radius:8px;font-size:.72rem;font-family:inherit;background:#f6faf7;outline:none">'
-    + '<div style="max-height:220px;overflow-y:auto">';
+  let h = '<div style="margin-top:.5rem;border-top:1px dashed ' + col + '40;padding-top:.5rem">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem">'
+      + '<span style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em">Bibliothèque · ajouter un indicateur</span>'
+      + '<button onclick="creerToggleIciPanel()" style="font-size:.62rem;color:var(--moss);background:none;border:none;cursor:pointer;font-family:inherit;opacity:.7">Fermer ✕</button>'
+    + '</div>'
+    + '<input id="pq-ici-search" type="text" value="' + searchRaw.replace(/"/g,'&quot;') + '" oninput="creerIciSearchInput(this.value)" placeholder="🔍 Rechercher un indicateur…" style="width:100%;box-sizing:border-box;padding:.4rem .6rem;margin-bottom:.5rem;border:1.5px solid rgba(46,102,66,.2);border-radius:8px;font-size:.72rem;font-family:inherit;background:#f6faf7;outline:none">';
   if (!dispo.length) {
     h += '<div style="padding:.5rem;text-align:center;font-size:.66rem;color:var(--moss);opacity:.45;font-style:italic">' + (search ? 'Aucun indicateur ne correspond' : 'Tous les indicateurs sont déjà présents') + '</div>';
   } else {
@@ -4727,7 +4733,7 @@ function creerIciBiblioBlockHTML(idx){
       grp.forEach(i => { h += rowFor(i); });
     });
   }
-  h += '</div><div style="margin-top:.4rem;text-align:right"><button onclick="creerToggleIciPanel()" style="font-size:.62rem;color:var(--moss);background:none;border:none;cursor:pointer;font-family:inherit;opacity:.7">Fermer</button></div></div>';
+  h += '</div>';
   return h;
 }
 
