@@ -3461,16 +3461,6 @@ function bddIciDetail(id, targetEl){
         +'<div style="font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--moss);margin-bottom:.4rem">↳ Correspondances <span style="font-weight:500;text-transform:none;letter-spacing:0;opacity:.7">· vues dérivées de l\'ICI (ODD · CSRD · VSME)</span></div>'
         +'<div style="display:flex;flex-wrap:wrap;gap:.3rem">'+_corr.join('')+'</div>'
       +'</div>'):'')
-      // Liens → solutions qui le portent (et leur quête)
-      +'<div style="font-size:.62rem;font-weight:700;color:var(--moss);opacity:.65;text-transform:uppercase;letter-spacing:.08em;margin:.9rem 0 .4rem">🧩 Mesuré par '+solsIdx.length+' solution'+(solsIdx.length>1?'s':'')+'</div>'
-      +(solsIdx.length?solsIdx.map(({s,i})=>''
-        +'<div style="background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:var(--r);padding:.6rem .8rem;margin-bottom:.4rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">'
-          +'<span style="font-size:1rem">'+s.img+'</span>'
-          +'<span style="font-size:.76rem;font-weight:700;color:var(--ink);flex:1;min-width:120px">'+s.nom+'</span>'
-          +'<button onclick="bddOpenSolByIdx('+i+')" style="background:none;border:1px solid rgba(46,102,66,.25);border-radius:100px;padding:.25rem .65rem;font-size:.62rem;font-weight:700;color:var(--forest);cursor:pointer;font-family:inherit">🧩 Solution →</button>'
-          +(s.quete?'<button onclick="bddOpenQueteByIdx('+i+')" style="background:none;border:1px solid rgba(200,115,42,.35);border-radius:100px;padding:.25rem .65rem;font-size:.62rem;font-weight:700;color:var(--amber);cursor:pointer;font-family:inherit">⚡ Quête →</button>':'')
-        +'</div>').join('')
-      :'<div style="font-size:.7rem;color:var(--moss);opacity:.6">Aucune solution de la biblio ne porte cet indicateur.</div>')
     +'</div>';
 }
 
