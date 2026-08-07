@@ -4751,26 +4751,40 @@ function creerEspaceSolBlockHTML(idx){
   return html;
 }
 
-// Bloc quêtes d'un espace : présentation en cartes (retrait) + ajout depuis
-// la bibliothèque + création sur mesure.
+// Indicateurs que le pilote a retenus ET que la solution fait progresser :
+// c'est ce qui personnalise la quête proposée par Deva pour cette solution.
+function _quetePersoIcis(nom){
+  const effIds = new Set((typeof evadLieuIciIds === 'function') ? evadLieuIciIds(cData) : []);
+  return (typeof iciPourSolution === 'function' ? (iciPourSolution(nom) || []) : []).filter(ici => effIds.has(ici.id));
+}
+function _quetePersoChips(nom){
+  const icis = _quetePersoIcis(nom);
+  if (!icis.length) return '';
+  const chips = icis.map(ici => { const m = ((typeof ICI_LIVRE_META !== 'undefined') ? ICI_LIVRE_META[ici.livre] : null) || {col:'#3a6e8c'}; return '<span style="font-size:.55rem;font-weight:600;color:' + m.col + ';background:' + m.col + '14;border:1px solid ' + m.col + '30;border-radius:100px;padding:.1rem .4rem">📊 ' + ici.nom + '</span>'; }).join(' ');
+  return '<div style="margin-top:.35rem"><div style="font-size:.53rem;font-weight:700;color:var(--sky);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.22rem">🎯 Fera progresser</div><div style="display:flex;flex-wrap:wrap;gap:.25rem">' + chips + '</div></div>';
+}
+
+// Bloc quêtes d'un espace : une quête personnalisée par solution (proposée par
+// Deva selon les indicateurs retenus) + ajout depuis la biblio + sur mesure.
 function creerEspaceQuetesHTML(idx){
   const retir = new Set(cData.quetesRetirees || []);
-  const card = (ic, titre, duree, nb, impact, foot, footCol, removeCall, openCall) =>
+  const card = (ic, titre, duree, nb, impact, foot, footCol, removeCall, openCall, extra) =>
     '<div style="display:flex;align-items:stretch;gap:0;margin-bottom:.35rem">'
     + '<div ' + (openCall ? 'onclick="' + openCall + '" style="cursor:pointer;' : 'style="') + 'flex:1;min-width:0;background:white;border:1px solid rgba(46,102,66,.14);border-left:3px solid var(--amber);border-radius:10px 0 0 10px;padding:.5rem .65rem">'
       + '<div style="display:flex;align-items:center;gap:.4rem"><span style="font-size:.85rem">' + ic + '</span><span style="font-size:.72rem;font-weight:700;color:var(--ink);line-height:1.2;flex:1">' + titre + '</span>' + (openCall ? '<span style="font-size:.58rem;opacity:.5">↗</span>' : '') + '</div>'
       + '<div style="display:flex;flex-wrap:wrap;gap:.45rem;font-size:.6rem;color:var(--moss);opacity:.85;margin-top:.22rem">' + (duree && duree !== '-' ? '<span>⏱ ' + duree + '</span>' : '') + (nb && nb !== '-' ? '<span>👥 ' + nb + '</span>' : '') + (impact ? '<span style="color:var(--fern);font-weight:600">🌿 ' + impact + '</span>' : '') + '</div>'
+      + (extra || '')
       + '<div style="font-size:.55rem;color:' + footCol + ';opacity:.6;margin-top:.25rem">' + foot + '</div>'
     + '</div>'
     + '<button onclick="' + removeCall + '" title="Retirer" style="flex-shrink:0;border:1px solid rgba(46,102,66,.14);border-left:none;border-radius:0 10px 10px 0;background:rgba(200,115,42,.05);color:var(--amber);cursor:pointer;font-size:.78rem;line-height:1;padding:0 .55rem;opacity:.55" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'.55\'">✕</button>'
     + '</div>';
   let cards = '', n = 0;
-  // Dérivées des solutions de l'espace.
+  // Dérivées des solutions de l'espace — personnalisées par Deva.
   ((cData.solsByEspace && cData.solsByEspace[idx]) || []).forEach(nom => {
     const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === nom) : null;
     if (!sol || !sol.quete || retir.has('sol:' + nom)) return;
     n++; const q = sol.quete; const safeNom = String(nom).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    cards += card(sol.img || '⚡', q.titre || 'Quête', q.duree, q.nb, q.impact_quete, 'issue de « ' + nom + ' »', 'var(--moss)', "creerRemoveQuete('sol:" + safeNom + "')", "creerOpenQueteDetail('" + safeNom + "')");
+    cards += card(sol.img || '⚡', q.titre || 'Quête', q.duree, q.nb, q.impact_quete, '✦ Proposée par Deva · issue de « ' + nom + ' »', 'var(--forest)', "creerRemoveQuete('sol:" + safeNom + "')", "creerOpenQueteDetail('" + safeNom + "')", _quetePersoChips(nom));
   });
   // Ajoutées depuis la bibliothèque à cet espace.
   const espMap = cData.quetesEspMap || {};
@@ -4779,11 +4793,11 @@ function creerEspaceQuetesHTML(idx){
     const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === nom) : null;
     if (!sol || !sol.quete) return;
     n++; const q = sol.quete; const safeNom = String(nom).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    cards += card(sol.img || '⚡', q.titre || 'Quête', q.duree, q.nb, q.impact_quete, 'issue de « ' + nom + ' »', 'var(--moss)', "creerRemoveQuete('sol:" + safeNom + "')", "creerOpenQueteDetail('" + safeNom + "')");
+    cards += card(sol.img || '⚡', q.titre || 'Quête', q.duree, q.nb, q.impact_quete, 'issue de « ' + nom + ' »', 'var(--moss)', "creerRemoveQuete('sol:" + safeNom + "')", "creerOpenQueteDetail('" + safeNom + "')", _quetePersoChips(nom));
   });
   // Sur mesure (custom, rattachées à cet espace).
   const customs = (window.store) ? store.where('quetes', q => q.custom === true && q.statut !== 'retiree' && ((q.espIdx === idx) || (q.donnees && q.donnees.espIdx === idx))) : [];
-  customs.forEach(q => { n++; cards += card(q.sourceIc || '⚡', q.titre || 'Quête', q.duree, q.nb, q.impact, '✦ créée sur mesure', 'var(--forest)', "creerRemoveQuete('cst:" + q.id + "')", null); });
+  customs.forEach(q => { n++; cards += card(q.sourceIc || '⚡', q.titre || 'Quête', q.duree, q.nb, q.impact, '✦ créée sur mesure', 'var(--forest)', "creerRemoveQuete('cst:" + q.id + "')", null, ''); });
   if (!n) cards = '<div style="font-size:.62rem;color:var(--moss);opacity:.5;font-style:italic;padding:.15rem 0 .3rem">Les quêtes des solutions de cet espace apparaîtront ici.</div>';
   let html = cards;
   html += '<div style="margin-top:.4rem"><button onclick="creerOpenPanel(\'biblio-quete\',' + idx + ')" style="font-size:.66rem;color:#c8732a;background:#c8732a0d;border:1.5px dashed #c8732a59;border-radius:10px;padding:.5rem;width:100%;cursor:pointer;font-family:inherit;font-weight:700">+ Ajouter une quête depuis la bibliothèque</button></div>';
