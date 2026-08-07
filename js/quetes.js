@@ -346,6 +346,8 @@ function piloteQueteCreerOuvrir() {
 function piloteQueteCreerFermer() {
   const m = document.getElementById('pq-create-modal');
   if (m) m.style.display = 'none';
+  // Le rattachement à un espace ne vaut que pour la création en cours.
+  if (typeof window !== 'undefined') window._creerQueteEspIdx = null;
 }
 
 /* Sélection d'un indicateur (ICI) que la preuve de la quête viendra valider. */
@@ -385,6 +387,8 @@ function piloteQueteCreerSave() {
     plan: lignes('pq-create-etapes').map(t => ({ ic: '🪜', titre: t, desc: '' })),
     preuve: val('pq-create-preuve') || 'Photos de l\'action réalisée + indicateurs mesurés.',
     icis: Array.from(document.querySelectorAll('#pq-create-icis [data-sel="1"]')).map(b => b.getAttribute('data-ici')),
+    // Rattachement à l'espace depuis lequel la quête a été créée (flux guidé).
+    espIdx: (typeof window !== 'undefined' && window._creerQueteEspIdx != null) ? window._creerQueteEspIdx : null,
     source: null, sourceIc: '⚡', custom: true
   };
   PILOTE_QUETES_DEMO.push(q);
