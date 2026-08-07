@@ -367,7 +367,7 @@ function piloteQueteCreerSave() {
     const hint = document.getElementById('pq-create-hint');
     if (hint) hint.textContent = 'Donne un titre à ta quête 🙂';
     const t = document.getElementById('pq-create-titre'); if (t) t.focus();
-    return;
+    return false;
   }
   const lignes = (id) => val(id).split('\n').map(l => l.trim()).filter(Boolean);
   const cmpEl = document.getElementById('pq-create-competence');
@@ -401,6 +401,7 @@ function piloteQueteCreerSave() {
   // Reflète aussi la nouvelle quête dans le pane Quêtes du wizard de création.
   if (typeof creerStep3RefreshQuetes === 'function') creerStep3RefreshQuetes();
   if (typeof mmBubble === 'function') mmBubble('⚡ Quête créée · vérifie-la puis publie-la pour la rendre visible');
+  return true;
 }
 
 /* ─── Détection automatique du type de convergence ─── */

@@ -3810,6 +3810,7 @@ function initCreer(){
   if(!cOk){cOk=true;}
   cStep=0; cData=_CDATA_EMPTY();
   window._creerActiveEsp = 0;   // flux guidé étape 3 : repartir du premier espace
+  window._creerInlineView = null;
   // Reprise d'un brouillon non publié (persisté en localStorage).
   if (window.store) {
     const _d = store.loadDraft('lieu');
@@ -4525,6 +4526,15 @@ function creerStep3SidebarHTML(){
   const validBtn = '<button onclick="creerValiderEsp()" style="width:100%;margin-top:1rem;padding:.72rem;border:none;border-radius:100px;background:' + (allDone ? 'rgba(46,102,66,.14)' : 'var(--forest)') + ';color:' + (allDone ? 'var(--forest)' : '#fff') + ';font-family:inherit;font-size:.8rem;font-weight:800;cursor:pointer">' + label + '</button>'
     + (allDone ? '<div style="margin-top:.5rem;text-align:center;font-size:.66rem;color:var(--fern);font-weight:600">Tu peux maintenant créer le lieu 👉</div>' : '');
 
+  // Vue de détail / création en extension inline de la section (pas de modale).
+  if (window._creerInlineView) {
+    return btns
+      + '<div style="background:' + col + '0a;border:1px solid ' + col + '26;border-radius:14px;padding:.85rem .9rem">'
+      + head
+      + creerInlineViewHTML()
+      + '</div>';
+  }
+
   return btns
     + '<div style="background:' + col + '0a;border:1px solid ' + col + '26;border-radius:14px;padding:.85rem .9rem">'
     + head
@@ -4536,6 +4546,101 @@ function creerStep3SidebarHTML(){
     + creerEspaceIndicsHTML(active)
     + validBtn
     + '</div>';
+}
+
+// Contenu de la vue inline (fiche solution/quête/indicateur ou formulaire de
+// création), affichée en extension de la section blanche au lieu d'une modale.
+function creerInlineViewHTML(){
+  const v = window._creerInlineView; if (!v) return '';
+  const titres = { sol: 'Fiche solution', quete: 'Fiche quête', ici: 'Fiche indicateur', creer: 'Nouvelle quête' };
+  let inner = '';
+  if (v.type === 'sol') {
+    const s = (typeof SOLS !== 'undefined') ? SOLS.find(x => x.nom === v.ref) : null;
+    inner = (s && typeof solFicheHTML === 'function') ? solFicheHTML(s, { context: 'modal' }) : '<div style="font-size:.7rem;color:var(--moss)">Fiche indisponible.</div>';
+  } else if (v.type === 'quete' || v.type === 'ici') {
+    // Rempli après le rendu par bddQueteDetailByIdx / bddIciDetail.
+    inner = '<div id="creer-inline-body"></div>';
+  } else if (v.type === 'creer') {
+    inner = creerQueteFormInlineHTML();
+  }
+  return '<div style="margin-top:.2rem;border-top:1px dashed ' + '#2e997055' + ';padding-top:.55rem">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">'
+      + '<span style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.07em">' + (titres[v.type] || 'Détail') + '</span>'
+      + '<button onclick="creerCloseInline()" style="font-size:.62rem;color:var(--moss);background:none;border:none;cursor:pointer;font-family:inherit;opacity:.7;font-weight:700">← Retour</button>'
+    + '</div>'
+    + inner
+    + '</div>';
+}
+
+function creerCloseInline(){
+  window._creerInlineView = null;
+  creerRefreshSidebar();
+}
+
+// Fait défiler la vue inline dans le champ visible après ouverture.
+function _creerScrollInline(){
+  setTimeout(function(){ const c = document.getElementById('creer-step-content'); if (c) c.scrollTop = 0; }, 30);
+}
+
+// L'étape 3 (flux guidé) est-elle affichée ? (sinon : fiches en modale).
+function creerIsGuided(){
+  return typeof cStep !== 'undefined' && cStep === 3 && !!document.getElementById('creer-step-content');
+}
+
+// Affiche une fiche (solution / quête / indicateur) en extension inline.
+function creerShowInline(type, ref){
+  window._creerInlineView = { type: type, ref: ref };
+  creerRefreshSidebar();
+  if (type === 'quete') {
+    const el = document.getElementById('creer-inline-body');
+    const i = (typeof SOLS !== 'undefined') ? SOLS.findIndex(x => x.nom === ref) : -1;
+    if (el && i >= 0 && typeof bddQueteDetailByIdx === 'function') bddQueteDetailByIdx(i, el);
+  } else if (type === 'ici') {
+    const el = document.getElementById('creer-inline-body');
+    if (el && typeof bddIciDetail === 'function') bddIciDetail(ref, el);
+  }
+  _creerScrollInline();
+}
+
+// Formulaire de création de quête, en extension inline (mêmes ids de champs
+// que la modale → réutilise piloteQueteCreerSave).
+function creerQueteFormInlineHTML(){
+  const inS = 'width:100%;box-sizing:border-box;padding:.5rem .6rem;border-radius:8px;border:1px solid rgba(46,102,66,.2);font-family:inherit;font-size:.74rem;color:var(--ink);background:#fff';
+  const lbS = 'display:block;font-size:.64rem;font-weight:700;color:var(--moss);margin:.6rem 0 .25rem';
+  const comp = ['— Aucune en particulier —','💧 Gestion de l\'eau','⚡ Énergie','🧱 Éco-construction','🌾 Maraîchage & permaculture','♻️ Réemploi & compostage','🌿 Biodiversité','🤝 Animation & facilitation','🌡 Adaptation climatique','🔧 Autre / polyvalent'];
+  const icisChips = (typeof ICI_CATALOG !== 'undefined' ? ICI_CATALOG : []).map(function(ici){ var m = ((typeof ICI_LIVRE_META !== 'undefined') ? ICI_LIVRE_META[ici.livre] : null) || {ic:'◆', col:'#4a8c5c'}; return '<button type="button" data-ici="' + ici.id + '" data-col="' + m.col + '" data-sel="0" onclick="pqCreerToggleIci(this)" style="font-size:.64rem;font-weight:600;color:' + m.col + ';background:transparent;border:1px solid ' + m.col + '55;border-radius:100px;padding:.26rem .55rem;cursor:pointer;font-family:inherit">' + m.ic + ' ' + ici.nom + '</button>'; }).join('');
+  return ''
+    + '<label style="' + lbS + '" for="pq-create-titre">Titre de la quête *</label>'
+    + '<input id="pq-create-titre" style="' + inS + '" placeholder="Ex : Planter la haie champêtre du verger">'
+    + '<label style="' + lbS + '" for="pq-create-desc">📝 Description</label>'
+    + '<textarea id="pq-create-desc" rows="2" style="' + inS + ';resize:vertical" placeholder="L\'action concrète à réaliser sur le lieu…"></textarea>'
+    + '<div style="display:flex;gap:.5rem"><div style="flex:1"><label style="' + lbS + '" for="pq-create-duree">Durée</label><input id="pq-create-duree" style="' + inS + '" placeholder="1 journée"></div><div style="flex:1"><label style="' + lbS + '" for="pq-create-nb">Participants</label><input id="pq-create-nb" style="' + inS + '" placeholder="2–4 pers."></div></div>'
+    + '<div style="display:flex;gap:.5rem"><div style="flex:1"><label style="' + lbS + '" for="pq-create-graines">🌱 Graines</label><input id="pq-create-graines" type="number" min="0" style="' + inS + '" placeholder="50"></div><div style="flex:1"><label style="' + lbS + '" for="pq-create-date">📅 Date</label><input id="pq-create-date" type="date" style="' + inS + '"></div></div>'
+    + '<label style="' + lbS + '" for="pq-create-competence">🎯 Compétence nécessaire</label>'
+    + '<select id="pq-create-competence" style="' + inS + '">' + comp.map(function(o){ return '<option>' + o + '</option>'; }).join('') + '</select>'
+    + '<label style="' + lbS + '" for="pq-create-impact">🌿 Impact visé (facultatif)</label>'
+    + '<input id="pq-create-impact" style="' + inS + '" placeholder="Ex : +8 pts eau · 200 m de haie">'
+    + '<label style="' + lbS + '" for="pq-create-materiel">🧰 Matériel <span style="font-weight:400;opacity:.7">(un par ligne)</span></label>'
+    + '<textarea id="pq-create-materiel" rows="3" style="' + inS + ';resize:vertical" placeholder="Bêche&#10;Plants d\'arbustes locaux&#10;Paillage"></textarea>'
+    + '<label style="' + lbS + '" for="pq-create-etapes">🪜 Étapes <span style="font-weight:400;opacity:.7">(une par ligne)</span></label>'
+    + '<textarea id="pq-create-etapes" rows="3" style="' + inS + ';resize:vertical" placeholder="Préparer le terrain&#10;Planter&#10;Pailler et arroser"></textarea>'
+    + '<label style="' + lbS + '" for="pq-create-preuve">✅ Preuve pour valider la quête</label>'
+    + '<textarea id="pq-create-preuve" rows="2" style="' + inS + ';resize:vertical">Photos de l\'action réalisée + indicateurs mesurés.</textarea>'
+    + '<label style="' + lbS + '">📊 Indicateurs validés par la preuve</label>'
+    + '<div id="pq-create-icis" style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.1rem">' + icisChips + '</div>'
+    + '<div id="pq-create-hint" style="font-size:.68rem;color:var(--terracotta);margin-top:.45rem;min-height:1rem"></div>'
+    + '<div style="display:flex;gap:.5rem;margin-top:.3rem">'
+      + '<button onclick="creerCloseInline()" style="flex:1;background:rgba(46,102,66,.06);border:none;border-radius:100px;padding:.6rem;font-size:.75rem;font-weight:700;color:var(--moss);cursor:pointer;font-family:inherit">Annuler</button>'
+      + '<button onclick="creerQueteInlineSave()" style="flex:2;background:var(--forest);color:#fff;border:none;border-radius:100px;padding:.6rem;font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit">Créer la quête</button>'
+    + '</div>';
+}
+
+function creerQueteInlineSave(){
+  const ok = (typeof piloteQueteCreerSave === 'function') ? piloteQueteCreerSave() : false;
+  if (ok === false) return;   // validation échouée : on garde le formulaire ouvert
+  window._creerInlineView = null;
+  creerRefreshSidebar();
+  if (typeof creerMapRevealRefresh === 'function') creerMapRevealRefresh();
 }
 
 // Bloc solutions d'un espace : chips (retrait) + ajout depuis la bibliothèque.
@@ -4746,10 +4851,11 @@ function creerRefreshSidebar(){
 // Clique sur un bouton d'espace : focalise sidebar + mind map sur cet espace.
 function creerFocusEsp(idx){
   window._creerActiveEsp = idx;
-  // Referme les panneaux « ajouter depuis la bibliothèque » en changeant d'espace.
+  // Referme les panneaux « ajouter depuis la bibliothèque » et la vue inline.
   window._activeEspacePanel = null;
   window._creerQuetePanelOpen = false;
   window._creerIciPanelOpen = false;
+  window._creerInlineView = null;
   window._creerSolSearch = ''; window._creerQueteSearch = ''; window._creerIciSearch = '';
   creerRefreshSidebar();
   creerApplyMapFocus();
@@ -4776,10 +4882,11 @@ function creerValiderEsp(){
   }
 }
 
-// « Créer une quête sur mesure » depuis un espace : ouvre la modale en la
-// rattachant à cet espace (elle s'affichera dans la bonne section).
+// « Créer une quête sur mesure » depuis un espace : formulaire en extension
+// inline de la section (plus de modale), rattaché à cet espace.
 function creerQueteNouvelleEsp(idx){
   window._creerQueteEspIdx = idx;
+  if (creerIsGuided()) { window._creerInlineView = { type: 'creer', ref: idx }; creerRefreshSidebar(); _creerScrollInline(); return; }
   if (typeof piloteQueteCreerOuvrir === 'function') piloteQueteCreerOuvrir();
 }
 
