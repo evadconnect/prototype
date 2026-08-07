@@ -4405,9 +4405,22 @@ function renderStep(){
         cData.solsByEspace[idx]=chosen;
       });
       cData._solsFingerprint=_solsFp;
+      cData._capsEnsured=true;
       cData.solutions=[...new Set(Object.values(cData.solsByEspace).flat())];
       // La présélection ajoute des solutions APRÈS le 1er calcul de jauge :
       // on recalcule pour que la Vadance projetée = celle de la fiche publiée.
+      if (typeof creerUpdateVadance === 'function') creerUpdateVadance();
+    }
+
+    // Rattrapage (une fois par fiche) : les sélections déjà en place — brouillons
+    // d'avant la garantie des 3 capitaux — reçoivent aussi leur complément.
+    if (!cData._capsEnsured) {
+      espItems.forEach((_, idx) => {
+        const chosen = cData.solsByEspace[idx] || (cData.solsByEspace[idx] = []);
+        CAPITAUX_ORDRE.forEach(cap => _devaEnsureCapital(chosen, cap, idx));
+      });
+      cData._capsEnsured = true;
+      cData.solutions = [...new Set(Object.values(cData.solsByEspace).flat())];
       if (typeof creerUpdateVadance === 'function') creerUpdateVadance();
     }
 
@@ -4800,6 +4813,12 @@ function _devaEnsureCapital(chosen, livre, idx){
   for (let k = 0; k < pool.length; k++) {
     const nom = pool[(start + k) % pool.length];
     if ((typeof SOLS !== 'undefined') && SOLS.find(s => s.nom === nom) && !chosen.includes(nom)) { chosen.push(nom); return; }
+  }
+  // Repli : le pool est absent du catalogue (ex. base pas encore migrée) →
+  // n'importe quelle solution du catalogue dont le capital dominant correspond.
+  if (typeof SOLS !== 'undefined') {
+    const cand = SOLS.find(s => !chosen.includes(s.nom) && _solCapital(s.nom) === livre);
+    if (cand) chosen.push(cand.nom);
   }
 }
 
