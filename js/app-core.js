@@ -4724,30 +4724,50 @@ function creerIciBiblioPanelBody(idx){
   return h;
 }
 
-// Bloc solutions d'un espace : chips (retrait) + ajout depuis la bibliothèque.
+// Les 3 capitaux (livres ICI) : ordre + sous-titre de section.
+const CAPITAUX_ORDRE = ['ecologie', 'social', 'economie_locale'];
+function _capMeta(livre){ return (typeof ICI_LIVRE_META !== 'undefined' && ICI_LIVRE_META[livre]) || { label: livre, ic: '◆', col: '#4a8c5c' }; }
+function _capSousTitre(livre){
+  const m = _capMeta(livre);
+  return '<div style="display:flex;align-items:center;gap:.32rem;margin:.55rem 0 .32rem"><span style="font-size:.72rem">' + m.ic + '</span><span style="font-size:.55rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:' + m.col + '">' + m.label + '</span></div>';
+}
+// Capital d'une solution = celui de la majorité des indicateurs qu'elle porte.
+function _solCapital(nom){
+  const icis = (typeof iciPourSolution === 'function') ? (iciPourSolution(nom) || []) : [];
+  const c = { ecologie: 0, social: 0, economie_locale: 0 };
+  icis.forEach(i => { if (c[i.livre] != null) c[i.livre]++; });
+  let best = 'ecologie', bestN = -1;
+  CAPITAUX_ORDRE.forEach(k => { if (c[k] > bestN) { bestN = c[k]; best = k; } });
+  return best;
+}
+
+// Bloc solutions d'un espace : cartes classées par capital (écologique /
+// sociale / économie locale) + ajout depuis la bibliothèque.
 function creerEspaceSolBlockHTML(idx){
-  const espItems = window._creerEspItems || [];
-  const it = espItems[idx] || {};
-  const col = it.c || '#2e9970', bg = it.bg || 'rgba(46,153,112,.1)';
   const assigned = (cData.solsByEspace && cData.solsByEspace[idx]) || [];
-  // Présentation en cartes, comme les quêtes et les indicateurs.
-  const cards = assigned.length
-    ? assigned.map(nom => {
-        const safeNom = nom.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-        const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === nom) : null;
-        const ic = (sol && sol.img) || '🧩';
-        const impact = (sol && sol.impact) || '';
-        return '<div style="display:flex;align-items:stretch;gap:0;margin-bottom:.3rem">'
-          + '<div onclick="creerOpenSolDetail(\'' + safeNom + '\')" title="Voir la fiche" style="flex:1;min-width:0;background:white;border:1px solid ' + col + '22;border-left:3px solid ' + col + ';border-radius:10px 0 0 10px;padding:.45rem .6rem;cursor:pointer">'
-            + '<div style="display:flex;align-items:center;gap:.4rem"><span style="font-size:.82rem">' + ic + '</span><span style="font-size:.7rem;font-weight:700;color:var(--ink);line-height:1.2;flex:1">' + nom + '</span><span style="font-size:.58rem;opacity:.5">↗</span></div>'
-            + (impact ? '<div style="font-size:.6rem;color:var(--fern);font-weight:600;margin-top:.22rem">🌿 ' + impact + '</div>' : '')
-          + '</div>'
-          + '<button onclick="creerRemoveSol(' + idx + ',\'' + safeNom + '\')" title="Retirer" style="flex-shrink:0;border:1px solid ' + col + '22;border-left:none;border-radius:0 10px 10px 0;background:' + col + '08;color:' + col + ';cursor:pointer;font-size:.78rem;line-height:1;padding:0 .55rem;opacity:.55" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'.55\'">✕</button>'
-          + '</div>';
-      }).join('')
-    : '<div style="font-size:.62rem;color:var(--moss);opacity:.5;font-style:italic;padding:.15rem 0">Aucune solution — ajoute-en depuis la bibliothèque.</div>';
-  let html = cards;
-  html += '<div style="margin-top:.4rem"><button onclick="creerOpenPanel(\'biblio-sol\',' + idx + ')" style="font-size:.66rem;color:' + col + ';background:' + col + '0d;border:1.5px dashed ' + col + '59;border-radius:10px;padding:.5rem;width:100%;cursor:pointer;font-family:inherit;font-weight:700">+ Ajouter une solution depuis la bibliothèque</button></div>';
+  const solCard = (nom) => {
+    const safeNom = nom.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === nom) : null;
+    const ic = (sol && sol.img) || '🧩';
+    const impact = (sol && sol.impact) || '';
+    const col = _capMeta(_solCapital(nom)).col;
+    return '<div style="display:flex;align-items:stretch;gap:0;margin-bottom:.3rem">'
+      + '<div onclick="creerOpenSolDetail(\'' + safeNom + '\')" title="Voir la fiche" style="flex:1;min-width:0;background:white;border:1px solid ' + col + '22;border-left:3px solid ' + col + ';border-radius:10px 0 0 10px;padding:.45rem .6rem;cursor:pointer">'
+        + '<div style="display:flex;align-items:center;gap:.4rem"><span style="font-size:.82rem">' + ic + '</span><span style="font-size:.7rem;font-weight:700;color:var(--ink);line-height:1.2;flex:1">' + nom + '</span><span style="font-size:.58rem;opacity:.5">↗</span></div>'
+        + (impact ? '<div style="font-size:.6rem;color:var(--fern);font-weight:600;margin-top:.22rem">🌿 ' + impact + '</div>' : '')
+      + '</div>'
+      + '<button onclick="creerRemoveSol(' + idx + ',\'' + safeNom + '\')" title="Retirer" style="flex-shrink:0;border:1px solid ' + col + '22;border-left:none;border-radius:0 10px 10px 0;background:' + col + '08;color:' + col + ';cursor:pointer;font-size:.78rem;line-height:1;padding:0 .55rem;opacity:.55" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'.55\'">✕</button>'
+      + '</div>';
+  };
+  let html = '';
+  if (!assigned.length) {
+    html = '<div style="font-size:.62rem;color:var(--moss);opacity:.5;font-style:italic;padding:.15rem 0">Aucune solution — ajoute-en depuis la bibliothèque.</div>';
+  } else {
+    const byCap = { ecologie: [], social: [], economie_locale: [] };
+    assigned.forEach(nom => { (byCap[_solCapital(nom)] || byCap.ecologie).push(nom); });
+    CAPITAUX_ORDRE.forEach(livre => { if (byCap[livre].length) html += _capSousTitre(livre) + byCap[livre].map(solCard).join(''); });
+  }
+  html += '<div style="margin-top:.5rem"><button onclick="creerOpenPanel(\'biblio-sol\',' + idx + ')" style="font-size:.66rem;color:var(--forest);background:rgba(1,130,98,.05);border:1.5px dashed rgba(1,130,98,.4);border-radius:10px;padding:.5rem;width:100%;cursor:pointer;font-family:inherit;font-weight:700">+ Ajouter une solution depuis la bibliothèque</button></div>';
   return html;
 }
 
@@ -4822,24 +4842,30 @@ function creerEspaceIndicsHTML(idx){
       + '<button onclick="creerRemoveIci(\'' + ici.id + '\')" title="Retirer" style="flex-shrink:0;border:1px solid ' + meta.col + '22;border-left:none;border-radius:0 10px 10px 0;background:' + meta.col + '08;color:' + meta.col + ';cursor:pointer;font-size:.78rem;line-height:1;padding:0 .55rem;opacity:.55" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'.55\'">✕</button>'
       + '</div>';
   };
-  let cards = '', n = 0;
-  // Dérivés des solutions de l'espace.
+  // Collecte des indicateurs de l'espace (dérivés + ajoutés), dédupliqués.
+  const list = [];
   ((cData.solsByEspace && cData.solsByEspace[idx]) || []).forEach(nom => {
     (typeof iciPourSolution === 'function' ? (iciPourSolution(nom) || []) : []).forEach(ici => {
       if (seen.has(ici.id) || retir.has(ici.id)) return;
-      seen.add(ici.id); n++; cards += row(ici);
+      seen.add(ici.id); list.push(ici);
     });
   });
-  // Ajoutés depuis la bibliothèque à cet espace.
   const espMap = cData.icisEspMap || {};
   (cData.icisAjoutes || []).forEach(id => {
     if (espMap[id] !== idx || seen.has(id) || retir.has(id)) return;
     const ici = (typeof iciGetICI === 'function') ? iciGetICI(id) : null;
     if (!ici) return;
-    seen.add(id); n++; cards += row(ici);
+    seen.add(id); list.push(ici);
   });
-  if (!n) cards = '<div style="font-size:.62rem;color:var(--moss);opacity:.5;font-style:italic;padding:.15rem 0">Les indicateurs des solutions de cet espace apparaîtront ici.</div>';
-  return cards + '<div style="margin-top:.4rem"><button onclick="creerOpenPanel(\'biblio-ici\',' + idx + ')" style="font-size:.66rem;color:#3a6e8c;background:#3a6e8c0d;border:1.5px dashed #3a6e8c59;border-radius:10px;padding:.5rem;width:100%;cursor:pointer;font-family:inherit;font-weight:700">+ Ajouter un indicateur depuis la bibliothèque</button></div>';
+  // Classement par capital : écologique / sociale / économie locale.
+  let cards = '';
+  CAPITAUX_ORDRE.forEach(livre => {
+    const grp = list.filter(i => i.livre === livre);
+    if (!grp.length) return;
+    cards += _capSousTitre(livre) + grp.map(row).join('');
+  });
+  if (!list.length) cards = '<div style="font-size:.62rem;color:var(--moss);opacity:.5;font-style:italic;padding:.15rem 0">Les indicateurs des solutions de cet espace apparaîtront ici.</div>';
+  return cards + '<div style="margin-top:.5rem"><button onclick="creerOpenPanel(\'biblio-ici\',' + idx + ')" style="font-size:.66rem;color:#3a6e8c;background:#3a6e8c0d;border:1.5px dashed #3a6e8c59;border-radius:10px;padding:.5rem;width:100%;cursor:pointer;font-family:inherit;font-weight:700">+ Ajouter un indicateur depuis la bibliothèque</button></div>';
 }
 
 // Panneau « ajouter une quête depuis la bibliothèque » d'un espace (chips +
