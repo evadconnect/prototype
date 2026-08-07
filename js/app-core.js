@@ -3706,11 +3706,19 @@ function solFicheHTML(s, opts){
       </div>`;
       return h; })()}
 
-    <!-- ⑦ Indicateurs de Changement d'Impact (ICI) -->
-    <div style="margin:1rem 1.4rem 0">
-      ${typeof iciFicheSolutionHTML==='function'?iciFicheSolutionHTML(s.nom,s.ind):`<div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--moss);opacity:.5;margin-bottom:.5rem">◆ Indicateurs CUMUL</div><div style="display:flex;flex-direction:column;gap:.35rem">${s.ind.map(i=>`<div style="display:flex;align-items:center;gap:.65rem;padding:.6rem .85rem;border-radius:.75rem;background:white;border:1px solid rgba(46,102,66,.1)"><div style="width:6px;height:6px;border-radius:50%;background:var(--fern);flex-shrink:0"></div><span style="font-size:.73rem;color:var(--ink)">${i}</span></div>`).join('')}</div>`}
-      ${typeof iciCorrespondancesHTML==='function'?iciCorrespondancesHTML(s):''}
-    </div>
+    <!-- ⑦ Indicateurs mesurés → renvoi vers les fiches indicateur (le détail
+         ICI, barème, niveau de preuve et correspondances vivent là-bas). -->
+    ${(()=>{
+      const _ic = (typeof iciPourSolution==='function') ? iciPourSolution(s.nom) : [];
+      if(!_ic.length) return '';
+      const _m = (typeof ICI_LIVRE_META!=='undefined')?ICI_LIVRE_META:{};
+      const _fn = showCTAs ? 'bddOpenIci' : 'creerOpenIciDetail';
+      return `<div style="margin:1rem 1.4rem 0">
+        <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--moss);opacity:.6;font-weight:700;margin-bottom:.4rem">📊 Indicateurs mesurés${typeof evadGlossaryChip==='function'?evadGlossaryChip('ici'):''}</div>
+        <div style="font-size:.68rem;color:var(--moss);opacity:.75;line-height:1.5;margin-bottom:.55rem">Cette solution rend mesurables ces indicateurs. Ouvre leur fiche pour le barème, le niveau de preuve et les correspondances.</div>
+        <div style="display:flex;gap:.35rem;flex-wrap:wrap">${_ic.map(ici=>{const c=_m[ici.livre]||{ic:'◆',col:'#4a8c5c'};return `<button onclick="${_fn}('${ici.id}')" style="display:inline-flex;align-items:center;gap:.3rem;background:${c.col}12;border:1px solid ${c.col}44;border-radius:100px;padding:.35rem .75rem;font-size:.7rem;font-weight:600;color:${c.col};cursor:pointer;font-family:inherit">${c.ic} ${ici.nom} →</button>`;}).join('')}</div>
+      </div>`;
+    })()}
 
     <!-- ⑧ CTA -->
     ${showCTAs ? `<div style="margin:1.2rem 1.4rem 0;display:flex;gap:.6rem">
@@ -3727,23 +3735,15 @@ function solFicheHTML(s, opts){
 function bddDetail(s){
   const el=document.getElementById('bdd-detail'); if(!el) return;
   el.innerHTML = solFicheHTML(s, {context:'biblio'});
-  // Liens croisés vers les deux autres tables (quête portée + indicateurs mesurés).
+  // Lien croisé vers la quête portée (les indicateurs sont déjà listés, avec
+  // renvoi vers leur fiche, dans solFicheHTML).
   const i=SOLS.indexOf(s);
-  const icis=(typeof iciPourSolution==='function')?iciPourSolution(s.nom):[];
-  const meta=(typeof ICI_LIVRE_META!=='undefined')?ICI_LIVRE_META:{};
-  if(i>=0 && (s.quete || icis.length)){
+  if(i>=0 && s.quete){
     const bloc=document.createElement('div');
     bloc.style.cssText='padding:0 1.6rem 1.6rem;max-width:640px';
     bloc.innerHTML=''
-      +(s.quete?(''
-        +'<div style="font-size:.62rem;font-weight:700;color:var(--moss);opacity:.65;text-transform:uppercase;letter-spacing:.08em;margin:.4rem 0 .4rem">⚡ Quête portée</div>'
-        +'<button onclick="bddOpenQueteByIdx('+i+')" style="display:inline-flex;align-items:center;gap:.4rem;background:rgba(200,115,42,.07);border:1px solid rgba(200,115,42,.35);border-radius:100px;padding:.45rem .9rem;font-size:.74rem;font-weight:700;color:var(--amber);cursor:pointer;font-family:inherit">⚡ '+s.quete.titre+' →</button>'):'')
-      +(icis.length?(''
-        +'<div style="font-size:.62rem;font-weight:700;color:var(--moss);opacity:.65;text-transform:uppercase;letter-spacing:.08em;margin:1rem 0 .4rem">📊 Indicateurs mesurés</div>'
-        +'<div style="display:flex;gap:.35rem;flex-wrap:wrap">'
-        +icis.map(ici=>{const m=meta[ici.livre]||{ic:'◆',col:'#4a8c5c'};
-          return '<button onclick="bddOpenIci(\''+ici.id+'\')" style="display:inline-flex;align-items:center;gap:.3rem;background:'+m.col+'12;border:1px solid '+m.col+'44;border-radius:100px;padding:.3rem .7rem;font-size:.66rem;font-weight:600;color:'+m.col+';cursor:pointer;font-family:inherit">'+m.ic+' '+ici.nom+' →</button>';}).join('')
-        +'</div>'):'');
+      +'<div style="font-size:.62rem;font-weight:700;color:var(--moss);opacity:.65;text-transform:uppercase;letter-spacing:.08em;margin:.4rem 0 .4rem">⚡ Quête portée</div>'
+      +'<button onclick="bddOpenQueteByIdx('+i+')" style="display:inline-flex;align-items:center;gap:.4rem;background:rgba(200,115,42,.07);border:1px solid rgba(200,115,42,.35);border-radius:100px;padding:.45rem .9rem;font-size:.74rem;font-weight:700;color:var(--amber);cursor:pointer;font-family:inherit">⚡ '+s.quete.titre+' →</button>';
     el.appendChild(bloc);
   }
 }
