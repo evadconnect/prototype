@@ -1454,7 +1454,7 @@ const SOLS=[
    esrs:['ESRS E2','ESRS E3'],esrs_detail:'Supprime les rejets polluants (E2) et valorise la ressource eau (E3).',
    photo:'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?w=800&q=80&auto=format&fit=crop',
    lieux:['ferme','ecolieu','habitat','jardin','tiers'],
-   quete:{titre:'Créer une zone de phytoépuration',duree:'2 week-ends',nb:'4–8 pers.',impact_quete:'+12 pts env. · 100% eaux grises traitées'}},
+   quete:{titre:'Créer une zone de phytoépuration',duree:'3 journées',nb:'4–8 pers.',impact_quete:'+12 pts env. · 100% eaux grises traitées'}},
 
   {nom:'Toilettes sèches',cat:'eau',cplx:'facile',impact:'−30 000 L/an',co2:.1,tok:30,img:'🌱',
    desc:'Système de WC sans eau : les matières fécales sont couvertes de sciure ou de copeaux et compostées en cuve pendant 12 mois. Économise 6 à 9 litres par chasse, soit 30 000 L par an pour un usage collectif régulier. Le compost produit est utilisable sur les zones non alimentaires du site.',
@@ -1474,7 +1474,7 @@ const SOLS=[
    esrs:['ESRS E1'],esrs_detail:'Réduction directe des émissions Scope 2, contribue à la trajectoire Net-Zero SBTi.',
    photo:'https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?w=800&q=80&auto=format&fit=crop',
    lieux:['ferme','ecolieu','habitat','tiers','fablab','coworking','incubateur','cafe','epicerie','repair','ecole'],
-   quete:{titre:'Chantier participatif d\'installation solaire',duree:'2 jours',nb:'6–10 pers.',impact_quete:'+15 pts énergie · −900 kgCO₂/an'}},
+   quete:{titre:'Chantier participatif d\'installation solaire',duree:'2 journées',nb:'6–10 pers.',impact_quete:'+15 pts énergie · −900 kgCO₂/an'}},
 
   {nom:'Chauffe-eau solaire',cat:'electricite',cplx:'moyen',impact:'−0.6t CO₂/an',co2:.6,tok:60,img:'🌡',
    desc:'Capteurs solaires thermiques installés en toiture qui chauffent l\'eau sanitaire via un fluide caloporteur. Couvrent 60 à 80 % des besoins annuels en eau chaude, avec une résistance électrique de complément pour les périodes nuageuses. Solution mature, fiable, avec des aides ANAH et CEE disponibles.',
@@ -1494,7 +1494,7 @@ const SOLS=[
    esrs:['ESRS E1','ESRS E5'],esrs_detail:'Matériau biosourcé à faible énergie grise (E5) · forte réduction Scope 1 chauffage (E1).',
    photo:'https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=800&q=80&auto=format&fit=crop',
    lieux:['ferme','ecolieu','habitat'],
-   quete:{titre:'Chantier d\'isolation paille participatif',duree:'3 week-ends',nb:'8–15 pers.',impact_quete:'+20 pts construction · −1,2 tCO₂/an'}},
+   quete:{titre:'Chantier d\'isolation paille participatif',duree:'4 journées',nb:'8–15 pers.',impact_quete:'+20 pts construction · −1,2 tCO₂/an'}},
 
   {nom:'Toiture végétalisée',cat:'construction',cplx:'moyen',impact:'+biodiversité +isolation',co2:.3,tok:65,img:'🌿',
    desc:'Couverture végétale extensive (sedums, graminées) sur toiture plate ou faiblement pentue, sur substrat drainant de 8 à 15 cm. Réduit les besoins de climatisation en été, retient 70 à 80 % des eaux pluviales et crée un habitat pour les pollinisateurs en milieu urbain. Durée de vie de la membrane allongée de 15 à 20 ans.',
@@ -1524,7 +1524,7 @@ const SOLS=[
    esrs:['ESRS E4','ESRS S3'],esrs_detail:'Soutient la biodiversité locale (E4) et l\'alimentation des communautés (S3, impact territorial).',
    photo:'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?w=800&q=80&auto=format&fit=crop',
    lieux:['ferme','jardin','ecolieu','tiers','habitat','ecole'],
-   quete:{titre:'Créer un jardin en permaculture',duree:'3 séances',nb:'4–10 pers.',impact_quete:'+12 pts alimentation · +8 pts biodiversité'}},
+   quete:{titre:'Créer un jardin en permaculture',duree:'3 demi-journées',nb:'4–10 pers.',impact_quete:'+12 pts alimentation · +8 pts biodiversité'}},
 
   {nom:'Potager en buttes',cat:'alimentaire',cplx:'facile',impact:'~80 kg/an',co2:.2,tok:35,img:'🌻',
    desc:'Technique de culture sur buttes de bois en décomposition (bois raméal fragmenté, bûches, compost) inspirée de la méthode Hügelkultur. Le bois stocke l\'humidité et libère des nutriments sur plusieurs années, réduisant l\'arrosage de 60 à 70 %. Idéal pour démarrer rapidement avec peu de moyens sur un sol pauvre.',
@@ -1544,7 +1544,7 @@ const SOLS=[
    esrs:['ESRS E5','ESRS S3'],esrs_detail:'Détournement déchets organiques (E5) · mobilisation de la communauté locale (S3).',
    photo:'https://images.unsplash.com/photo-1591857177580-dc82b9ac4e1e?w=800&q=80&auto=format&fit=crop',
    lieux:['ferme','jardin','ecolieu','tiers','cafe','epicerie','ecole','habitat','coworking','fablab','ressourcerie'],
-   quete:{titre:'Lancer le compostage collectif',duree:'2h + suivi mensuel',nb:'2–5 pers.',impact_quete:'+8 pts déchets · 500 kg/an valorisés'}},
+   quete:{titre:'Lancer le compostage collectif',duree:'1 demi-journée',nb:'2–5 pers.',impact_quete:'+8 pts déchets · 500 kg/an valorisés'}},
 
   {nom:'Haie champêtre',cat:'biodiversite',cplx:'facile',impact:'+12 espèces',co2:.5,tok:45,img:'🌳',
    desc:'Plantation d\'une haie multi-espèces avec des essences locales (cornouiller, prunellier, aubépine, sureau…) qui accueille nidification, abri et alimentation pour la faune sauvage. Séquestre du carbone, protège des vents dominants et réduit l\'érosion des sols. Entretien minimal une fois les arbustes établis après 2 à 3 ans.',
@@ -1574,7 +1574,7 @@ const SOLS=[
    esrs:['ESRS E5','ESRS S1','ESRS S3'],esrs_detail:'Économie circulaire (E5) · formation & montée en compétences (S1) · cohésion communautaire (S3).',
    photo:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80&auto=format&fit=crop',
    lieux:['fablab','repair','ressourcerie','tiers','cafe','ecole'],
-   quete:{titre:'Organiser le premier Repair Café',duree:'1 après-midi/mois',nb:'3–8 pers.',impact_quete:'+10 pts social · 200 objets/an · −800 kgCO₂'}},
+   quete:{titre:'Organiser le premier Repair Café',duree:'1 demi-journée',nb:'3–8 pers.',impact_quete:'+10 pts social · 200 objets/an · −800 kgCO₂'}},
 
   {nom:'AMAP circuit court',cat:'social',cplx:'facile',impact:'90% local',co2:.6,tok:30,img:'🥕',
    desc:'Association pour le Maintien de l\'Agriculture Paysanne : contrat direct entre le lieu et un ou plusieurs agriculteurs locaux qui livrent chaque semaine un panier de saison. Supprime les intermédiaires, garantit un revenu fixe à l\'agriculteur et réduit de 60 à 80 % les émissions liées au transport alimentaire. Renforce l\'ancrage territorial et la résilience alimentaire du lieu.',
@@ -1584,7 +1584,7 @@ const SOLS=[
    esrs:['ESRS S2','ESRS S3'],esrs_detail:'Chaîne de valeur locale et équitable (S2) · accès à l\'alimentation saine pour la communauté (S3).',
    photo:'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=800&q=80&auto=format&fit=crop',
    lieux:['cafe','epicerie','tiers','ecole','coworking','ecolieu','ferme'],
-   quete:{titre:'Monter le partenariat AMAP',duree:'2 réunions',nb:'2–4 pers.',impact_quete:'+12 pts social · 90% approvisionnement local'}},
+   quete:{titre:'Monter le partenariat AMAP',duree:'2 demi-journées',nb:'2–4 pers.',impact_quete:'+12 pts social · 90% approvisionnement local'}},
 
   // ── Adaptation à la hausse des températures (+1,7 à +2,6 °C) ──
   {nom:'Toiture & murs végétalisés',cat:'adaptation',cplx:'moyen',impact:'−3 à −5 °C en toiture',co2:.3,tok:80,img:'🪴',
@@ -1594,7 +1594,7 @@ const SOLS=[
    ind:['Surface végétalisée m²','Température de surface évitée °C'],
    esrs:['ESRS E1','ESRS E4'],esrs_detail:'Adaptation au changement climatique (E1) et contribution à la biodiversité (E4).',
    lieux:['ecolieu','habitat','tiers','fablab','coworking','incubateur','cafe','epicerie','ecole','autre'],
-   quete:{titre:'Installer une toiture végétalisée',duree:'2 week-ends',nb:'4–8 pers.',impact_quete:'+10 pts adaptation · −3 °C en toiture'}},
+   quete:{titre:'Installer une toiture végétalisée',duree:'3 journées',nb:'4–8 pers.',impact_quete:'+10 pts adaptation · −3 °C en toiture'}},
 
   {nom:'Canopée & îlots de fraîcheur',cat:'adaptation',cplx:'moyen',impact:'−2 à −4 °C ressentis',co2:.6,tok:70,img:'🌳',
    desc:'Planter des arbres et arbustes d\'ombrage (essences locales adaptées à la sécheresse) pour créer des îlots de fraîcheur. Un arbre mature rafraîchit l\'air ambiant par évapotranspiration et par son ombre, jusqu\'à 2 à 4 °C ressentis sous le houppier. Protège les espaces extérieurs, les façades et les usagers pendant les vagues de chaleur.',
@@ -1621,7 +1621,7 @@ const SOLS=[
    ind:['Température intérieure évitée °C','Énergie de clim économisée kWh/an'],
    esrs:['ESRS E1'],esrs_detail:'Confort d\'été passif, réduit le besoin de climatisation (E1).',
    lieux:['ecolieu','habitat','tiers','fablab','coworking','incubateur','ecole','autre'],
-   quete:{titre:'Audit & rafraîchissement passif',duree:'2 jours',nb:'3–5 pers.',impact_quete:'+12 pts adaptation · −5 °C sans clim'}},
+   quete:{titre:'Audit & rafraîchissement passif',duree:'2 journées',nb:'3–5 pers.',impact_quete:'+12 pts adaptation · −5 °C sans clim'}},
 
   {nom:'Désimperméabilisation des sols',cat:'adaptation',cplx:'moyen',impact:'−2 °C en surface',co2:.3,tok:60,img:'💦',
    desc:'Remplacer le bitume et le béton par des sols perméables et végétalisés (stabilisé clair, dalles engazonnées, noues plantées). Les surfaces claires et vivantes stockent moins de chaleur, laissent l\'eau s\'infiltrer et rafraîchissent l\'air par évaporation. Lutte directement contre l\'effet d\'îlot de chaleur et contre les inondations lors des orages intenses.',
@@ -1630,7 +1630,7 @@ const SOLS=[
    ind:['Surface désimperméabilisée m²','Eau infiltrée L/an'],
    esrs:['ESRS E1','ESRS E3'],esrs_detail:'Adaptation aux chaleurs et aux pluies intenses (E1), gestion de l\'eau (E3).',
    lieux:['ecolieu','habitat','tiers','jardin','ecole','autre'],
-   quete:{titre:'Désimperméabiliser une cour',duree:'2 week-ends',nb:'5–10 pers.',impact_quete:'+8 pts adaptation · sol perméable'}},
+   quete:{titre:'Désimperméabiliser une cour',duree:'3 journées',nb:'5–10 pers.',impact_quete:'+8 pts adaptation · sol perméable'}},
 
   // ── Social (transversal à tout espace) ──
   {nom:'Atelier de transmission',cat:'social',cplx:'facile',impact:'~200 h de formation/an',co2:0,tok:40,img:'🎓',
@@ -1641,7 +1641,7 @@ const SOLS=[
    esrs:['ESRS S1','ESRS S3'],esrs_detail:'Développement des compétences (S1) et lien avec la communauté (S3).',
    photo:'https://images.unsplash.com/photo-1544531586-fde5298cdd40?w=800&q=80&auto=format&fit=crop',
    lieux:['ferme','jardin','ecolieu','habitat','tiers','cafe','epicerie','fablab','repair','ressourcerie','coworking','incubateur','ecole','autre'],
-   quete:{titre:'Animer un atelier de transmission',duree:'1 après-midi',nb:'1–3 pers.',impact_quete:'+10 pts social · savoir-faire transmis'}},
+   quete:{titre:'Animer un atelier de transmission',duree:'1 demi-journée',nb:'1–3 pers.',impact_quete:'+10 pts social · savoir-faire transmis'}},
 
   {nom:'Chantier participatif',cat:'social',cplx:'facile',impact:'~30 bénévoles/an',co2:0,tok:35,img:'🤝',
    desc:'Mobiliser les habitants sur des chantiers collectifs pour construire, planter ou aménager l\'espace. Le faire-ensemble crée de l\'appartenance, accueille des personnes en insertion et réalise des aménagements à moindre coût. Chaque chantier est une fête de travail qui ancre le lieu dans sa communauté.',
@@ -1662,7 +1662,7 @@ const SOLS=[
    esrs:['ESRS S2'],esrs_detail:'Chaîne de valeur locale et équitable (S2).',
    photo:'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=800&q=80&auto=format&fit=crop',
    lieux:['ferme','jardin','ecolieu','habitat','tiers','cafe','epicerie','fablab','repair','ressourcerie','coworking','incubateur','ecole','autre'],
-   quete:{titre:'Référencer les producteurs locaux',duree:'2 réunions',nb:'2–4 pers.',impact_quete:'+10 pts éco locale · circuit court'}},
+   quete:{titre:'Référencer les producteurs locaux',duree:'2 demi-journées',nb:'2–4 pers.',impact_quete:'+10 pts éco locale · circuit court'}},
 
   {nom:'Recyclerie & réemploi local',cat:'dechets',cplx:'moyen',impact:'~3 t réemployées/an',co2:.9,tok:45,img:'🛍️',
    desc:'Ouvrir un point de collecte, réparation et revente d\'objets et matériaux de seconde main. Ce qui était déchet devient ressource et emploi local : mobilier, textile, matériaux. La recyclerie crée des postes en insertion, alimente les chantiers du territoire en matériaux de réemploi et détourne des tonnes de l\'enfouissement.',
@@ -1672,7 +1672,7 @@ const SOLS=[
    esrs:['ESRS E5','ESRS S1'],esrs_detail:'Économie circulaire (E5) et emploi/insertion locale (S1).',
    photo:'https://images.unsplash.com/photo-1489274495757-95c7c837b101?w=800&q=80&auto=format&fit=crop',
    lieux:['tiers','ecolieu','fablab','repair','ressourcerie','cafe','epicerie','coworking','incubateur','ecole','autre'],
-   quete:{titre:'Lancer un point de réemploi',duree:'3 week-ends',nb:'4–8 pers.',impact_quete:'+12 pts éco locale · réemploi'}},
+   quete:{titre:'Lancer un point de réemploi',duree:'4 journées',nb:'4–8 pers.',impact_quete:'+12 pts éco locale · réemploi'}},
 ];
 
 /* ── Dimension régénérative & enjeux de demain, par solution (clé = nom) ──
@@ -2044,7 +2044,7 @@ const ESPS=[
    esrs:['ESRS S3','ESRS E5'],
    indicateurs:['Kg déchets organiques compostés/mois','% approvisionnement local','Nb événements communautaires/mois','CO₂ évité logistique kg/an'],
    quetes:[
-     {titre:'Sourcer 3 fournisseurs locaux',duree:'2 semaines',nb:'1–2 pers.',impact:'90% local · S2 couvert'},
+     {titre:'Sourcer 3 fournisseurs locaux',duree:'2 journées',nb:'1–2 pers.',impact:'90% local · S2 couvert'},
      {titre:'Lancer le tri & compostage des biodéchets',duree:'1 journée',nb:'2–3 pers.',impact:'−200 kg déchets/an · E5'},
    ]},
   {id:'fablab',  l:'FabLab',       ic:'⚙️',c:'#1a3a5a',bg:'rgba(58,110,140,0.1)',
@@ -2053,7 +2053,7 @@ const ESPS=[
    esrs:['ESRS E5','ESRS S1','ESRS S3'],
    indicateurs:['Nb objets réparés/mois','Kg matériaux réemployés/an','Nb personnes formées','CO₂ évité par réparation kg/an'],
    quetes:[
-     {titre:'Organiser le premier Repair Café mensuel',duree:'1 après-midi',nb:'3–6 pers.',impact:'200 obj/an · E5+S1'},
+     {titre:'Organiser le premier Repair Café mensuel',duree:'1 demi-journée',nb:'3–6 pers.',impact:'200 obj/an · E5+S1'},
      {titre:'Documenter les savoir-faire du FabLab',duree:'Flexible',nb:'Solo ok',impact:'+governance · G1'},
    ]},
   {id:'serre',   l:'Serre',        ic:'🌱',c:'#2e6020',bg:'rgba(74,140,92,0.1)',
@@ -2062,7 +2062,7 @@ const ESPS=[
    esrs:['ESRS E3','ESRS E4','ESRS S3'],
    indicateurs:['Production alimentaire kg/an','Eau économisée L/an','Autonomie alimentaire %','Score biodiversité semences'],
    quetes:[
-     {titre:'Créer les premiers bacs de culture',duree:'1 week-end',nb:'3–6 pers.',impact:'~80 kg/an · E3+S3'},
+     {titre:'Créer les premiers bacs de culture',duree:'2 journées',nb:'3–6 pers.',impact:'~80 kg/an · E3+S3'},
      {titre:'Installer la récupération d\'eau de pluie',duree:'1 journée',nb:'2–4 pers.',impact:'−18 000 L/an · E3'},
    ]},
   {id:'dortoir', l:'Dortoir',      ic:'🛏',c:'#5a3a80',bg:'rgba(122,100,168,0.1)',
@@ -2080,7 +2080,7 @@ const ESPS=[
    esrs:['ESRS S2','ESRS S3','ESRS G1'],
    indicateurs:['% produits locaux vendus','Nb producteurs partenaires','CA en graines','Kg objets seconde main écoulés/mois'],
    quetes:[
-     {titre:'Référencer 5 producteurs locaux',duree:'2 semaines',nb:'1–2 pers.',impact:'S2 chaîne valeur · +social'},
+     {titre:'Référencer 5 producteurs locaux',duree:'2 journées',nb:'1–2 pers.',impact:'S2 chaîne valeur · +social'},
      {titre:'Lancer le corner seconde main',duree:'1 journée',nb:'2–4 pers.',impact:'−50 kg déchets/mois · E5'},
    ]},
   {id:'cuisine', l:'Cuisine',      ic:'🍳',c:'#7a5010',bg:'rgba(200,140,42,0.1)',
@@ -2089,7 +2089,7 @@ const ESPS=[
    esrs:['ESRS E3','ESRS E5','ESRS S3'],
    indicateurs:['Kg biodéchets compostés/mois','Repas produits localement nb/mois','Eau économisée L/an','% gaspillage alimentaire évité'],
    quetes:[
-     {titre:'Mettre en place le tri des biodéchets cuisine',duree:'1 semaine',nb:'2 pers.',impact:'−300 kg/an · E5'},
+     {titre:'Mettre en place le tri des biodéchets cuisine',duree:'1 journée',nb:'2 pers.',impact:'−300 kg/an · E5'},
      {titre:'Créer un menu 100% local mensuel',duree:'Récurrent',nb:'2–5 pers.',impact:'S3 communauté · S2 local'},
    ]},
   {id:'jardin',  l:'Jardin',       ic:'🌿',c:'#1a6040',bg:'rgba(26,112,80,0.1)',
@@ -2099,7 +2099,7 @@ const ESPS=[
    indicateurs:['Score biodiversité','Production alimentaire kg/an','Espèces favorisées nb','Surface végétalisée m²','Eau économisée L/an'],
    quetes:[
      {titre:'Planter la haie champêtre',duree:'1 journée',nb:'4–8 pers.',impact:'+15 pts biodiversité · E4'},
-     {titre:'Créer le jardin en permaculture',duree:'3 séances',nb:'4–10 pers.',impact:'~200 kg/an · E4+S3'},
+     {titre:'Créer le jardin en permaculture',duree:'3 demi-journées',nb:'4–10 pers.',impact:'~200 kg/an · E4+S3'},
      {titre:'Installer la mare écologique',duree:'2 journées',nb:'4–6 pers.',impact:'+18 pts biodiversité · E4'},
    ]},
   {id:'atelier', l:'Atelier',      ic:'🔨',c:'#6a3020',bg:'rgba(160,80,50,0.1)',
@@ -2118,7 +2118,7 @@ const ESPS=[
    indicateurs:['kWh consommés/mois','% énergie renouvelable','Nb emplois locaux créés','Score gouvernance transparence'],
    quetes:[
      {titre:'Audit consommation énergétique bureaux',duree:'1 journée',nb:'1–2 pers.',impact:'+10 pts énergie · E1'},
-     {titre:'Documenter la gouvernance du lieu',duree:'2 ateliers',nb:'3–5 pers.',impact:'G1 conduite · traçabilité CSRD'},
+     {titre:'Documenter la gouvernance du lieu',duree:'2 demi-journées',nb:'3–5 pers.',impact:'G1 conduite · traçabilité CSRD'},
    ]},
   {id:'salle',   l:'Salle commune',ic:'🏛',c:'#4a3060',bg:'rgba(100,80,140,0.1)',
    desc:'Espace polyvalent d\'événements, d\'ateliers et de gouvernance collective.',
@@ -2126,7 +2126,7 @@ const ESPS=[
    esrs:['ESRS S1','ESRS S3','ESRS G1'],
    indicateurs:['Nb événements collectifs/mois','Nb personnes impliquées','Nb décisions co-construites/an','kWh consommés événements'],
    quetes:[
-     {titre:'Organiser l\'assemblée de gouvernance',duree:'1 soirée',nb:'5–20 pers.',impact:'G1 · +gouvernance participative'},
+     {titre:'Organiser l\'assemblée de gouvernance',duree:'1 demi-journée',nb:'5–20 pers.',impact:'G1 · +gouvernance participative'},
    ]},
 ];
 
