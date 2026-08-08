@@ -213,6 +213,20 @@ function syncPiloteQuetesFromLieu() {
   const quetesRetirees = new Set((L && L.quetesRetirees) || []);
   const myLieuId = (L && L.id) || null;
 
+  // Rattachement à l'espace (pour classer les quêtes par espace dans le tableau
+  // de bord) : solution -> index d'espace, via solsByEspace de la fiche.
+  const espData   = (L && L.espacesData) || [];
+  const solsByEsp = (L && L.solsByEspace) || {};
+  const solEspIdx = {};
+  Object.keys(solsByEsp).forEach(function (k) {
+    (solsByEsp[k] || []).forEach(function (n) { if (solEspIdx[n] == null) solEspIdx[n] = +k; });
+  });
+  const espNomOf = function (idx) {
+    if (idx == null) return null;
+    const e = espData[idx];
+    return (e && (e.nom || e.eid)) || ('Espace ' + (idx + 1));
+  };
+
   // 1. Proposer une quête « à publier » pour chaque solution retenue qui en a une
   //    (créée une seule fois dans le store ; on ne réécrase pas si déjà publiée/retirée).
   if (typeof SOLS !== 'undefined') {
@@ -239,18 +253,26 @@ function syncPiloteQuetesFromLieu() {
     // Quête d'une solution explicitement retirée dans l'onglet Quêtes : masquée
     // (sauf si déjà publiée « ouverte », on ne dépublie pas en douce).
     if (!r.custom && r.source && quetesRetirees.has('sol:' + r.source) && r.statut !== 'ouverte') return false;
-    // Toute quête rattachée au lieu du Pilote reste dans son onglet, quel que
-    // soit son statut : une quête publiée (« ouverte ») ne disparaît donc plus,
-    // même si la solution dont elle est issue n'est plus sélectionnée.
-    if (myLieuId && r.lieu_id === myLieuId) return true;
-    // Repli : quête créée manuellement, ou issue d'une solution retenue dans la fiche.
+    // Lieu identifié (fiche créée) : on n'affiche QUE ses propres quêtes, celles
+    // effectivement sélectionnées ou créées pendant la création de la fiche.
+    // Cela évite les doublons issus d'anciens brouillons ou d'autres lieux qui
+    // partagent un nom de solution.
+    if (myLieuId) return r.lieu_id === myLieuId;
+    // Pas encore d'id (brouillon) : quête créée manuellement ou issue d'une
+    // solution retenue dans la fiche en cours.
     return r.custom === true || (r.source && queteSolSet.has(r.source));
   }).forEach(function (r) {
+    // Index d'espace : explicite (quête sur mesure) ou déduit de la solution.
+    let _espIdx = (r.espIdx != null) ? r.espIdx
+                : (r.donnees && r.donnees.espIdx != null) ? r.donnees.espIdx
+                : (r.source != null && solEspIdx[r.source] != null) ? solEspIdx[r.source]
+                : null;
     PILOTE_QUETES_DEMO.push({
       id: r.id, titre: r.titre || 'Quête', statut: r.statut || 'a_verifier',
       duree: r.duree || '-', nb: r.nb || '-', graines: r.graines || 50,
       impact: r.impact || '', source: r.source || null,
       sourceIc: r.sourceIc || '⚡', custom: r.custom === true,
+      espIdx: _espIdx, espNom: espNomOf(_espIdx),
       // desc éditée par le Pilote (sinon dérivée de la solution à l'ouverture).
       desc: r.desc || (r.donnees && r.donnees.desc) || null,
       // Date choisie au calendrier + heure (persistées dans donnees).
@@ -530,6 +552,23 @@ function renderPiloteQuetes() {
       </div>`;
   };
 
+  // Regroupe une liste de quêtes par espace (index croissant, « Autres » en fin)
+  // et rend chaque groupe précédé d'un sous-titre d'espace.
+  const groupByEspace = (list) => {
+    const groups = new Map();
+    list.forEach(q => {
+      const key = (q.espIdx != null) ? q.espIdx : 'autres';
+      if (!groups.has(key)) groups.set(key, { nom: q.espNom || (key === 'autres' ? 'Autres quêtes' : ('Espace ' + (key + 1))), items: [] });
+      groups.get(key).items.push(q);
+    });
+    return Array.from(groups.entries())
+      .sort((a, b) => (a[0] === 'autres') ? 1 : (b[0] === 'autres') ? -1 : (a[0] - b[0]))
+      .map(([, g]) =>
+        `<div style="font-size:.62rem;font-weight:800;color:var(--fern);text-transform:uppercase;letter-spacing:.05em;margin:.7rem 0 .45rem;padding-left:.1rem">📍 ${g.nom} · ${g.items.length}</div>`
+        + g.items.map(card).join('')
+      ).join('');
+  };
+
   let html = '';
   if (showAverif && aVerifier.length) {
     html += `
@@ -537,20 +576,20 @@ function renderPiloteQuetes() {
         <div style="font-size:.72rem;color:#8a4a1a;line-height:1.45">🕓 <b>${aVerifier.length} quête${aVerifier.length>1?'s':''}</b> en attente de publication. Seules les quêtes publiées sont visibles par les bâtisseurs.</div>
         <button class="btn btn-primary" style="font-size:.72rem;font-weight:700;padding:.45rem 1rem;white-space:nowrap" onclick="piloteQuetesPublierToutes()">Tout publier →</button>
       </div>`;
-    html += aVerifier.map(card).join('');
+    html += groupByEspace(aVerifier);
   }
   if (showOuvertes && enLigneActives.length) {
     html += `<div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--moss);opacity:.65;margin:${html ? '1.1rem' : '.2rem'} 0 .55rem">🟢 En ligne · ${enLigneActives.length}</div>`;
-    html += enLigneActives.map(card).join('');
+    html += groupByEspace(enLigneActives);
   }
   if (showTerminees && terminees.length) {
     html += `<div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--moss);opacity:.65;margin:${html ? '1.1rem' : '.2rem'} 0 .55rem">✓ Terminées · ${terminees.length}</div>`;
-    html += terminees.map(card).join('');
+    html += groupByEspace(terminees);
   }
   // Quêtes en pause : publiées puis mises en pause (retirées du réseau).
   if ((F === 'toutes' || F === 'ouvertes') && enPause.length) {
     html += `<div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--moss);opacity:.65;margin:${html ? '1.1rem' : '.2rem'} 0 .55rem">⏸ En pause · ${enPause.length}</div>`;
-    html += enPause.map(card).join('');
+    html += groupByEspace(enPause);
   }
   if (!html) {
     const labels = { a_publier: 'à publier', ouvertes: 'ouverte', terminees: 'terminée' };
