@@ -265,8 +265,8 @@ function syncPiloteQuetesFromLieu() {
   store.where('quetes', function (r) {
     if (r.statut === 'retiree') return false;
     // Quête d'une solution explicitement retirée dans l'onglet Quêtes : masquée
-    // (sauf si déjà publiée « ouverte », on ne dépublie pas en douce).
-    if (!r.custom && r.source && quetesRetirees.has('sol:' + r.source) && r.statut !== 'ouverte') return false;
+    // (sauf si déjà publiée « ouverte » ou terminée, on ne dépublie pas en douce).
+    if (!r.custom && r.source && quetesRetirees.has('sol:' + r.source) && r.statut !== 'ouverte' && r.statut !== 'terminee') return false;
     // Lieu identifié (fiche créée) : on n'affiche QUE ses propres quêtes, celles
     // effectivement sélectionnées ou créées pendant la création de la fiche.
     // Cela évite les doublons issus d'anciens brouillons ou d'autres lieux qui
@@ -276,6 +276,9 @@ function syncPiloteQuetesFromLieu() {
     // solution retenue dans la fiche en cours.
     return r.custom === true || (r.source && queteSolSet.has(r.source));
   }).forEach(function (r) {
+    // Quête terminée en base : re-crédite la Vadité de session (le Set
+    // quetesValidees ne survit pas au rechargement, le statut si).
+    if (r.statut === 'terminee' && typeof quetesValidees !== 'undefined') quetesValidees.add(r.id);
     // Index d'espace : explicite (quête sur mesure) ou déduit de la solution.
     let _espIdx = (r.espIdx != null) ? r.espIdx
                 : (r.donnees && r.donnees.espIdx != null) ? r.donnees.espIdx

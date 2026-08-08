@@ -8223,44 +8223,193 @@ function qdContactPilote() {
 
 // Métadonnées des types de preuve (partagées fiche quête).
 const QD_PREUVE_META = { photo:{ic:'📷',label:'Photo'}, mesure:{ic:'📊',label:'Mesure chiffrée'}, temoignage:{ic:'👥',label:'Témoignage pair'} };
+// Phases d'une preuve : T0 = état AVANT l'action, T1 = état APRÈS. Le couple
+// donne un avant/après vérifiable (la différence T1−T0 = l'impact prouvé).
+const QD_PHASE_META = {
+  t0: { ic: '🌱', label: 'T0 · État initial', desc: 'Photographie l\'état AVANT l\'action : on pourra mesurer la différence à la fin.' },
+  t1: { ic: '🌳', label: 'T1 · État final',   desc: 'L\'action est faite : documente le résultat (même cadrage que la T0 si possible).' }
+};
 
-// Preuves déposées par les bâtisseurs sur cette quête (vide tant que
-// personne n'a déposé : qdDeposerPreuve alimente la liste).
+// Preuves déposées sur cette quête : lues depuis le store (table
+// quete_preuves, synchronisée Supabase) → persistées et visibles du Pilote.
 function qdPreuvesBat(q) {
-  if (!q) return [];
-  if (!q._preuvesBat) q._preuvesBat = [];
-  return q._preuvesBat;
+  if (!q || !q.srcId || !window.store) return [];
+  return store.where('quete_preuves', p => p.quete_id === q.srcId)
+    .sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')));
+}
+// Phase attendue au prochain dépôt : T0 tant qu'aucune preuve T0 n'existe.
+function qdPhaseAttendue(q) {
+  return qdPreuvesBat(q).some(p => p.phase === 't0') ? 't1' : 't0';
 }
 
-// Le Bâtisseur dépose une preuve → s'ajoute à la file de validation du Pilote.
+// ── Formulaire de dépôt de preuve (type + note + valeur + photo → bucket) ──
+function qdPreuveEnsureDom() {
+  if (document.getElementById('qd-pv-modal')) return;
+  const wrap = document.createElement('div');
+  wrap.id = 'qd-pv-modal';
+  wrap.style.cssText = 'display:none;position:fixed;inset:0;z-index:100010;font-family:\'Satoshi\',sans-serif';
+  const inputStyle = 'width:100%;box-sizing:border-box;padding:.55rem .7rem;border-radius:10px;border:1px solid rgba(46,102,66,.2);font-family:inherit;font-size:.82rem;color:var(--ink);background:#fff';
+  wrap.innerHTML =
+    '<div style="position:absolute;inset:0;background:rgba(13,43,34,.6);backdrop-filter:blur(4px)" onclick="qdPreuveFermer()"></div>'
+  + '<div role="dialog" aria-label="Déposer une preuve" style="position:relative;max-width:440px;width:calc(100% - 2rem);margin:6vh auto 0;max-height:86vh;overflow-y:auto;background:#fff;border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.32);padding:1.3rem 1.4rem 1.4rem">'
+  +   '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem">'
+  +     '<div>'
+  +       '<div id="qd-pv-titre" style="font-size:1.02rem;font-weight:800;color:var(--ink)">📎 Déposer une preuve</div>'
+  +       '<div id="qd-pv-phase-desc" style="font-size:.75rem;line-height:1.5;color:var(--moss);margin-top:.3rem"></div>'
+  +     '</div>'
+  +     '<button onclick="qdPreuveFermer()" aria-label="Fermer" style="flex-shrink:0;background:none;border:none;font-size:1.2rem;line-height:1;color:var(--moss);opacity:.5;cursor:pointer">✕</button>'
+  +   '</div>'
+  +   '<div style="font-size:.72rem;font-weight:700;color:var(--moss);margin:.85rem 0 .35rem">Type de preuve</div>'
+  +   '<div id="qd-pv-types" style="display:flex;gap:.45rem;flex-wrap:wrap">'
+  +     Object.keys(QD_PREUVE_META).map(t => '<button type="button" data-pt="' + t + '" onclick="qdPreuveType(\'' + t + '\')" style="border:1.5px solid rgba(46,102,66,.2);background:white;color:var(--moss);border-radius:100px;padding:.4rem .8rem;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit">' + QD_PREUVE_META[t].ic + ' ' + QD_PREUVE_META[t].label + '</button>').join('')
+  +   '</div>'
+  +   '<div style="font-size:.72rem;font-weight:700;color:var(--moss);margin:.85rem 0 .35rem">📷 Photo (avant / après)</div>'
+  +   '<input id="qd-pv-photo" type="file" accept="image/*" onchange="qdPreuvePhotoPreview(this)" style="' + inputStyle + ';padding:.4rem .5rem">'
+  +   '<div id="qd-pv-photo-prev" style="display:none;margin-top:.45rem;border-radius:10px;overflow:hidden;max-height:150px"></div>'
+  +   '<div style="font-size:.72rem;font-weight:700;color:var(--moss);margin:.85rem 0 .35rem">📊 Valeur mesurée <span style="font-weight:400;opacity:.7">(si mesure : ex. « 320 L », « 12 plants »)</span></div>'
+  +   '<input id="qd-pv-valeur" style="' + inputStyle + '" placeholder="Ex : 320 L récupérés">'
+  +   '<div style="font-size:.72rem;font-weight:700;color:var(--moss);margin:.85rem 0 .35rem">📝 Note</div>'
+  +   '<textarea id="qd-pv-note" rows="3" style="' + inputStyle + ';resize:vertical" placeholder="Décris ce que montre la preuve : ce qui a été fait, où, comment…"></textarea>'
+  +   '<div id="qd-pv-hint" style="font-size:.7rem;color:var(--terracotta);margin-top:.45rem;min-height:1rem"></div>'
+  +   '<div style="display:flex;align-items:center;justify-content:flex-end;gap:.6rem;margin-top:.4rem">'
+  +     '<button onclick="qdPreuveFermer()" style="background:none;border:none;color:var(--moss);font-size:.8rem;font-weight:600;cursor:pointer;padding:.5rem .6rem;font-family:inherit">Annuler</button>'
+  +     '<button id="qd-pv-submit" onclick="qdPreuveSubmit()" style="background:var(--forest);color:#fff;border:none;border-radius:100px;padding:.55rem 1.3rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit">✅ Déposer la preuve</button>'
+  +   '</div>'
+  + '</div>';
+  document.body.appendChild(wrap);
+}
+function qdPreuveType(t) {
+  window._qdPvType = t;
+  document.querySelectorAll('#qd-pv-types [data-pt]').forEach(b => {
+    const on = b.getAttribute('data-pt') === t;
+    b.style.background = on ? 'var(--forest)' : 'white';
+    b.style.color = on ? '#fff' : 'var(--moss)';
+    b.style.borderColor = on ? 'var(--forest)' : 'rgba(46,102,66,.2)';
+  });
+}
+function qdPreuvePhotoPreview(input) {
+  const prev = document.getElementById('qd-pv-photo-prev');
+  if (!prev) return;
+  const file = input.files && input.files[0];
+  if (!file) { prev.style.display = 'none'; prev.innerHTML = ''; return; }
+  prev.style.display = 'block';
+  prev.innerHTML = '<img src="' + URL.createObjectURL(file) + '" style="width:100%;max-height:150px;object-fit:cover">';
+}
+function qdPreuveFermer() {
+  const m = document.getElementById('qd-pv-modal');
+  if (m) m.style.display = 'none';
+}
+
+// Le Bâtisseur (ou le Pilote pour la T0) dépose une preuve → formulaire réel.
 function qdDeposerPreuve() {
   const q = qdQuest(); if (!q) return;
+  if (!q.srcId || !window.store) { mmBubble('⚠️ Cette quête de démonstration n\'accepte pas encore de preuve'); return; }
+  qdPreuveEnsureDom();
+  const phase = qdPhaseAttendue(q);
+  const meta = QD_PHASE_META[phase];
+  const m = document.getElementById('qd-pv-modal');
+  m.setAttribute('data-phase', phase);
+  const t = document.getElementById('qd-pv-titre');
+  if (t) t.textContent = meta.ic + ' Preuve ' + meta.label;
+  const d = document.getElementById('qd-pv-phase-desc');
+  if (d) d.textContent = meta.desc;
+  ['qd-pv-valeur', 'qd-pv-note'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const ph = document.getElementById('qd-pv-photo'); if (ph) ph.value = '';
+  const pp = document.getElementById('qd-pv-photo-prev'); if (pp) { pp.style.display = 'none'; pp.innerHTML = ''; }
+  const hint = document.getElementById('qd-pv-hint'); if (hint) hint.textContent = '';
+  const sb = document.getElementById('qd-pv-submit'); if (sb) { sb.disabled = false; sb.textContent = '✅ Déposer la preuve'; }
+  qdPreuveType('photo');
+  m.style.display = 'block';
+}
+
+async function qdPreuveSubmit() {
+  const q = qdQuest(); if (!q || !q.srcId || !window.store) return;
+  const modal = document.getElementById('qd-pv-modal');
+  const phase = (modal && modal.getAttribute('data-phase')) || 't1';
+  const type = window._qdPvType || 'photo';
+  const note = ((document.getElementById('qd-pv-note') || {}).value || '').trim();
+  const valeur = ((document.getElementById('qd-pv-valeur') || {}).value || '').trim();
+  const fileInput = document.getElementById('qd-pv-photo');
+  const file = fileInput && fileInput.files && fileInput.files[0];
+  if (!note && !file && !valeur) {
+    const hint = document.getElementById('qd-pv-hint');
+    if (hint) hint.textContent = 'Ajoute au moins une photo, une valeur ou une note 🙂';
+    return;
+  }
+  const sb = document.getElementById('qd-pv-submit');
+  if (sb) { sb.disabled = true; sb.textContent = 'Envoi…'; }
+  // Photo → bucket public « preuves » (URL stockée avec la preuve).
+  let photoUrl = null;
+  if (file && window.evadSupabase) {
+    try {
+      const safe = (file.name || 'preuve').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(-50);
+      const path = q.srcId + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '-' + safe;
+      const { error } = await window.evadSupabase.storage.from('preuves').upload(path, file);
+      if (error) throw error;
+      const { data } = window.evadSupabase.storage.from('preuves').getPublicUrl(path);
+      photoUrl = data.publicUrl;
+    } catch (e) {
+      console.warn('Upload photo de preuve échoué :', e);
+      mmBubble('⚠️ Photo non envoyée (' + ((e && e.message) || 'erreur réseau') + ') · preuve enregistrée sans photo');
+    }
+  }
+  const estPilote = (typeof currentRole !== 'undefined' && currentRole === 'pilote');
+  const bid = estPilote ? null : ((typeof _currentBatisseurId === 'function') ? _currentBatisseurId() : null);
+  const batNom = estPilote
+    ? (((typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom) || 'Pilote') + ' (Pilote)')
+    : ((((typeof batFicheData !== 'undefined' && batFicheData.prenom) || '') + ' ' + ((typeof batFicheData !== 'undefined' && batFicheData.nom) || '')).trim() || 'Bâtisseur');
+  store.insert('quete_preuves', {
+    id: 'pv-' + store.uuid(),
+    quete_id: q.srcId,
+    lieu_id: q.lieuId || null,
+    batisseur_id: bid,
+    batisseur_nom: batNom,
+    phase: phase, type: type, note: note,
+    valeur: valeur || null, photo_url: photoUrl, validee: false
+  });
   q.proofSubmitted = true;
-  const list = qdPreuvesBat(q);
-  const me = (q.equipe && q.equipe[0]) || { i: 'M', c: '#4a8c5c' };
-  list.push({ bat: me, type: 'photo', note: 'Preuve déposée à l\'instant', validated: false });
-  if (q.etape_actuelle < q.etapes) q.etape_actuelle = Math.max(q.etape_actuelle, 3);
-  mmBubble('📎 Preuve déposée · en attente de validation du Pilote');
+  qdPreuveFermer();
+  mmBubble(phase === 't0'
+    ? '🌱 Preuve T0 (état initial) déposée · dépose la T1 à la fin de la quête pour montrer la différence'
+    : '🌳 Preuve T1 (état final) déposée · en attente de validation du Pilote');
   qdRerender();
 }
 
-// Le Pilote valide une preuve déposée par un bâtisseur → nourrit Vadité + jardin + journal.
-function qdValiderPreuveBat(idx) {
-  const q = qdQuest(); if (!q) return;
-  const list = qdPreuvesBat(q);
-  const p = list[idx]; if (!p || p.validated) return;
-  p.validated = true;
+// Le Pilote valide une preuve (par id) → persistée, nourrit Vadité + journal.
+// Quand l'état final (T1) est validé, et l'état initial (T0) aussi s'il
+// existe, la quête passe au statut « terminee » (persistant).
+function qdValiderPreuveBat(pvId) {
+  const q = qdQuest(); if (!q || !window.store) return;
+  const p = store.get('quete_preuves', pvId);
+  if (!p || p.validee) return;
+  store.update('quete_preuves', pvId, { validee: true });
   const meta = QD_PREUVE_META[p.type] || QD_PREUVE_META.mesure;
+  const phMeta = QD_PHASE_META[p.phase === 't0' ? 't0' : 't1'];
   // Entrée au Journal des preuves
   if (typeof actionsTerrains !== 'undefined') {
-    actionsTerrains.push({ type: 'autre', label: q.titre, val1: '', val2: '', date: new Date().toISOString().split('T')[0], source: 'quete', preuve: { type: p.type, label: meta.label, icon: meta.ic, note: 'Bâtisseur ' + (p.bat.i || '') + ' · ' + p.note } });
+    actionsTerrains.push({ type: 'autre', label: q.titre, val1: p.valeur || '', val2: '', date: new Date().toISOString().split('T')[0], source: 'quete', quete_id: q.srcId || null, preuve: { type: p.type, label: phMeta.label + ' · ' + meta.label, icon: phMeta.ic, note: (p.batisseur_nom || 'Bâtisseur') + (p.note ? ' · ' + p.note : '') } });
   }
-  // La quête compte une fois pour la Vadité + fait pousser le jardin
-  const qid = (typeof PILOTE_QUETES_DEMO !== 'undefined') ? (PILOTE_QUETES_DEMO.find(x => x.titre === q.titre) || {}).id : null;
-  if (qid && typeof quetesValidees !== 'undefined') quetesValidees.add(qid);
+  // Rattachement par ID de quête (plus jamais par titre : deux quêtes issues
+  // de la même solution partagent le même titre).
+  const qid = q.srcId || null;
+  const proofs = qid ? store.where('quete_preuves', x => x.quete_id === qid) : [];
+  const t0s = proofs.filter(x => x.phase === 't0');
+  const t1ok = proofs.some(x => x.phase !== 't0' && x.validee === true);
+  const t0ok = !t0s.length || t0s.some(x => x.validee === true);
+  if (qid && t1ok && t0ok) {
+    if (typeof quetesValidees !== 'undefined') quetesValidees.add(qid);
+    store.update('quetes', qid, { statut: 'terminee' });
+    if (typeof PILOTE_QUETES_DEMO !== 'undefined') {
+      const pe = PILOTE_QUETES_DEMO.find(x => x.id === qid);
+      if (pe) pe.statut = 'terminee';
+    }
+    q.validated = true;
+    mmBubble('🌳 Preuves validées · quête terminée ! Graines distribuées, impact propagé dans tes dossiers 🌱');
+    if (typeof renderPiloteQuetes === 'function') renderPiloteQuetes();
+  } else {
+    mmBubble('✅ ' + phMeta.label + ' validée' + (p.phase === 't0' ? ' · en attente de la preuve T1 (état final)' : ''));
+  }
   if (typeof updateApercuFromQuetes === 'function') updateApercuFromQuetes();
-  mmBubble('✅ Preuve du Bâtisseur ' + (p.bat.i || '') + ' validée · +Vadité 🌱');
-  if (list.length && list.every(x => x.validated)) q.validated = true;
   qdRerender();
 }
 
@@ -8737,30 +8886,36 @@ function renderQueteDetail() {
           : `<button class="btn btn-primary" style="width:100%;font-size:.72rem;background:rgba(240,176,50,.16);color:#a06c00;border:1px solid rgba(240,176,50,.35)" onclick="qdPublier()">📣 Publier la quête →</button>`}
       </div>
 
-      <!-- Preuves déposées par les bâtisseurs (à valider une par une) -->
+      <!-- Preuves déposées (T0 état initial / T1 état final), à valider une par une -->
       ${(() => {
         const pvb = qdPreuvesBat(q);
-        const pending = pvb.filter(p => !p.validated).length;
-        const rows = pvb.length ? pvb.map((p, i) => {
+        const pending = pvb.filter(p => !p.validee).length;
+        const hasT0 = pvb.some(p => p.phase === 't0');
+        const rows = pvb.length ? pvb.map(p => {
           const meta = QD_PREUVE_META[p.type] || QD_PREUVE_META.mesure;
+          const ph = QD_PHASE_META[p.phase === 't0' ? 't0' : 't1'];
+          const ini = ((p.batisseur_nom || 'B').trim().charAt(0) || 'B').toUpperCase();
           return `<div style="display:flex;align-items:flex-start;gap:.6rem;padding:.55rem 0;border-bottom:1px solid rgba(200,115,42,.12)">
-            <div style="width:26px;height:26px;border-radius:50%;background:${p.bat.c};color:#fff;display:flex;align-items:center;justify-content:center;font-size:.56rem;font-weight:700;flex-shrink:0;margin-top:.1rem">${p.bat.i}</div>
+            <div style="width:26px;height:26px;border-radius:50%;background:#4a8c5c;color:#fff;display:flex;align-items:center;justify-content:center;font-size:.56rem;font-weight:700;flex-shrink:0;margin-top:.1rem">${ini}</div>
             <div style="flex:1;min-width:0">
-              <div style="font-size:.68rem;font-weight:700;color:var(--ink)">${meta.ic} ${meta.label}</div>
-              <div style="font-size:.62rem;color:var(--moss);opacity:.85;line-height:1.4">${p.note}</div>
+              <div style="font-size:.68rem;font-weight:700;color:var(--ink)">${ph.ic} ${ph.label} <span style="font-weight:500;color:var(--moss)">· ${meta.ic} ${meta.label}</span></div>
+              <div style="font-size:.6rem;color:var(--moss);opacity:.7">${p.batisseur_nom || 'Bâtisseur'}${p.valeur ? ' · <b>' + p.valeur + '</b>' : ''}</div>
+              ${p.note ? `<div style="font-size:.62rem;color:var(--moss);opacity:.85;line-height:1.4">${p.note}</div>` : ''}
+              ${p.photo_url ? `<a href="${p.photo_url}" target="_blank" rel="noopener"><img src="${p.photo_url}" alt="preuve" style="margin-top:.3rem;max-width:100%;max-height:90px;border-radius:8px;display:block"></a>` : ''}
             </div>
-            ${p.validated
+            ${p.validee
               ? '<span style="font-size:.6rem;font-weight:700;color:var(--fern);white-space:nowrap;margin-top:.2rem">✓ Validée</span>'
-              : '<button onclick="qdValiderPreuveBat(' + i + ')" style="background:var(--forest);color:#fff;border:none;border-radius:100px;padding:.3rem .7rem;font-size:.62rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;margin-top:.1rem;font-family:inherit">✅ Valider</button>'}
+              : '<button onclick="qdValiderPreuveBat(\'' + p.id + '\')" style="background:var(--forest);color:#fff;border:none;border-radius:100px;padding:.3rem .7rem;font-size:.62rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;margin-top:.1rem;font-family:inherit">✅ Valider</button>'}
           </div>`;
-        }).join('') : '<div style="font-size:.7rem;color:var(--moss);opacity:.55">Aucune preuve déposée pour l\'instant. Les bâtisseurs déposeront leurs preuves ici.</div>';
+        }).join('') : '<div style="font-size:.7rem;color:var(--moss);opacity:.55">Aucune preuve déposée pour l\'instant. Astuce : dépose toi-même la preuve T0 (état initial) dès la publication, la différence avec la T1 montrera l\'impact réel.</div>';
         return `<div style="background:rgba(200,115,42,.06);border:1px solid rgba(200,115,42,.25);border-radius:var(--r-lg);padding:.9rem 1rem">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem">
-            <div style="font-size:.68rem;font-weight:700;color:var(--amber)">📥 Preuves des bâtisseurs</div>
+            <div style="font-size:.68rem;font-weight:700;color:var(--amber)">📥 Preuves (avant / après)</div>
             <span style="font-size:.62rem;background:rgba(200,115,42,.15);color:var(--amber);padding:.1rem .45rem;border-radius:100px;font-weight:700">${pending} en attente</span>
           </div>
-          <div style="font-size:.62rem;color:var(--moss);opacity:.7;margin-bottom:.55rem">Chaque preuve validée nourrit ta Vadité et fait pousser ton jardin 🌱</div>
+          <div style="font-size:.62rem;color:var(--moss);opacity:.7;margin-bottom:.55rem">T0 (état initial) puis T1 (état final) : valide les deux pour terminer la quête et nourrir ta Vadité 🌱</div>
           ${rows}
+          <button class="btn btn-ghost" style="width:100%;font-size:.68rem;margin-top:.55rem" onclick="qdDeposerPreuve()">${hasT0 ? '📎 Déposer une preuve T1 (état final)' : '🌱 Déposer la preuve T0 (état initial)'}</button>
         </div>`;
       })()}
 
@@ -8769,8 +8924,7 @@ function renderQueteDetail() {
         <div style="font-size:.68rem;font-weight:600;color:var(--ink);margin-bottom:.5rem">👥 Bâtisseurs inscrits (${q.equipe.length})</div>
         ${q.equipe.length ? q.equipe.map(m=>`<div style="display:flex;align-items:center;gap:.6rem;padding:.3rem 0;border-bottom:1px solid rgba(46,102,66,.06)">
           <div style="width:26px;height:26px;border-radius:50%;background:${m.c};color:white;display:flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:700">${m.i}</div>
-          <div style="font-size:.7rem;color:var(--ink)">Bâtisseur ${m.i}</div>
-          <button class="btn" style="margin-left:auto;font-size:.6rem;padding:.15rem .45rem;background:transparent;color:var(--moss);border:1px solid rgba(46,102,66,.2)" onclick="mmBubble('Profil bâtisseur ouvert')">Voir →</button>
+          <div style="font-size:.7rem;color:var(--ink)">${m.nom || ('Bâtisseur ' + m.i)}</div>
         </div>`).join('') : '<div style="font-size:.68rem;color:var(--moss);opacity:.6">Aucun bâtisseur inscrit pour l\'instant. Publie la quête au Réseau pour en mobiliser.</div>'}
       </div>
 
