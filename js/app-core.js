@@ -5456,6 +5456,12 @@ function creerRemoveQuete(key){
     // Quête sur mesure : on la retire du store (statut « retiree »).
     const id = key.slice(4);
     if (window.store) { const r = store.get('quetes', id); if (r) store.upsert('quetes', Object.assign({}, r, { statut: 'retiree' })); }
+    // Reflète le retrait dans la copie en mémoire, sinon _creerCustomQuetes la
+    // relit et la quête reste dessinée sur le mind map.
+    if (typeof PILOTE_QUETES_DEMO !== 'undefined') {
+      const pq = PILOTE_QUETES_DEMO.find(x => x.id === id);
+      if (pq) pq.statut = 'retiree';
+    }
   } else {
     cData.quetesRetirees = cData.quetesRetirees || [];
     if (!cData.quetesRetirees.includes(key)) cData.quetesRetirees.push(key);
