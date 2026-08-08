@@ -6956,6 +6956,17 @@ async function createLieuOnMap(){
       if (typeof evadMarkFicheDone === 'function') evadMarkFicheDone('pilote');
       // Persiste les solutions + indicateurs du lieu dans leurs tables dédiées.
       if (typeof evadSyncLieuChildren === 'function') evadSyncLieuChildren(myLieuData.id);
+      // Fige les quêtes du lieu dans la table `quetes` dès la création : les
+      // quêtes sur mesure de l'assistant sont rattachées au nouvel id de lieu,
+      // puis syncPiloteQuetesFromLieu écrit les quêtes proposées par Deva
+      // (dérivées des solutions retenues) → elles apparaissent dans « Mes quêtes ».
+      try {
+        if (myLieuData.id) {
+          store.where('quetes', function (r) { return r.custom === true && (!r.lieu_id || r.lieu_id === 'draft' || r.lieu_id === 'lieu-demo'); })
+            .forEach(function (r) { store.upsert('quetes', Object.assign({}, r, { lieu_id: myLieuData.id })); });
+        }
+      } catch (e2) {}
+      if (typeof syncPiloteQuetesFromLieu === 'function') syncPiloteQuetesFromLieu();
     } catch(e) {}
   }
 
