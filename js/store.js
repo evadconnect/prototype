@@ -7,9 +7,19 @@
   var NS = 'evad';
   var VERSION = 1;
 
-  // Tables synchronisées avec Supabase (les autres restent locales).
-  var remoteTables = ['lieux', 'quetes', 'lieu_solutions', 'lieu_indicateurs'];
+  // Tables synchronisées avec Supabase : lieux (fiche_pilote), quetes
+  // (lieu_quetes), quete_candidatures, quete_preuves, lieu_solutions et
+  // lieu_indicateurs. Le routage se fait dans insert/update ci-dessous.
   var currentUserId = null;
+
+  // Remonte une erreur de synchronisation à l'utilisateur (au lieu d'un
+  // console.warn silencieux) : le Pilote sait que sa donnée n'est pas en base.
+  function notifySyncError(message) {
+    console.warn(message);
+    try {
+      if (typeof global.mmBubble === 'function') global.mmBubble('⚠️ ' + message);
+    } catch (e) {}
+  }
 
   function keyOf(table) {
     return NS + ':v' + VERSION + ':' + table;
@@ -26,6 +36,8 @@
     'semeurs',
     'quetes',
     'candidatures',
+    'quete_candidatures',
+    'quete_preuves',
     'financements',
     'graines_tx',
     'offres_mkt',
@@ -268,15 +280,16 @@
   function upsertQueteRemote(row) {
     if (!global.evadSupabase || !row || !row.id) return;
     // On n'inscrit la quête dans Supabase QUE lorsqu'elle est publiée
-    // (statut « ouverte »). Les brouillons (a_verifier) et les quêtes retirées
-    // restent purement locaux (localStorage) tant que le Pilote n'a pas publié.
-    if (row.statut !== 'ouverte') return;
+    // (« ouverte ») ou achevée (« terminee », pour que la validation des
+    // preuves survive au rechargement). Les brouillons (a_verifier) et les
+    // quêtes retirées restent purement locaux tant que le Pilote n'a pas publié.
+    if (row.statut !== 'ouverte' && row.statut !== 'terminee') return;
     global.evadSupabase
       .from('lieu_quetes')
       .upsert(remoteQueteRow(row), { onConflict: 'id' })
       .then(function (result) {
         if (result.error) {
-          console.warn('Quête non enregistrée dans Supabase :', result.error.message);
+          notifySyncError('Quête non enregistrée en base : ' + result.error.message);
         }
       });
   }
@@ -291,7 +304,7 @@
       .eq('id', id)
       .then(function (result) {
         if (result && result.error) {
-          console.warn('Quête non supprimée de Supabase :', result.error.message);
+          notifySyncError('Quête non supprimée de la base : ' + result.error.message);
         }
       });
   }
@@ -316,15 +329,135 @@
       // sinon l'hydratation les effacerait.
       var remoteIds = {};
       remoteRows.forEach(function (r) { remoteIds[r.id] = true; });
-      var localDrafts = read('quetes').filter(function (r) {
-        return r && r.statut !== 'ouverte' && !remoteIds[r.id];
+      var localRows = read('quetes');
+      var localDrafts = localRows.filter(function (r) {
+        return r && r.statut !== 'ouverte' && r.statut !== 'terminee' && !remoteIds[r.id];
       });
-      var merged = remoteRows.concat(localDrafts);
+      // Quêtes publiées localement mais absentes de la base (push échoué,
+      // hors-ligne...) : on ne les supprime PLUS silencieusement, on les
+      // garde et on retente l'envoi.
+      var localUnsynced = localRows.filter(function (r) {
+        return r && (r.statut === 'ouverte' || r.statut === 'terminee') && !remoteIds[r.id];
+      });
+      localUnsynced.forEach(function (r) { upsertQueteRemote(r); });
+      var merged = remoteRows.concat(localDrafts).concat(localUnsynced);
       write('quetes', merged);
       global.dispatchEvent(new CustomEvent('evad:quetes-ready', { detail: { quetes: merged } }));
     } catch (error) {
       console.error('Erreur de récupération des quêtes :', error);
     }
+  }
+
+  // ── Inscriptions des Bâtisseurs + preuves de quête (T0/T1) ──
+  // Tables quete_candidatures / quete_preuves : la boucle de retour du
+  // parcours quête (rejoindre, prouver, valider) partagée entre appareils.
+  function remoteCandidatureRow(row) {
+    return {
+      id: row.id,
+      user_id: currentUserId || null,
+      quete_id: row.quete_id || null,
+      lieu_id: row.lieu_id || null,
+      batisseur_id: row.batisseur_id || null,
+      batisseur_nom: row.batisseur_nom || null,
+      statut: row.statut || 'inscrit',
+      donnees: row,
+      updated_at: nowISO()
+    };
+  }
+
+  function upsertCandidatureRemote(row) {
+    if (!global.evadSupabase || !row || !row.id) return;
+    global.evadSupabase
+      .from('quete_candidatures')
+      .upsert(remoteCandidatureRow(row), { onConflict: 'id' })
+      .then(function (result) {
+        if (result.error) {
+          notifySyncError('Inscription non enregistrée en base : ' + result.error.message);
+        }
+      });
+  }
+
+  function deleteCandidatureRemote(id) {
+    if (!global.evadSupabase || !id) return;
+    global.evadSupabase
+      .from('quete_candidatures')
+      .delete()
+      .eq('id', id)
+      .then(function (result) {
+        if (result && result.error) {
+          notifySyncError('Désinscription non enregistrée en base : ' + result.error.message);
+        }
+      });
+  }
+
+  function remotePreuveRow(row) {
+    return {
+      id: row.id,
+      user_id: currentUserId || null,
+      quete_id: row.quete_id || null,
+      lieu_id: row.lieu_id || null,
+      batisseur_id: row.batisseur_id || null,
+      batisseur_nom: row.batisseur_nom || null,
+      phase: row.phase || 't1',
+      type: row.type || 'photo',
+      note: row.note || null,
+      valeur: row.valeur || null,
+      photo_url: row.photo_url || null,
+      validee: row.validee === true,
+      donnees: row,
+      updated_at: nowISO()
+    };
+  }
+
+  function upsertPreuveRemote(row) {
+    if (!global.evadSupabase || !row || !row.id) return;
+    global.evadSupabase
+      .from('quete_preuves')
+      .upsert(remotePreuveRow(row), { onConflict: 'id' })
+      .then(function (result) {
+        if (result.error) {
+          notifySyncError('Preuve non enregistrée en base : ' + result.error.message);
+        }
+      });
+  }
+
+  // Hydratation générique : la base fait foi, mais les lignes locales pas
+  // encore synchronisées (hors-ligne, push échoué) sont conservées et repoussées.
+  async function _hydrateQueteChildren(table, pushFn, eventName) {
+    if (!global.evadSupabase) return;
+    try {
+      var result = await global.evadSupabase.from(table).select('*');
+      if (result.error) {
+        console.warn('Lecture ' + table + ' impossible : ' + result.error.message);
+        return;
+      }
+      var remoteRows = (result.data || []).map(function (row) {
+        return Object.assign({}, row.donnees || {}, {
+          id: row.id, quete_id: row.quete_id, lieu_id: row.lieu_id,
+          batisseur_id: row.batisseur_id, batisseur_nom: row.batisseur_nom,
+          statut: row.statut, phase: row.phase, type: row.type,
+          note: row.note, valeur: row.valeur, photo_url: row.photo_url,
+          validee: row.validee === true,
+          created_at: row.created_at, updated_at: row.updated_at
+        });
+      });
+      var remoteIds = {};
+      remoteRows.forEach(function (r) { remoteIds[r.id] = true; });
+      var localUnsynced = read(table).filter(function (r) { return r && !remoteIds[r.id]; });
+      localUnsynced.forEach(function (r) { pushFn(r); });
+      var merged = remoteRows.concat(localUnsynced);
+      write(table, merged);
+      global.dispatchEvent(new CustomEvent(eventName, { detail: { rows: merged } }));
+    } catch (error) {
+      console.warn('Erreur de récupération ' + table + ' :', error);
+    }
+  }
+
+  function hydrateCandidatures() {
+    return _hydrateQueteChildren('quete_candidatures', upsertCandidatureRemote, 'evad:candidatures-ready');
+  }
+  function hydratePreuves() {
+    return _hydrateQueteChildren('quete_preuves', upsertPreuveRemote, 'evad:preuves-ready');
   }
 
   // ── Solutions & indicateurs d'un lieu (tables dédiées) ──
@@ -556,12 +689,16 @@
       write(table, rows);
 
       /*
-       * Lieux et quêtes sont envoyés dans Supabase.
+       * Lieux, quêtes, inscriptions et preuves sont envoyés dans Supabase.
        */
       if (table === 'lieux') {
         insertLieuRemote(row);
       } else if (table === 'quetes') {
         upsertQueteRemote(row);
+      } else if (table === 'quete_candidatures') {
+        upsertCandidatureRemote(row);
+      } else if (table === 'quete_preuves') {
+        upsertPreuveRemote(row);
       }
 
       return row;
@@ -588,6 +725,10 @@
             updateLieuRemote(rows[i]);
           } else if (table === 'quetes') {
             upsertQueteRemote(rows[i]);
+          } else if (table === 'quete_candidatures') {
+            upsertCandidatureRemote(rows[i]);
+          } else if (table === 'quete_preuves') {
+            upsertPreuveRemote(rows[i]);
           }
 
           return rows[i];
@@ -760,6 +901,8 @@
   global.EvadStore = store;
   store.hydrateDrafts = hydrateDrafts;
   store.deleteQueteRemote = deleteQueteRemote;
+  store.upsertQueteRemote = upsertQueteRemote;
+  store.deleteCandidatureRemote = deleteCandidatureRemote;
   store.replaceLieuChildren = replaceLieuChildren;
 
   /*
@@ -779,6 +922,8 @@
         hydrateRemote();
         hydrateBiblio();
         hydrateQuetes();
+        hydrateCandidatures();
+        hydratePreuves();
         hydrateSolutions();
         hydrateIndicateurs();
         hydrateDrafts().then(function () {
@@ -799,6 +944,8 @@
         );
         setTimeout(hydrateBiblio, 0);
         setTimeout(hydrateQuetes, 0);
+        setTimeout(hydrateCandidatures, 0);
+        setTimeout(hydratePreuves, 0);
         setTimeout(hydrateSolutions, 0);
         setTimeout(hydrateIndicateurs, 0);
         hydrateDrafts().then(function () {
