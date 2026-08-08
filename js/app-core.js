@@ -4827,16 +4827,18 @@ function _devaEnsureCapital(chosen, livre, idx){
   }
 }
 
-// Bloc solutions d'un espace : cartes classées par capital (écologique /
-// sociale / économie locale) + ajout depuis la bibliothèque.
+// Bloc solutions d'un espace : liste simple de cartes (sans classement par
+// capital, réservé aux indicateurs) + ajout depuis la bibliothèque.
 function creerEspaceSolBlockHTML(idx){
+  const espItems = window._creerEspItems || [];
+  const it = espItems[idx] || {};
+  const col = it.c || '#2e9970';
   const assigned = (cData.solsByEspace && cData.solsByEspace[idx]) || [];
   const solCard = (nom) => {
     const safeNom = nom.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === nom) : null;
     const ic = (sol && sol.img) || '🧩';
     const impact = (sol && sol.impact) || '';
-    const col = _capMeta(_solCapital(nom)).col;
     return '<div style="display:flex;align-items:stretch;gap:0;margin-bottom:.3rem">'
       + '<div onclick="creerOpenSolDetail(\'' + safeNom + '\')" title="Voir la fiche" style="flex:1;min-width:0;background:white;border:1px solid ' + col + '22;border-left:3px solid ' + col + ';border-radius:10px 0 0 10px;padding:.45rem .6rem;cursor:pointer">'
         + '<div style="display:flex;align-items:center;gap:.4rem"><span style="font-size:.82rem">' + ic + '</span><span style="font-size:.7rem;font-weight:700;color:var(--ink);line-height:1.2;flex:1">' + nom + '</span><span style="font-size:.58rem;opacity:.5">↗</span></div>'
@@ -4845,14 +4847,9 @@ function creerEspaceSolBlockHTML(idx){
       + '<button onclick="creerRemoveSol(' + idx + ',\'' + safeNom + '\')" title="Retirer" style="flex-shrink:0;border:1px solid ' + col + '22;border-left:none;border-radius:0 10px 10px 0;background:' + col + '08;color:' + col + ';cursor:pointer;font-size:.78rem;line-height:1;padding:0 .55rem;opacity:.55" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'.55\'">✕</button>'
       + '</div>';
   };
-  let html = '';
-  if (!assigned.length) {
-    html = '<div style="font-size:.62rem;color:var(--moss);opacity:.5;font-style:italic;padding:.15rem 0">Aucune solution — ajoute-en depuis la bibliothèque.</div>';
-  } else {
-    const byCap = { ecologie: [], social: [], economie_locale: [] };
-    assigned.forEach(nom => { (byCap[_solCapital(nom)] || byCap.ecologie).push(nom); });
-    CAPITAUX_ORDRE.forEach(livre => { if (byCap[livre].length) html += _capSousTitre(livre) + byCap[livre].map(solCard).join(''); });
-  }
+  let html = assigned.length
+    ? assigned.map(solCard).join('')
+    : '<div style="font-size:.62rem;color:var(--moss);opacity:.5;font-style:italic;padding:.15rem 0">Aucune solution — ajoute-en depuis la bibliothèque.</div>';
   html += '<div style="margin-top:.5rem"><button onclick="creerOpenPanel(\'biblio-sol\',' + idx + ')" style="font-size:.66rem;color:var(--forest);background:rgba(1,130,98,.05);border:1.5px dashed rgba(1,130,98,.4);border-radius:10px;padding:.5rem;width:100%;cursor:pointer;font-family:inherit;font-weight:700">+ Ajouter une solution depuis la bibliothèque</button></div>';
   return html;
 }
