@@ -2495,6 +2495,36 @@ function lieuRenderImpact() {
           </div>`;
       }).join('');
     }
+
+    // Preuves certifiées : les quêtes du lieu déjà validées. Ce sont elles qui
+    // remplissent les indicateurs ci-dessus.
+    const preuvesEl = document.getElementById('lieu-impact-preuves');
+    if (preuvesEl) {
+      const prouvees = (lieuQuetes || []).filter(estProuvee);
+      if (!prouvees.length) {
+        preuvesEl.innerHTML = `<div style="padding:1.2rem;text-align:center;font-size:.72rem;color:var(--moss);opacity:.5">Aucune preuve certifiée pour l'instant. Valide une quête dans « Mes quêtes » pour qu'elle apparaisse ici.</div>`;
+      } else {
+        const iciNomsDe = (q) => {
+          const qIcis = q.icis || (q.donnees && q.donnees.icis) || [];
+          return icis.filter(ici =>
+            (Array.isArray(qIcis) && qIcis.indexOf(ici.id) >= 0) ||
+            (q.source && Array.isArray(ici.solutionIds) && ici.solutionIds.indexOf(q.source) >= 0)
+          ).map(ici => ici.nom);
+        };
+        preuvesEl.innerHTML = prouvees.map(q => {
+          const noms = iciNomsDe(q);
+          return `
+            <div style="background:white;border:1px solid rgba(74,140,92,.18);border-left:3px solid var(--fern);border-radius:var(--r-lg);padding:.7rem .9rem">
+              <div style="display:flex;align-items:center;gap:.45rem">
+                <span style="font-size:.58rem;font-weight:800;color:var(--fern);background:rgba(74,140,92,.12);border-radius:100px;padding:.12rem .5rem;white-space:nowrap">✓ Certifiée</span>
+                <span style="font-size:.76rem;font-weight:700;color:var(--ink)">${q.titre || 'Quête'}</span>
+              </div>
+              ${noms.length ? `<div style="font-size:.62rem;color:var(--moss);opacity:.75;margin-top:.35rem">Valide : ${noms.join(' · ')}</div>` : ''}
+              <div style="font-size:.58rem;color:var(--moss);opacity:.5;margin-top:.2rem">🌱 ${q.graines || 0} graines</div>
+            </div>`;
+        }).join('');
+      }
+    }
   }
   const scoreEl = document.getElementById('lieu-impact-score');
   if (scoreEl) {
@@ -6981,6 +7011,9 @@ function evadSyncLieuChildren(lieuId){
   const sols = evadLieuSols(L);
   const solsByEsp = (L && L.solsByEspace) || {};
   const slug = (s) => String(s).replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  // Nom + adresse du lieu, recopiés sur chaque ligne enfant (colonnes dédiées).
+  const lieuNom = (L && L.nom) || null;
+  const adresse = (L && (L.localisation || L.adresse || L.ville)) || null;
 
   // Espace (nom) qui porte chaque solution, le premier rencontré.
   const espaceParSol = {};
@@ -6996,7 +7029,7 @@ function evadSyncLieuChildren(lieuId){
   const solRows = sols.map(nom => {
     const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === nom) : null;
     return {
-      id: lieuId + '-sol-' + slug(nom), lieu_id: lieuId, nom: nom,
+      id: lieuId + '-sol-' + slug(nom), lieu_id: lieuId, lieu_nom: lieuNom, adresse: adresse, nom: nom,
       cat: (sol && sol.cat) || null, espace: espaceParSol[nom] || null,
       source_ic: (sol && sol.img) || null
     };
@@ -7018,7 +7051,7 @@ function evadSyncLieuChildren(lieuId){
     const ici = (typeof iciGetICI === 'function') ? iciGetICI(id) : null;
     if (!ici) return null;
     return {
-      id: lieuId + '-ici-' + id, lieu_id: lieuId, ici_id: id, nom: ici.nom,
+      id: lieuId + '-ici-' + id, lieu_id: lieuId, lieu_nom: lieuNom, adresse: adresse, ici_id: id, nom: ici.nom,
       livre: ici.livre, unite: ici.unite, solutions: origineParIci[id] || []
     };
   }).filter(Boolean);

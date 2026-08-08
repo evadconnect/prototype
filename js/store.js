@@ -328,6 +328,7 @@
   function remoteSolutionRow(r) {
     return {
       id: r.id, user_id: currentUserId || null, lieu_id: r.lieu_id || null,
+      lieu_nom: r.lieu_nom || null, adresse: r.adresse || null,
       nom: r.nom || null, cat: r.cat || null, espace: r.espace || null,
       source_ic: r.source_ic || null, donnees: r, updated_at: nowISO()
     };
@@ -335,6 +336,7 @@
   function remoteIndicateurRow(r) {
     return {
       id: r.id, user_id: currentUserId || null, lieu_id: r.lieu_id || null,
+      lieu_nom: r.lieu_nom || null, adresse: r.adresse || null,
       ici_id: r.ici_id || null, nom: r.nom || null, livre: r.livre || null,
       unite: r.unite || null, solutions: r.solutions || [], donnees: r, updated_at: nowISO()
     };
