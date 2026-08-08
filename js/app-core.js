@@ -6213,8 +6213,9 @@ function mmRefreshSolsStep4() {
 
   document.addEventListener('mousedown', e => {
     const stage = getStage(); if (!stage || !stage.contains(e.target)) return;
-    // Ignorer si clic sur un nœud, un bouton ou le tableau flux
-    if (e.target.closest('.mm-node, button, #mm-flux-table, #mm-flux-handle')) return;
+    // Ignorer un nœud, un bouton, le tableau flux, ET le panneau latéral +
+    // ses champs de formulaire (sinon preventDefault bloque le focus/la saisie).
+    if (e.target.closest('.mm-node, button, #mm-flux-table, #mm-flux-handle, #creer-side-panel, input, textarea, select, label, a')) return;
     panning = true;
     const c = getCanvas(); if (c) c.style.transition = 'none';
     px = e.clientX - tx;
