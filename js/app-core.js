@@ -3843,6 +3843,7 @@ function initCreer(){
   cStep=0; cData=_CDATA_EMPTY();
   window._creerActiveEsp = 0;   // flux guidé étape 3 : repartir du premier espace
   window._creerPhase = 'espaces';
+  window._creerMapOverview = false;
   window._creerQuetesReady = false; window._creerQuetesLoadingScheduled = false;
   if (typeof creerSidePanelClose === 'function') creerSidePanelClose();
   // Reprise d'un brouillon non publié (persisté en localStorage).
@@ -4233,9 +4234,11 @@ function creerUpdateHint(silent){
     txt.innerHTML = reaction;
     if (tip) tip.style.display = 'block';
   } else {
-    txt.innerHTML = (cStep === 3 && cData._solsReady)
-      ? "Voici les solutions repérées, et sous chacune ses <b>ICI</b> 🌱 : l'impact que ton lieu va mesurer."
-      : "Besoin d'aide pour remplir la fiche ? Je suis là :)";
+    txt.innerHTML = (cStep === 3 && window._creerPhase === 'quetes')
+      ? "Voici une quête par solutions, adaptée à chaque espace. Ajoute-en ou crée les tiennes. Tu pourras modifier les quêtes avant leur publication dans le tableau de bord."
+      : (cStep === 3 && cData._solsReady)
+        ? "Voici les solutions repérées, et sous chacune ses <b>ICI</b> 🌱 : l'impact que ton lieu va mesurer."
+        : "Besoin d'aide pour remplir la fiche ? Je suis là :)";
     if (tip && cStep === 3) tip.style.display = 'block';
   }
 }
@@ -4519,6 +4522,7 @@ function renderStep(){
     genMM(espItems);
     mmDrawCircularLinks(espItems, circLinks);
     renderFluxTable();
+    if (typeof _creerMajBoutonVueMap === 'function') _creerMajBoutonVueMap();
     // Focalise le mind map sur l'espace actif une fois l'animation d'apparition posée.
     if (window._creerMapFocusT) clearTimeout(window._creerMapFocusT);
     window._creerMapFocusT = setTimeout(function(){ try { creerApplyMapFocus(); } catch(e){} }, Math.min(1700, 550 + espItems.length * 230 + 400));
@@ -4654,8 +4658,7 @@ function _creerQuetesLoadingRun(){
 // Phase finale : Deva a choisi les quêtes, présentées par espace.
 function creerQuetesPhaseHTML(){
   const espItems = window._creerEspItems || [];
-  let h = '<div style="background:rgba(200,115,42,.06);border:1px solid rgba(200,115,42,.22);border-radius:14px;padding:.85rem .9rem">'
-    + '<div style="font-size:.64rem;color:var(--moss);opacity:.8;margin-bottom:.4rem;line-height:1.5">✦ Deva a choisi une quête par solutions, adaptée à chaque espace. Ajoute-en ou crée les tiennes. Tu pourras modifier les quêtes avant leur publication dans le tableau de bord.</div>';
+  let h = '<div style="background:rgba(200,115,42,.06);border:1px solid rgba(200,115,42,.22);border-radius:14px;padding:.85rem .9rem">';
   espItems.forEach((it, idx) => {
     const c2 = it.c || '#2e9970';
     h += '<div style="display:flex;align-items:center;gap:.4rem;margin:.9rem 0 .5rem"><span style="font-size:.85rem">' + (it.ic || '📦') + '</span><span style="font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:' + c2 + '">' + ((it.esp && it.esp.nom) || ('Espace ' + (idx + 1))) + '</span></div>';
@@ -4670,9 +4673,12 @@ function creerQuetesPhaseHTML(){
 function creerRevoirEspaces(){
   window._creerPhase = 'espaces';
   window._creerActiveEsp = 0;
+  window._creerMapOverview = false;
   if (typeof creerSidePanelClose === 'function') creerSidePanelClose();
   creerRefreshSidebar();
   creerApplyMapFocus();
+  _creerMajBoutonVueMap();
+  if (typeof creerUpdateHint === 'function') creerUpdateHint(true);   // bulle Deva : retour au message solutions
 }
 
 // Contenu de la vue inline (fiche solution/quête/indicateur ou formulaire de
@@ -5107,9 +5113,25 @@ function creerRefreshSidebar(){
 function creerFocusEsp(idx){
   window._creerActiveEsp = idx;
   window._creerPhase = 'espaces';   // cliquer un espace = revenir l'éditer
+  window._creerMapOverview = false; // cliquer un espace = repasser en focus
   if (typeof creerSidePanelClose === 'function') creerSidePanelClose();   // referme le panneau latéral
   creerRefreshSidebar();
   creerApplyMapFocus();
+  _creerMajBoutonVueMap();
+}
+
+// Bascule entre vue d'ensemble (tout le mind map) et focus sur l'espace actif.
+function creerToggleVueMap(){
+  window._creerMapOverview = !window._creerMapOverview;
+  creerApplyMapFocus();
+  _creerMajBoutonVueMap();
+}
+function _creerMajBoutonVueMap(){
+  const b = document.getElementById('creer-vue-map-btn');
+  if (!b) return;
+  // Masqué en phase quêtes (le mind map y est déjà en vue d'ensemble).
+  b.style.display = (window._creerPhase === 'quetes') ? 'none' : 'flex';
+  b.innerHTML = window._creerMapOverview ? '🎯 Revenir à l\'espace' : '🗺 Vue d\'ensemble';
 }
 
 // Tous les espaces ont été parcourus → Deva compose les quêtes (chargement).
@@ -5117,10 +5139,12 @@ function creerGenererQuetes(){
   window._creerPhase = 'quetes';
   window._creerQuetesReady = false;
   window._creerQuetesLoadingScheduled = false;
+  window._creerMapOverview = false;
   if (typeof creerSidePanelClose === 'function') creerSidePanelClose();
   creerRefreshSidebar();
   creerApplyMapFocus();
-  if (typeof mmBubble === 'function') mmBubble('⚡ Deva compose tes quêtes…');
+  _creerMajBoutonVueMap();
+  if (typeof creerUpdateHint === 'function') creerUpdateHint(true);   // bulle Deva : message des quêtes
 }
 
 // « Créer une quête sur mesure » depuis un espace : formulaire dans le panneau
@@ -6242,6 +6266,12 @@ function mmRefreshSolsStep4() {
 // Zoome/centre le canvas sur l'espace `window._creerActiveEsp`, atténue les
 // autres espaces et révèle quête + indicateurs de chaque solution retenue.
 function creerApplyMapFocus(){
+  // Vue d'ensemble demandée (bouton) : tout le mind map, sans zoom ni atténuation.
+  if (window._creerMapOverview && window._creerPhase !== 'quetes') {
+    if (window.mmPanReset) window.mmPanReset();
+    mmSetDim(null); mmRevealEsp(null);
+    return;
+  }
   // Phase QUÊTES : vue d'ensemble, sans zoom ni atténuation, et on révèle les
   // quêtes choisies pour tous les espaces.
   if (window._creerPhase === 'quetes') {
