@@ -242,10 +242,15 @@
 
   // ── Synchronisation des quêtes avec Supabase (table quetes) ──
   function remoteQueteRow(row) {
+    // Nom + adresse du lieu, résolus depuis la table lieux locale (miroir Supabase).
+    var _lieu = null;
+    try { _lieu = (read('lieux') || []).filter(function (l) { return l && l.id === row.lieu_id; })[0] || null; } catch (e) {}
     return {
       id: row.id,
       user_id: currentUserId || null,
       lieu_id: row.lieu_id || null,
+      lieu_nom: row.lieu_nom || (_lieu && _lieu.nom) || null,
+      adresse: row.adresse || (_lieu && (_lieu.localisation || _lieu.adresse || _lieu.ville)) || null,
       titre: row.titre || '',
       duree: row.duree || null,
       nb: row.nb || null,
@@ -267,7 +272,7 @@
     // restent purement locaux (localStorage) tant que le Pilote n'a pas publié.
     if (row.statut !== 'ouverte') return;
     global.evadSupabase
-      .from('quetes')
+      .from('lieu_quetes')
       .upsert(remoteQueteRow(row), { onConflict: 'id' })
       .then(function (result) {
         if (result.error) {
@@ -281,7 +286,7 @@
   function deleteQueteRemote(id) {
     if (!global.evadSupabase || !id) return;
     global.evadSupabase
-      .from('quetes')
+      .from('lieu_quetes')
       .delete()
       .eq('id', id)
       .then(function (result) {
@@ -294,7 +299,7 @@
   async function hydrateQuetes() {
     if (!global.evadSupabase) return;
     try {
-      var result = await global.evadSupabase.from('quetes').select('*');
+      var result = await global.evadSupabase.from('lieu_quetes').select('*');
       if (result.error) {
         console.error('Erreur lecture des quêtes :', result.error.message);
         return;
