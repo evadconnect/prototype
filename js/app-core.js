@@ -4739,7 +4739,6 @@ function _creerQuetesLoadingRun(){
     window._creerQuetesReady = true;
     if (typeof creerRefreshSidebar === 'function') creerRefreshSidebar();
     if (typeof creerApplyMapFocus === 'function') creerApplyMapFocus();
-    if (typeof mmBubble === 'function') mmBubble('⚡ Deva a choisi les quêtes de ton lieu !');
   }, 2100);
 }
 
