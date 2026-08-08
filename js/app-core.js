@@ -6222,7 +6222,7 @@ function creerApplyMapFocus(){
     const rs = ep.re + 185;
     pts.push([st.cx + rs * Math.cos(sa), st.cy + rs * Math.sin(sa)]);
   }
-  const pad = 170;   // éventail d'indicateurs (~118px) + largeur des étiquettes
+  const pad = 100;   // demi-largeur des étiquettes des nœuds solution
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   pts.forEach(p => {
     minX = Math.min(minX, p[0] - pad); maxX = Math.max(maxX, p[0] + pad);
@@ -6296,58 +6296,32 @@ function mmRevealEsp(idx){
     const base = sn.id.replace('mn-sol-', '');           // "idx-j"
     const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === solNom) : null;
     // Quête (au-delà de la solution) — seulement en phase quêtes (choisie plus tard).
+    // Les indicateurs ne sont plus représentés sur le mind map.
     if (window._creerPhase === 'quetes' && sol && sol.quete && !retirQ.has('sol:' + solNom)) {
       const qx = sx + dx * 118, qy = sy + dy * 118;
       const p = mmLine(sx, sy, qx, qy, '#c8732a', '3,5', 'mn-sol-' + base, 'mn-q-' + base);
       if (p) p.setAttribute('data-reveal', '1');
       mmAdd('q-' + base, '⚡ ' + (sol.quete.titre || 'Quête'), qx, qy, 'quete', '#c8732a', 'rgba(200,115,42,.14)');
     }
-    // Indicateurs (éventail autour de la solution, max 3)
-    const icis = (typeof iciPourSolution === 'function' ? (iciPourSolution(solNom) || []) : [])
-      .filter(i => !retirI.has(i.id)).slice(0, 3);
-    const baseAng = Math.atan2(dy, dx);
-    icis.forEach((ici, k) => {
-      const ang = baseAng + (k - (icis.length - 1) / 2) * 0.5;
-      const ix = sx + Math.cos(ang) * 90, iy = sy + Math.sin(ang) * 90;
-      const p = mmLine(sx, sy, ix, iy, '#3a6e8c', '2,5', 'mn-sol-' + base, 'mn-ici-' + base + '-' + k);
-      if (p) p.setAttribute('data-reveal', '1');
-      const label = ici.nom.length > 15 ? ici.nom.slice(0, 14) + '…' : ici.nom;
-      mmAdd('ici-' + base + '-' + k, '📊 ' + label, ix, iy, 'ici', '#3a6e8c', 'rgba(58,110,140,.1)');
-    });
   });
-  // Quêtes / indicateurs ajoutés depuis la bibliothèque : rattachés au nœud
-  // espace (leur solution d'origine n'est pas dans l'espace).
+  // Quêtes ajoutées depuis la biblio (leur solution n'est pas dans l'espace),
+  // rattachées au nœud espace — uniquement en phase quêtes.
   const eEl = document.getElementById('mn-e-' + idx);
-  if (eEl) {
+  if (eEl && window._creerPhase === 'quetes') {
     const ex = parseFloat(eEl.style.left), ey = parseFloat(eEl.style.top);
     if (!isNaN(ex) && !isNaN(ey)) {
       let edx = ex - cx, edy = ey - cy; const edl = Math.hypot(edx, edy) || 1; edx /= edl; edy /= edl;
       const baseAng = Math.atan2(edy, edx);
-      // Quêtes ajoutées : uniquement en phase quêtes (masquées à l'étape solutions/indicateurs).
-      if (window._creerPhase === 'quetes') {
-        const qEsp = cData.quetesEspMap || {};
-        const addedQ = (cData.quetesAjoutees || []).filter(nom => qEsp[nom] === idx && !retirQ.has('sol:' + nom));
-        addedQ.forEach((nom, k) => {
-          const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === nom) : null;
-          if (!sol || !sol.quete) return;
-          const ang = baseAng + (k - (addedQ.length - 1) / 2) * 0.4;
-          const qx = ex + Math.cos(ang) * 128, qy = ey + Math.sin(ang) * 128;
-          const p = mmLine(ex, ey, qx, qy, '#c8732a', '3,5', 'mn-e-' + idx, 'mn-q-' + idx + '-add' + k);
-          if (p) p.setAttribute('data-reveal', '1');
-          mmAdd('q-' + idx + '-add' + k, '⚡ ' + (sol.quete.titre || 'Quête'), qx, qy, 'quete', '#c8732a', 'rgba(200,115,42,.14)');
-        });
-      }
-      const iEsp = cData.icisEspMap || {};
-      const addedI = (cData.icisAjoutes || []).filter(id => iEsp[id] === idx && !retirI.has(id));
-      addedI.forEach((id, k) => {
-        const ici = (typeof iciGetICI === 'function') ? iciGetICI(id) : null;
-        if (!ici) return;
-        const ang = baseAng + (k - (addedI.length - 1) / 2) * 0.4 + 0.28;
-        const ix = ex + Math.cos(ang) * 104, iy = ey + Math.sin(ang) * 104;
-        const p = mmLine(ex, ey, ix, iy, '#3a6e8c', '2,5', 'mn-e-' + idx, 'mn-ici-' + idx + '-add' + k);
+      const qEsp = cData.quetesEspMap || {};
+      const addedQ = (cData.quetesAjoutees || []).filter(nom => qEsp[nom] === idx && !retirQ.has('sol:' + nom));
+      addedQ.forEach((nom, k) => {
+        const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === nom) : null;
+        if (!sol || !sol.quete) return;
+        const ang = baseAng + (k - (addedQ.length - 1) / 2) * 0.4;
+        const qx = ex + Math.cos(ang) * 128, qy = ey + Math.sin(ang) * 128;
+        const p = mmLine(ex, ey, qx, qy, '#c8732a', '3,5', 'mn-e-' + idx, 'mn-q-' + idx + '-add' + k);
         if (p) p.setAttribute('data-reveal', '1');
-        const label = ici.nom.length > 15 ? ici.nom.slice(0, 14) + '…' : ici.nom;
-        mmAdd('ici-' + idx + '-add' + k, '📊 ' + label, ix, iy, 'ici', '#3a6e8c', 'rgba(58,110,140,.1)');
+        mmAdd('q-' + idx + '-add' + k, '⚡ ' + (sol.quete.titre || 'Quête'), qx, qy, 'quete', '#c8732a', 'rgba(200,115,42,.14)');
       });
     }
   }
