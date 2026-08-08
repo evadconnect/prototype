@@ -4548,12 +4548,12 @@ function creerStep3SidebarHTML(){
   const totalN = espItems.length;
   const allDone = valides.length >= totalN;
 
-  // 1. Boutons d'espace
-  let btns = '<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.85rem">';
+  // 1. Boutons d'espace — une seule ligne, défilement horizontal.
+  let btns = '<div style="display:flex;flex-wrap:nowrap;gap:.4rem;margin-bottom:.85rem;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;padding-bottom:.3rem">';
   espItems.forEach((e, i) => {
     const on = i === active, done = valides.indexOf(i) >= 0;
     const c2 = e.c || '#2e9970';
-    btns += '<button onclick="creerFocusEsp(' + i + ')" style="display:inline-flex;align-items:center;gap:.32rem;font-size:.66rem;font-weight:700;font-family:inherit;padding:.42rem .7rem;border-radius:100px;cursor:pointer;border:1.5px solid ' + c2 + ';background:' + (on ? c2 : (done ? c2 + '1f' : 'white')) + ';color:' + (on ? '#fff' : c2) + ';transition:all .15s">'
+    btns += '<button onclick="creerFocusEsp(' + i + ')" style="flex-shrink:0;white-space:nowrap;display:inline-flex;align-items:center;gap:.32rem;font-size:.66rem;font-weight:700;font-family:inherit;padding:.42rem .7rem;border-radius:100px;cursor:pointer;border:1.5px solid ' + c2 + ';background:' + (on ? c2 : (done ? c2 + '1f' : 'white')) + ';color:' + (on ? '#fff' : c2) + ';transition:all .15s">'
       + (done ? '<span style="font-size:.72rem">✓</span>' : '')
       + '<span style="font-size:.82rem">' + (e.ic || '📦') + '</span>'
       + '<span>' + ((e.esp && e.esp.nom) || ('Espace ' + (i + 1))) + '</span>'
@@ -4561,21 +4561,27 @@ function creerStep3SidebarHTML(){
   });
   btns += '</div>';
 
+  // Titre d'étape (comme « Les espaces du lieu »), selon la phase.
+  const _t = (window._creerPhase === 'quetes')
+    ? { l: 'Les quêtes du lieu', s: 'Une quête par solution proposée par Deva, à ajuster avant publication.' }
+    : { l: 'Les solutions du lieu', s: 'Choisis les solutions et vérifie les indicateurs de chaque espace.' };
+  const titre = '<label class="creer-lbl">' + _t.l + '</label>'
+    + '<p style="font-size:.68rem;color:var(--moss);opacity:.7;margin:-.3rem 0 .9rem;line-height:1.5">' + _t.s + '</p>';
+
   // 2. En-tête de l'espace actif
-  const head = '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem">'
+  const head = '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.6rem">'
     + '<span style="font-size:1.15rem">' + (it.ic || '📦') + '</span>'
     + '<div style="font-size:.92rem;font-weight:800;color:var(--ink)">' + ((it.esp && it.esp.nom) || ('Espace ' + (active + 1))) + '</div>'
     + '<span style="margin-left:auto;font-size:.6rem;font-weight:700;color:' + col + ';background:' + col + '1f;padding:.12rem .5rem;border-radius:100px">' + (active + 1) + '/' + totalN + '</span>'
-    + '</div>'
-    + '<div style="font-size:.64rem;color:var(--moss);opacity:.75;margin-bottom:.7rem;line-height:1.5">Choisis les solutions de cet espace et vérifie ses indicateurs, puis valide pour passer au suivant. Deva choisira ensuite les quêtes.</div>';
+    + '</div>';
 
   // 3. Sections
   const secTitle = (ic, txt, c) => '<div style="font-size:.64rem;font-weight:800;color:' + c + ';text-transform:uppercase;letter-spacing:.06em;margin:.9rem 0 .5rem">' + ic + ' ' + txt + '</div>';
 
   // Phase QUÊTES : temps de chargement Deva, puis les quêtes proposées.
   if (window._creerPhase === 'quetes') {
-    if (!window._creerQuetesReady) return btns + creerQuetesLoadingHTML();
-    return btns + creerQuetesPhaseHTML();
+    if (!window._creerQuetesReady) return titre + btns + creerQuetesLoadingHTML();
+    return titre + btns + creerQuetesPhaseHTML();
   }
 
   // 4. Bouton valider (phase ESPACES : solutions + indicateurs)
@@ -4583,7 +4589,7 @@ function creerStep3SidebarHTML(){
   const label = isValid ? '✓ Aller à l\'espace suivant' : '✓ Valider cet espace';
   const validBtn = '<button onclick="creerValiderEsp()" style="width:100%;margin-top:1rem;padding:.72rem;border:none;border-radius:100px;background:var(--forest);color:#fff;font-family:inherit;font-size:.8rem;font-weight:800;cursor:pointer">' + label + '</button>';
 
-  return btns
+  return titre + btns
     + '<div style="background:' + col + '0a;border:1px solid ' + col + '26;border-radius:14px;padding:.85rem .9rem">'
     + head
     + secTitle('🧩', 'Solutions', col)
@@ -4642,7 +4648,6 @@ function _creerQuetesLoadingRun(){
 function creerQuetesPhaseHTML(){
   const espItems = window._creerEspItems || [];
   let h = '<div style="background:rgba(200,115,42,.06);border:1px solid rgba(200,115,42,.22);border-radius:14px;padding:.85rem .9rem">'
-    + '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem"><span style="font-size:1.15rem">⚡</span><div style="font-size:.92rem;font-weight:800;color:var(--ink)">Les quêtes de ton lieu</div></div>'
     + '<div style="font-size:.64rem;color:var(--moss);opacity:.8;margin-bottom:.4rem;line-height:1.5">✦ Deva a choisi une quête par solutions, adaptée à chaque espace. Ajoute-en ou crée les tiennes. Tu pourras modifier les quêtes avant leur publication dans le tableau de bord.</div>';
   espItems.forEach((it, idx) => {
     const c2 = it.c || '#2e9970';
