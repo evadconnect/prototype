@@ -273,8 +273,13 @@ function syncPiloteQuetesFromLieu() {
     // partagent un nom de solution.
     if (myLieuId) return r.lieu_id === myLieuId;
     // Pas encore d'id (brouillon) : quête créée manuellement ou issue d'une
-    // solution retenue dans la fiche en cours.
-    return r.custom === true || (r.source && queteSolSet.has(r.source));
+    // solution retenue dans la fiche en cours, MAIS uniquement les quêtes
+    // locales du brouillon (lieu_id vide ou placeholder). Sans ce garde, les
+    // quêtes des AUTRES Pilotes (hydratées de Supabase dans le store) entrent
+    // dans la liste et gonflent la Vadité avec des preuves qui ne sont pas
+    // les nôtres.
+    const isDraftRow = !r.lieu_id || r.lieu_id === 'draft' || r.lieu_id === 'lieu-demo';
+    return isDraftRow && (r.custom === true || (r.source && queteSolSet.has(r.source)));
   }).forEach(function (r) {
     // Quête terminée en base : re-crédite la Vadité de session (le Set
     // quetesValidees ne survit pas au rechargement, le statut si).
