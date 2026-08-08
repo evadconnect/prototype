@@ -4340,7 +4340,7 @@ function renderStep(){
     // avant de les révéler (rejoué à chaque clic sur « Générer les solutions »).
     if(!cData._solsReady){
       renderDevaSearching(c);
-      if(sv) sv.style.display='none';   // pas d'enregistrement pendant la génération
+      // (le bouton d'enregistrement est déjà masqué par _creerMajNav)
       if(!window._creerSolGenerating){
         window._creerSolGenerating = true;
         setTimeout(()=>{
