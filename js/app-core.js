@@ -1464,7 +1464,7 @@ const SOLS=[
    esrs:['ESRS E3','ESRS E5'],esrs_detail:'Économie d\'eau (E3) et valorisation matière organique en circuit fermé (E5).',
    photo:'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&q=80&auto=format&fit=crop',
    lieux:['ferme','ecolieu','habitat','jardin','tiers','repair','ressourcerie'],
-   quete:{titre:'Installer et documenter les toilettes sèches',duree:'1 journée',nb:'2–4 pers.',impact_quete:'+6 pts eau · compost certifiable'}},
+   quete:{titre:'Installer les toilettes sèches',duree:'1 journée',nb:'2–4 pers.',impact_quete:'+6 pts eau · compost certifiable'}},
 
   {nom:'Panneaux solaires PV',cat:'electricite',cplx:'moyen',impact:'3 500 kWh/an',co2:.9,tok:90,img:'☀️',
    desc:'Installation de modules photovoltaïques en toiture pour produire de l\'électricité directement consommée sur site (autoconsommation) ou réinjectée sur le réseau. Une installation de 6 kWc produit environ 6 000 kWh/an en région tempérée, couvrant 30 à 80 % des besoins selon le profil de consommation. ROI entre 7 et 10 ans, durée de vie 25 à 30 ans.',
@@ -3843,6 +3843,7 @@ function initCreer(){
   cStep=0; cData=_CDATA_EMPTY();
   window._creerActiveEsp = 0;   // flux guidé étape 3 : repartir du premier espace
   window._creerPhase = 'espaces';
+  window._creerQuetesReady = false; window._creerQuetesLoadingScheduled = false;
   if (typeof creerSidePanelClose === 'function') creerSidePanelClose();
   // Reprise d'un brouillon non publié (persisté en localStorage).
   if (window.store) {
@@ -4513,6 +4514,7 @@ function renderStep(){
 
     // ── Sidebar : flux guidé espace par espace ──
     c.innerHTML = creerStep3SidebarHTML();
+    _creerQuetesLoadingRun();
 
     genMM(espItems);
     mmDrawCircularLinks(espItems, circLinks);
@@ -4570,8 +4572,9 @@ function creerStep3SidebarHTML(){
   // 3. Sections
   const secTitle = (ic, txt, c) => '<div style="font-size:.64rem;font-weight:800;color:' + c + ';text-transform:uppercase;letter-spacing:.06em;margin:.9rem 0 .5rem">' + ic + ' ' + txt + '</div>';
 
-  // Phase QUÊTES : une fois tous les espaces validés, Deva propose les quêtes.
+  // Phase QUÊTES : temps de chargement Deva, puis les quêtes proposées.
   if (window._creerPhase === 'quetes') {
+    if (!window._creerQuetesReady) return btns + creerQuetesLoadingHTML();
     return btns + creerQuetesPhaseHTML();
   }
 
@@ -4589,6 +4592,50 @@ function creerStep3SidebarHTML(){
     + creerEspaceIndicsHTML(active)
     + validBtn
     + '</div>';
+}
+
+// Écran de chargement « Deva compose tes quêtes » (avant la phase quêtes),
+// dans le même esprit que la recherche de solutions/indicateurs.
+function creerQuetesLoadingHTML(){
+  return '<div id="creer-quetes-loading" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2.2rem 1rem;min-height:280px;animation:obFadeIn .35s ease">'
+    + '<div style="position:relative;width:80px;height:80px;margin-bottom:1.2rem">'
+      + '<div style="position:absolute;inset:0;border-radius:50%;background:rgba(200,115,42,.12);animation:pulse 1.8s ease-in-out infinite"></div>'
+      + '<div style="position:absolute;inset:5px;border-radius:50%;border:2.5px solid rgba(200,115,42,.2);border-top-color:#c8732a;animation:spin .9s linear infinite"></div>'
+      + '<img src="Deva.png" alt="Deva" style="position:absolute;inset:14px;width:52px;height:52px;object-fit:contain;object-position:bottom;transform:scaleX(-1) rotate(12deg);filter:drop-shadow(0 0 8px rgba(200,115,42,.5))">'
+    + '</div>'
+    + '<div style="font-size:.95rem;font-weight:800;color:var(--ink);margin-bottom:.45rem;font-family:\'Satoshi\',sans-serif">Deva compose tes quêtes</div>'
+    + '<div id="creer-quetes-loading-msg" style="font-size:.72rem;color:var(--moss);opacity:.8;min-height:1.1em;transition:opacity .25s">Analyse de tes solutions retenues…</div>'
+    + '<div style="display:flex;gap:.32rem;margin-top:1rem">'
+      + '<span style="width:7px;height:7px;border-radius:50%;background:#c8732a;animation:typingBounce 1.1s ease-in-out infinite"></span>'
+      + '<span style="width:7px;height:7px;border-radius:50%;background:#c8732a;animation:typingBounce 1.1s ease-in-out .18s infinite"></span>'
+      + '<span style="width:7px;height:7px;border-radius:50%;background:#c8732a;animation:typingBounce 1.1s ease-in-out .36s infinite"></span>'
+    + '</div>'
+  + '</div>';
+}
+
+// Démarre la rotation des messages et planifie l'affichage des quêtes après le
+// temps de chargement. Idempotent : le minuteur n'est planifié qu'une fois.
+function _creerQuetesLoadingRun(){
+  if (!document.getElementById('creer-quetes-loading') || window._creerQuetesLoadingScheduled) return;
+  window._creerQuetesLoadingScheduled = true;
+  const msgs = ['Analyse de tes solutions retenues…', 'Croisement avec tes indicateurs…', 'Composition d\'une quête par action…', 'Personnalisation par espace…'];
+  let mi = 0;
+  clearInterval(window._creerQuetesMsgTimer);
+  window._creerQuetesMsgTimer = setInterval(() => {
+    const el = document.getElementById('creer-quetes-loading-msg');
+    if (!el) { clearInterval(window._creerQuetesMsgTimer); return; }
+    mi = (mi + 1) % msgs.length;
+    el.style.opacity = '0';
+    setTimeout(() => { el.textContent = msgs[mi]; el.style.opacity = '.8'; }, 220);
+  }, 850);
+  clearTimeout(window._creerQuetesReadyTimer);
+  window._creerQuetesReadyTimer = setTimeout(() => {
+    clearInterval(window._creerQuetesMsgTimer);
+    window._creerQuetesReady = true;
+    if (typeof creerRefreshSidebar === 'function') creerRefreshSidebar();
+    if (typeof creerApplyMapFocus === 'function') creerApplyMapFocus();
+    if (typeof mmBubble === 'function') mmBubble('⚡ Deva a choisi les quêtes de ton lieu !');
+  }, 2100);
 }
 
 // Phase finale : Deva a choisi les quêtes, présentées par espace.
@@ -5038,7 +5085,7 @@ function creerIciBiblioBlockHTML(idx){
 // Rafraîchit uniquement la sidebar de l'étape 3 (sans redessiner le mind map).
 function creerRefreshSidebar(){
   const c = document.getElementById('creer-step-content');
-  if (c && cStep === 3) c.innerHTML = creerStep3SidebarHTML();
+  if (c && cStep === 3) { c.innerHTML = creerStep3SidebarHTML(); _creerQuetesLoadingRun(); }
 }
 
 // Clique sur un bouton d'espace : focalise sidebar + mind map sur cet espace.
@@ -5065,12 +5112,14 @@ function creerValiderEsp(){
     creerFocusEsp(next);
     if (typeof mmBubble === 'function') mmBubble('✓ Espace validé · au suivant');
   } else {
-    // Tous les espaces validés → Deva choisit les quêtes par espace.
+    // Tous les espaces validés → Deva compose les quêtes (temps de chargement).
     window._creerPhase = 'quetes';
+    window._creerQuetesReady = false;
+    window._creerQuetesLoadingScheduled = false;
     if (typeof creerSidePanelClose === 'function') creerSidePanelClose();
     creerRefreshSidebar();
     creerApplyMapFocus();
-    if (typeof mmBubble === 'function') mmBubble('⚡ Deva a choisi les quêtes de ton lieu !');
+    if (typeof mmBubble === 'function') mmBubble('⚡ Deva compose tes quêtes…');
   }
 }
 
@@ -6197,7 +6246,8 @@ function creerApplyMapFocus(){
   if (window._creerPhase === 'quetes') {
     if (window.mmPanReset) window.mmPanReset();
     mmSetDim(null);
-    mmRevealQuetesAll();
+    // Les quêtes n'apparaissent qu'une fois Deva a terminé de composer.
+    if (window._creerQuetesReady) mmRevealQuetesAll(); else mmRevealEsp(null);
     return;
   }
   const idx = window._creerActiveEsp;
@@ -6337,7 +6387,7 @@ function mmRevealEsp(idx){
 
 // Rafraîchit uniquement la révélation quête/ICI (après retrait d'un élément).
 function creerMapRevealRefresh(){
-  if (window._creerPhase === 'quetes') { mmRevealQuetesAll(); return; }
+  if (window._creerPhase === 'quetes') { if (window._creerQuetesReady) mmRevealQuetesAll(); return; }
   if (window._creerActiveEsp != null) { mmRevealEsp(window._creerActiveEsp); mmSetDim(window._creerActiveEsp); }
 }
 
