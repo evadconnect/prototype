@@ -646,10 +646,31 @@ function renderPiloteQuetes() {
   if (stats[2]) stats[2].textContent = nbTerminees;
   if (stats[3]) stats[3].textContent = totalGraines || '-';
 
-  // Message Deva
+  // Notifications : preuves à valider + bâtisseurs inscrits sur mes quêtes.
+  let nbPreuvesAttente = 0, nbInscritsNotif = 0;
+  if (window.store) {
+    const qidSet = new Set(PILOTE_QUETES_DEMO.map(q => q.id));
+    nbPreuvesAttente = store.where('quete_preuves', p => p && !p.validee && qidSet.has(p.quete_id)).length;
+    nbInscritsNotif = store.where('quete_candidatures', c => c && c.statut === 'inscrit' && qidSet.has(c.quete_id)).length;
+  }
+  // Point orange sur l'onglet Quêtes tant que des preuves attendent.
+  const tabBtn = document.getElementById('ptab-quetes');
+  if (tabBtn) {
+    const dot = tabBtn.querySelector('.notif-dot');
+    if (nbPreuvesAttente > 0 && !dot) {
+      const d = document.createElement('span');
+      d.className = 'notif-dot';
+      d.style.cssText = 'display:inline-block;width:7px;height:7px;background:var(--amber);border-radius:50%;margin-left:.35rem;vertical-align:middle';
+      tabBtn.appendChild(d);
+    } else if (!nbPreuvesAttente && dot) dot.remove();
+  }
+
+  // Message Deva : les preuves en attente passent devant tout le reste.
   const msg = document.getElementById('deva-quetes-msg');
   if (msg) {
-    if (aVerifier.length) msg.textContent = `${aVerifier.length} quête${aVerifier.length>1?'s':''} à vérifier : ouvre le détail, puis publie celles qui te conviennent. Seules les quêtes publiées sont visibles par les bâtisseurs.`;
+    if (nbPreuvesAttente) msg.textContent = `📥 ${nbPreuvesAttente} preuve${nbPreuvesAttente>1?'s':''} attend${nbPreuvesAttente>1?'ent':''} ta validation : ouvre le détail de la quête concernée. Chaque preuve validée nourrit ta Vadité.`;
+    else if (aVerifier.length) msg.textContent = `${aVerifier.length} quête${aVerifier.length>1?'s':''} à vérifier : ouvre le détail, puis publie celles qui te conviennent. Seules les quêtes publiées sont visibles par les bâtisseurs.`;
+    else if (nbInscritsNotif && enLigneActives.length) msg.textContent = `👥 ${nbInscritsNotif} bâtisseur${nbInscritsNotif>1?'s':''} inscrit${nbInscritsNotif>1?'s':''} sur tes quêtes. Pense à déposer la preuve T0 (état initial) avant le début du chantier.`;
     else if (enLigne.length) msg.textContent = `Tes ${enLigne.length} quête${enLigne.length>1?'s':''} sont en ligne. Valide une preuve depuis le détail pour la propager dans tes dossiers CSRD/FSE+.`;
     else msg.textContent = 'Crée ta première quête avec « + Nouvelle quête » : une action concrète que les bâtisseurs pourront rejoindre une fois publiée.';
   }
@@ -1116,9 +1137,50 @@ const DOSSIERS_CATALOGUE = [
 ];
 
 /* ─────────────────────────────────────────────────────────
-   3. STOCKAGE DES ACTIONS TERRAIN (session)
+   3. STOCKAGE DES ACTIONS TERRAIN
+   Alimenté en session par les validations, et RECONSTRUIT au chargement
+   depuis les preuves validées en base (le journal survit au refresh).
    ───────────────────────────────────────────────────────── */
 let actionsTerrains = [];
+
+/* Entrée de journal (perma-comptabilité) pour une preuve de quête validée :
+   mêmes convergences que la saisie manuelle (detectConvType + convergeEntry). */
+function journalEntryFromPreuve(p, q) {
+  q = q || {};
+  const type = detectConvType(q.titre || '', q.impact || '');
+  const meta = (typeof QD_PREUVE_META !== 'undefined' && QD_PREUVE_META[p.type]) || { ic: '📊', label: 'Mesure' };
+  const ph = (typeof QD_PHASE_META !== 'undefined' && QD_PHASE_META[p.phase === 't0' ? 't0' : 't1'])
+           || { ic: '✅', label: p.phase === 't0' ? 'T0' : 'T1' };
+  const vals = type ? parseQueteValues(q) : { val1: '', val2: '' };
+  return {
+    type: type || 'autre',
+    label: q.titre || 'Quête',
+    val1: vals.val1, val2: vals.val2,
+    date: String(p.updated_at || p.created_at || new Date().toISOString()).slice(0, 10),
+    convergence: type ? convergeEntry(type, vals.val1, vals.val2) : null,
+    source: 'quete', quete_id: q.id || null, preuve_id: p.id,
+    preuve: {
+      type: p.type, label: ph.label + ' · ' + meta.label, icon: ph.ic,
+      note: [p.batisseur_nom || 'Bâtisseur', p.valeur || null, p.note || null].filter(Boolean).join(' · ')
+    }
+  };
+}
+
+/* Reconstruit le journal depuis la base : preuves validées des quêtes du
+   lieu, dédupliquées par preuve_id (idempotent, appelable à chaque rendu). */
+function rebuildJournalFromPreuves() {
+  if (!window.store || typeof actionsTerrains === 'undefined') return;
+  const myId = (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.id) || null;
+  if (!myId) return;
+  const seen = new Set(actionsTerrains.map(a => a.preuve_id).filter(Boolean));
+  store.where('quete_preuves', function (p) { return p && p.validee === true; }).forEach(function (p) {
+    if (seen.has(p.id)) return;
+    const q = p.quete_id ? store.get('quetes', p.quete_id) : null;
+    if (!q || q.lieu_id !== myId) return;
+    actionsTerrains.push(journalEntryFromPreuve(p, q));
+    seen.add(p.id);
+  });
+}
 
 /* ─────────────────────────────────────────────────────────
    4. MOTEUR DE CONVERGENCE
@@ -1410,6 +1472,9 @@ function renderBilanESRS() {
 }
 
 function initDossiers() {
+  // Recharge les preuves validées depuis la base avant tout rendu : le
+  // journal, l'impact et les dossiers survivent ainsi au rechargement.
+  if (typeof rebuildJournalFromPreuves === 'function') rebuildJournalFromPreuves();
   renderImpact();
   renderJournal();
   renderBilanESRS();

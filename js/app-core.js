@@ -8393,11 +8393,13 @@ function qdValiderPreuveBat(pvId) {
   const p = store.get('quete_preuves', pvId);
   if (!p || p.validee) return;
   store.update('quete_preuves', pvId, { validee: true });
-  const meta = QD_PREUVE_META[p.type] || QD_PREUVE_META.mesure;
   const phMeta = QD_PHASE_META[p.phase === 't0' ? 't0' : 't1'];
-  // Entrée au Journal des preuves
-  if (typeof actionsTerrains !== 'undefined') {
-    actionsTerrains.push({ type: 'autre', label: q.titre, val1: p.valeur || '', val2: '', date: new Date().toISOString().split('T')[0], source: 'quete', quete_id: q.srcId || null, preuve: { type: p.type, label: phMeta.label + ' · ' + meta.label, icon: phMeta.ic, note: (p.batisseur_nom || 'Bâtisseur') + (p.note ? ' · ' + p.note : '') } });
+  // Entrée au Journal des preuves : même fabrique que la reconstruction au
+  // chargement (rebuildJournalFromPreuves) → pas de doublon, mêmes convergences.
+  if (typeof actionsTerrains !== 'undefined' && typeof journalEntryFromPreuve === 'function') {
+    const pRow = store.get('quete_preuves', pvId) || p;
+    const qRow = (q.srcId && store.get('quetes', q.srcId)) || { id: q.srcId || null, titre: q.titre, impact: q.impact };
+    if (!actionsTerrains.some(a => a.preuve_id === pRow.id)) actionsTerrains.push(journalEntryFromPreuve(pRow, qRow));
   }
   // Rattachement par ID de quête (plus jamais par titre : deux quêtes issues
   // de la même solution partagent le même titre).
@@ -8700,6 +8702,42 @@ function renderQueteDetail() {
       </div>
       ${dateBody}
     </div>` : ''}
+
+    <!-- Avant / Après : preuves T0 (état initial) et T1 (état final) -->
+    ${(() => {
+      const pvs = (typeof qdPreuvesBat === 'function') ? qdPreuvesBat(q) : [];
+      if (!pvs.length) return '';
+      const t0 = pvs.filter(p => p.phase === 't0').pop();
+      const t1 = pvs.filter(p => p.phase !== 't0').pop();
+      if (!t0 && !t1) return '';
+      const card = (p, ph) => {
+        const meta = QD_PHASE_META[ph];
+        if (!p) return `<div style="border:1.5px dashed rgba(46,102,66,.2);border-radius:12px;padding:.9rem;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:120px">
+          <div style="font-size:1.2rem;margin-bottom:.3rem;opacity:.5">${meta.ic}</div>
+          <div style="font-size:.62rem;color:var(--moss);opacity:.6">${meta.label}<br>pas encore déposée</div>
+        </div>`;
+        return `<div style="border:1px solid rgba(46,102,66,.14);border-radius:12px;overflow:hidden;background:rgba(46,102,66,.02)">
+          ${p.photo_url
+            ? `<a href="${p.photo_url}" target="_blank" rel="noopener"><img src="${p.photo_url}" alt="${meta.label}" style="width:100%;height:120px;object-fit:cover;display:block"></a>`
+            : `<div style="height:120px;display:flex;align-items:center;justify-content:center;font-size:2rem;background:rgba(46,102,66,.05)">${(QD_PREUVE_META[p.type] || {}).ic || '📊'}</div>`}
+          <div style="padding:.55rem .7rem">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:.4rem">
+              <span style="font-size:.62rem;font-weight:800;color:var(--forest)">${meta.ic} ${meta.label}</span>
+              ${p.validee
+                ? '<span style="font-size:.56rem;font-weight:700;color:var(--fern);white-space:nowrap">✓ validée</span>'
+                : '<span style="font-size:.56rem;font-weight:700;color:var(--amber);white-space:nowrap">en attente</span>'}
+            </div>
+            ${p.valeur ? `<div style="font-size:.7rem;font-weight:700;color:var(--ink);margin-top:.2rem">📊 ${p.valeur}</div>` : ''}
+            ${p.note ? `<div style="font-size:.62rem;color:var(--moss);opacity:.8;line-height:1.4;margin-top:.15rem">${p.note}</div>` : ''}
+            <div style="font-size:.56rem;color:var(--moss);opacity:.55;margin-top:.2rem">${p.batisseur_nom || 'Bâtisseur'}</div>
+          </div>
+        </div>`;
+      };
+      return `<div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-lg);padding:1rem 1.1rem">
+        <div style="font-size:.72rem;font-weight:600;color:var(--ink);margin-bottom:.6rem">📸 Avant / Après <span style="font-weight:400;opacity:.55">· la différence entre T0 et T1, c'est l'impact prouvé</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.7rem">${card(t0, 't0')}${card(t1, 't1')}</div>
+      </div>`;
+    })()}
 
     <!-- Matériel nécessaire (checklist · Bibliothèque) · replié par défaut -->
     ${(q.materiel && q.materiel.length) ? (() => {
@@ -9057,13 +9095,19 @@ function qdPublierReseau() {
   const lieuNom = q.pilote || q.lieu || ((typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom) || 'Mon lieu');
   const ville = q.ville || 'Bordeaux';
   if (!(RESEAU_POSTS[0] && RESEAU_POSTS[0].quest && RESEAU_POSTS[0].quest.titre === q.titre && RESEAU_POSTS[0].author === lieuNom)) {
-    RESEAU_POSTS.unshift({
+    const post = {
       profile: 'pilote', author: lieuNom, lieu: ville, time: "à l'instant",
-      type: 'quete', regen: 'entreprendre',
+      type: 'quete', regen: 'activer',
       text: "On lance une nouvelle quête sur notre lieu ⚡ « " + q.titre + " ». On mobilise des Bâtisseurs, rejoignez-nous !",
-      quest: { titre: q.titre, meta: [q.duree, (q.places ? q.places.split('/')[1] + ' pers.' : ''), (q.tokens + ' graines')].filter(Boolean).join(' · ') },
+      // L'id de la quête voyage avec le post : le CTA « Rejoindre la quête »
+      // du fil ouvre la vraie fiche (reseauJoinQuete).
+      quest: { id: q.srcId || null, titre: q.titre, meta: [q.duree, (q.places ? q.places.split('/')[1] + ' pers.' : ''), (q.tokens + ' graines')].filter(Boolean).join(' · ') },
       cta: 'Rejoindre la quête'
-    });
+    };
+    RESEAU_POSTS.unshift(post);
+    // Persistance : sans ça le post n'existait qu'en mémoire (invisible des
+    // autres utilisateurs, perdu au rechargement).
+    if (typeof reseauPersistPost === 'function') reseauPersistPost(post);
   }
   showScreen('reseau');
   setTimeout(() => {
@@ -13692,12 +13736,15 @@ window.addEventListener('evad:quetes-ready', function(){
   } catch(e){}
 });
 // Inscriptions et preuves reçues de Supabase : re-rendre les deux vues
-// (équipes, statut « inscrit », preuves en attente de validation).
+// (équipes, statut « inscrit », preuves en attente de validation) et
+// reconstruire le journal des preuves (dossiers + impact).
 ['evad:candidatures-ready', 'evad:preuves-ready'].forEach(function (ev) {
   window.addEventListener(ev, function(){
     try {
+      if (typeof rebuildJournalFromPreuves === 'function') rebuildJournalFromPreuves();
       if (typeof renderPiloteQuetes === 'function') renderPiloteQuetes();
       if (typeof batRenderQuetes === 'function') batRenderQuetes();
+      if (typeof initDossiers === 'function') initDossiers();
     } catch(e){}
   });
 });

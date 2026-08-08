@@ -239,6 +239,39 @@ async function reseauPublish(){
     mmBubble('⚠️ Ton post est affiché ici mais n\'a pas pu être enregistré définitivement, réessaie plus tard.');
   }
 }
+// Persiste un post construit ailleurs (publication d'une quête depuis la
+// fiche quête ou le tableau de bord) dans reseau_posts : sans ça, le post
+// n'existait qu'en mémoire et disparaissait au rechargement.
+async function reseauPersistPost(post){
+  if(!window.evadSupabase) return;
+  try {
+    const row = {
+      profile: post.profile, author: post.author, lieu: post.lieu,
+      type: post.type, regen: post.regen, text: post.text, cta: post.cta,
+      quest: post.quest || null, img: post.img || null
+    };
+    const { data, error } = await window.evadSupabase.from('reseau_posts').insert(row).select().single();
+    if(error) throw error;
+    // Remplace la version optimiste par la ligne confirmée (id + horodatage réels).
+    const idx = RESEAU_POSTS.indexOf(post);
+    if(idx !== -1) RESEAU_POSTS[idx] = _reseauRowToPost(data);
+    renderReseau();
+  } catch(e){
+    console.error('Erreur sauvegarde reseau_posts :', e);
+    if(typeof mmBubble === 'function') mmBubble('⚠️ Post affiché ici mais non enregistré sur le réseau, réessaie plus tard');
+  }
+}
+
+// Ouvre la VRAIE fiche de la quête depuis un post du fil (fini le simple toast).
+function reseauJoinQuete(qid, titre){
+  if (typeof batBuildQuetesFromProfile === 'function') batBuildQuetesFromProfile();
+  const list = (typeof BAT_QUETES !== 'undefined') ? BAT_QUETES : [];
+  let i = qid ? list.findIndex(q => q.srcId === qid) : -1;
+  if (i < 0 && titre) i = list.findIndex(q => q.titre === titre && q.statut === 'ouverte');
+  if (i >= 0 && typeof showQueteDetail === 'function') { showQueteDetail(i, 'reseau'); return; }
+  if (typeof mmBubble === 'function') mmBubble('Cette quête n\'est plus ouverte 🍃');
+}
+
 function renderReseau(){
   const feed = document.getElementById('reseau-feed');
   if(!feed) return;
@@ -289,7 +322,9 @@ function renderReseau(){
       <div style="display:flex;align-items:center;gap:.6rem;margin-top:.8rem;padding-top:.7rem;border-top:1px solid rgba(46,102,66,.08)">
         <button onclick="mmBubble('💬 Tu ouvres un échange avec ${p.author}')" style="background:white;border:1px solid rgba(46,102,66,.25);color:var(--forest);border-radius:100px;padding:.4rem .9rem;font-size:.72rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:.35rem">💬 Échanger</button>
         <button onclick="evadGoLieu('${(p.author||'').replace(/'/g,"\\'")}','${(p.lieu||'').replace(/'/g,"\\'")}')" style="background:white;border:1px solid rgba(46,102,66,.25);color:var(--forest);border-radius:100px;padding:.4rem .9rem;font-size:.72rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:.35rem">🗺 Voir le lieu</button>
-        <button onclick="mmBubble('${p.cta}, ${p.author}')" style="margin-left:auto;background:${pr.bg};color:${pr.color};border:none;border-radius:100px;padding:.4rem .9rem;font-size:.72rem;font-weight:700;cursor:pointer">${p.cta} →</button>
+        <button onclick="${p.type === 'quete' && p.quest
+          ? `reseauJoinQuete('${String(p.quest.id || '').replace(/'/g, "\\'")}','${String(p.quest.titre || '').replace(/'/g, "\\'")}')`
+          : `mmBubble('${p.cta}, ${p.author}')`}" style="margin-left:auto;background:${pr.bg};color:${pr.color};border:none;border-radius:100px;padding:.4rem .9rem;font-size:.72rem;font-weight:700;cursor:pointer">${p.cta} →</button>
       </div>
     </div>`;
   }).join('');
