@@ -5580,19 +5580,19 @@ function creerBddPanelHTML(espIdx){
   const sSearchRaw = window._creerSolSearch || '';
   const sSearch = sSearchRaw.toLowerCase().trim();
 
-  // Sans recherche : solutions des catégories pertinentes pour cet espace.
-  // Avec recherche : toutes les solutions non déjà ajoutées (pour en trouver
-  // au-delà des catégories de l'espace).
-  let available = SOLS.filter(s => !assigned.includes(s.nom) && (sSearch ? true : relevantCats.includes(s.cat)));
+  // Toute la bibliothèque (hors solutions déjà ajoutées à l'espace) ; la
+  // recherche filtre par-dessus.
+  let available = SOLS.filter(s => !assigned.includes(s.nom));
   if (sSearch) available = available.filter(s => ((s.nom + ' ' + (s.impact || '')).toLowerCase().indexOf(sSearch) >= 0));
 
   const searchInput = '<input id="creer-sol-search" type="text" value="'+sSearchRaw.replace(/"/g,'&quot;')+'" oninput="creerSolSearchInput(this.value)" placeholder="🔍 Rechercher une solution…" style="width:100%;box-sizing:border-box;padding:.4rem .6rem;margin-bottom:.5rem;border:1.5px solid rgba(46,102,66,.2);border-radius:8px;font-size:.72rem;font-family:inherit;background:#fff;outline:none">';
 
   if (!available.length)
-    return searchInput + '<div style="padding:.65rem;text-align:center;font-size:.68rem;color:var(--moss);opacity:.45;font-style:italic">'+(sSearch?'Aucune solution ne correspond à ta recherche':'Toutes les solutions compatibles ont déjà été ajoutées')+'</div>';
+    return searchInput + '<div style="padding:.65rem;text-align:center;font-size:.68rem;color:var(--moss);opacity:.45;font-style:italic">'+(sSearch?'Aucune solution ne correspond à ta recherche':'Toutes les solutions ont déjà été ajoutées')+'</div>';
 
-  // Grouper par catégorie : pertinentes d'abord, puis les autres si recherche.
-  const cats = sSearch ? relevantCats.concat(Object.keys(CAT_META).filter(c => relevantCats.indexOf(c) < 0)) : relevantCats;
+  // Grouper par catégorie : celles pertinentes pour l'espace d'abord, puis
+  // toutes les autres (accès à la bibliothèque complète).
+  const cats = relevantCats.concat(Object.keys(CAT_META).filter(c => relevantCats.indexOf(c) < 0));
   let html = searchInput;
   cats.forEach(cat => {
     const group = available.filter(s => s.cat === cat);
