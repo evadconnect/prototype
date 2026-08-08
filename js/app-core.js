@@ -2773,11 +2773,17 @@ function mapShowLieu(idx) {
 
       <!-- Vadance + dimensions -->
       <div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-lg);padding:.8rem .9rem;margin-bottom:.75rem">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
-          <span style="font-size:.68rem;font-weight:600;color:var(--ink)">Vadance</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+          <span style="font-size:.68rem;font-weight:600;color:var(--ink)">Vadance <span style="font-weight:500;opacity:.55;font-size:.58rem">(promesse)</span></span>
           <span style="font-family:'Satoshi', sans-serif;font-size:1.4rem;font-weight:900;color:var(--sun)">${place.score}</span>
         </div>
-        <div class="score-bar-bg" style="height:5px;margin-bottom:.85rem"><div class="score-bar-fill" style="width:${place.score}%"></div></div>
+        <div class="score-bar-bg" style="height:5px;margin-bottom:.6rem"><div class="score-bar-fill" style="width:${place.score}%"></div></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem;padding-top:.5rem;border-top:1px solid rgba(46,102,66,.08)">
+          <span style="font-size:.68rem;font-weight:600;color:var(--ink)">✅ Vadité <span style="font-weight:500;opacity:.55;font-size:.58rem">(preuve)</span></span>
+          <span style="font-family:'Satoshi', sans-serif;font-size:1.2rem;font-weight:900;color:var(--fern)">${place.vadite != null ? place.vadite : 0}</span>
+        </div>
+        <div class="score-bar-bg" style="height:5px;margin-bottom:.45rem;background:rgba(46,102,66,.1)"><div style="height:100%;border-radius:100px;width:${place.vadite != null ? place.vadite : 0}%;background:linear-gradient(90deg,#2e6b3e,var(--fern))"></div></div>
+        <div style="text-align:right;font-size:.58rem;color:var(--fern);font-weight:700;margin-bottom:.7rem">⚖️ Indice de confiance ${place.taux != null ? place.taux : 0}%</div>
         <div style="display:grid;grid-template-columns:repeat(${place.dims.length || 1},1fr);gap:.55rem">
           ${place.dims.map(d => `
           <div style="text-align:center;padding:.5rem .35rem;background:${d.c}0d;border:1px solid ${d.c}26;border-radius:10px">
@@ -6991,6 +6997,12 @@ async function createLieuOnMap(){
     cData.solutions = myLieuData.solutions;
     // Vadance (promesse) figée au résultat de la création
     myLieuData.vadance = (typeof computeVadance === 'function') ? computeVadance(cData) : 0;
+    // Vadité (preuve) + indice de confiance, figés à la création (comme la Vadance)
+    try {
+      const _imp = (typeof evadImpactData === 'function') ? evadImpactData() : { vadite: 0, taux: 0 };
+      myLieuData.vadite = _imp.vadite;
+      myLieuData.taux   = _imp.taux;
+    } catch(e2) { myLieuData.vadite = 0; myLieuData.taux = 0; }
   } catch(e) {}
 
   // Persistance Supabase : MISE À JOUR si le lieu existe déjà, sinon création.
@@ -13179,6 +13191,9 @@ function _lieuRowToMapPlace(row){
     type: typeLabel,
     ville: row.localisation || row.ville || 'Nouvelle-Aquitaine',
     score: row.vadance || 10,
+    vadite: (typeof row.vadite === 'number') ? row.vadite : 0,
+    taux: (typeof row.taux === 'number') ? row.taux
+          : (row.vadance ? Math.round(((row.vadite || 0) / row.vadance) * 100) : 0),
     quetes: 0,
     icon: ic,
     lat: row.lat ?? row.latitude ?? 48.2,
