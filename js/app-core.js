@@ -4546,6 +4546,9 @@ function creerStep3SidebarHTML(){
   const it = espItems[active];
   const col = it.c || '#2e9970';
   const totalN = espItems.length;
+  // Visiter (afficher) un espace le marque d'une coche ✓ : garantit que
+  // l'utilisateur passe sur tous les espaces avant de générer les quêtes.
+  if (window._creerPhase !== 'quetes' && valides.indexOf(active) < 0) valides.push(active);
   const allDone = valides.length >= totalN;
 
   // 1. Boutons d'espace — une seule ligne, défilement horizontal.
@@ -4584,10 +4587,14 @@ function creerStep3SidebarHTML(){
     return titre + btns + creerQuetesPhaseHTML();
   }
 
-  // 4. Bouton valider (phase ESPACES : solutions + indicateurs)
-  const isValid = valides.indexOf(active) >= 0;
-  const label = isValid ? '✓ Aller à l\'espace suivant' : '✓ Valider cet espace';
-  const validBtn = '<button onclick="creerValiderEsp()" style="width:100%;margin-top:1rem;padding:.72rem;border:none;border-radius:100px;background:var(--forest);color:#fff;font-family:inherit;font-size:.8rem;font-weight:800;cursor:pointer">' + label + '</button>';
+  // 4. Navigation : aller au prochain espace non visité ; une fois tous les
+  //    espaces parcourus, le bouton devient « Générer les quêtes ».
+  let _next = -1;
+  for (let k = 1; k <= totalN; k++) { const j = (active + k) % totalN; if (valides.indexOf(j) < 0) { _next = j; break; } }
+  const navBtn = (_next >= 0)
+    ? '<button onclick="creerFocusEsp(' + _next + ')" style="width:100%;margin-top:1rem;padding:.72rem;border:none;border-radius:100px;background:var(--forest);color:#fff;font-family:inherit;font-size:.8rem;font-weight:800;cursor:pointer">Aller à l\'espace suivant →</button>'
+    : '<button onclick="creerGenererQuetes()" style="width:100%;margin-top:1rem;padding:.72rem;border:none;border-radius:100px;background:#c8732a;color:#fff;font-family:inherit;font-size:.8rem;font-weight:800;cursor:pointer">⚡ Générer les quêtes</button>'
+      + '<div style="margin-top:.4rem;text-align:center;font-size:.62rem;color:var(--fern);font-weight:600">✓ Tous les espaces sont passés en revue</div>';
 
   return titre + btns
     + '<div style="background:' + col + '0a;border:1px solid ' + col + '26;border-radius:14px;padding:.85rem .9rem">'
@@ -4596,7 +4603,7 @@ function creerStep3SidebarHTML(){
     + creerEspaceSolBlockHTML(active)
     + secTitle('📊', 'Indicateurs', 'var(--sky)')
     + creerEspaceIndicsHTML(active)
-    + validBtn
+    + navBtn
     + '</div>';
 }
 
@@ -5102,30 +5109,15 @@ function creerFocusEsp(idx){
   creerApplyMapFocus();
 }
 
-// Valide l'espace actif et bascule sur le prochain espace non validé.
-function creerValiderEsp(){
-  const espItems = window._creerEspItems || [];
-  const active = window._creerActiveEsp || 0;
-  cData.espacesValides = cData.espacesValides || [];
-  if (cData.espacesValides.indexOf(active) < 0) cData.espacesValides.push(active);
-  let next = -1;
-  for (let k = 1; k <= espItems.length; k++) {
-    const j = (active + k) % espItems.length;
-    if (cData.espacesValides.indexOf(j) < 0) { next = j; break; }
-  }
-  if (next >= 0) {
-    creerFocusEsp(next);
-    if (typeof mmBubble === 'function') mmBubble('✓ Espace validé · au suivant');
-  } else {
-    // Tous les espaces validés → Deva compose les quêtes (temps de chargement).
-    window._creerPhase = 'quetes';
-    window._creerQuetesReady = false;
-    window._creerQuetesLoadingScheduled = false;
-    if (typeof creerSidePanelClose === 'function') creerSidePanelClose();
-    creerRefreshSidebar();
-    creerApplyMapFocus();
-    if (typeof mmBubble === 'function') mmBubble('⚡ Deva compose tes quêtes…');
-  }
+// Tous les espaces ont été parcourus → Deva compose les quêtes (chargement).
+function creerGenererQuetes(){
+  window._creerPhase = 'quetes';
+  window._creerQuetesReady = false;
+  window._creerQuetesLoadingScheduled = false;
+  if (typeof creerSidePanelClose === 'function') creerSidePanelClose();
+  creerRefreshSidebar();
+  creerApplyMapFocus();
+  if (typeof mmBubble === 'function') mmBubble('⚡ Deva compose tes quêtes…');
 }
 
 // « Créer une quête sur mesure » depuis un espace : formulaire dans le panneau
