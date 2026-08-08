@@ -7387,28 +7387,7 @@ function mapShowNewLieu() {
         ${espaces.length > 4 ? `<div style="display:flex;align-items:center;justify-content:center;background:rgba(46,102,66,.05);border:1px dashed rgba(46,102,66,.2);border-radius:var(--r);font-size:.65rem;color:var(--moss);opacity:.6">+${espaces.length - 4}</div>` : ''}
       </div>` : ''}
 
-      ${quetes.length ? `
-      <div style="font-size:.62rem;font-weight:700;color:var(--moss);opacity:.55;text-transform:uppercase;letter-spacing:.1em;margin:0 .85rem .4rem">⚡ Quêtes en ligne · ${quetes.length}</div>
-      <div style="display:flex;flex-direction:column;gap:.35rem;margin:0 .85rem .8rem">
-        ${quetes.map(q => {
-          const CAT_COL = {eau:'#2a7cb8',electricite:'#b08800',construction:'#8b6914',alimentaire:'#4a8c5c',dechets:'#2e9970',biodiversite:'#3a7a3a',social:'#7a5a9a'};
-          const col = CAT_COL[q.cat] || '#c8732a';
-          return `<div style="background:white;border:1px solid ${col}28;border-left:3px solid ${col};border-radius:var(--r);padding:.45rem .65rem;display:flex;align-items:flex-start;gap:.5rem">
-            <div style="flex:1;min-width:0">
-              <div style="font-size:.67rem;font-weight:700;color:var(--ink);line-height:1.3;margin-bottom:.18rem">${q.titre}</div>
-              <div style="display:flex;gap:.45rem;flex-wrap:wrap">
-                ${q.duree ? `<span style="font-size:.57rem;color:var(--moss);opacity:.7">⏱ ${q.duree}</span>` : ''}
-                ${q.nb    ? `<span style="font-size:.57rem;color:var(--moss);opacity:.7">👥 ${q.nb}</span>` : ''}
-              </div>
-              ${q.impact_quete ? `<div style="font-size:.57rem;color:${col};font-weight:600;margin-top:.2rem">📈 ${q.impact_quete}</div>` : ''}
-            </div>
-            <div style="flex-shrink:0;text-align:right;padding-top:.1rem">
-              <div style="font-size:.68rem;font-weight:800;color:var(--amber)">+${q.tok}</div>
-              <div style="font-size:.5rem;color:var(--moss);opacity:.5">🌱 graines</div>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>` : solutions.length ? `
+      ${solutions.length ? `
       <div style="font-size:.62rem;font-weight:700;color:var(--moss);opacity:.55;text-transform:uppercase;letter-spacing:.1em;margin:0 .85rem .4rem">✦ Solutions actives · ${solutions.length}</div>
       <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin:0 .85rem .75rem">
         ${solutions.slice(0,5).map(s => {
