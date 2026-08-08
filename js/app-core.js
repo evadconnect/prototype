@@ -6356,6 +6356,36 @@ function creerApplyMapFocus(){
   mmSetDim(idx);
 }
 
+// Quêtes sur mesure (créées via « Nouvelle quête ») du lieu en cours de
+// création, rattachées à un espace (espIdx). Source : PILOTE_QUETES_DEMO en
+// mémoire + store (dédupliqué par id), hors quêtes retirées.
+function _creerCustomQuetes(){
+  const draftId = (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.id) || 'lieu-demo';
+  const seen = {}, out = [];
+  const add = q => {
+    if (q && q.custom && q.espIdx != null && q.statut !== 'retiree' && !seen[q.id]) { seen[q.id] = 1; out.push(q); }
+  };
+  if (typeof PILOTE_QUETES_DEMO !== 'undefined') PILOTE_QUETES_DEMO.forEach(add);
+  if (window.store) store.where('quetes', r => r.custom === true && r.espIdx != null && r.statut !== 'retiree'
+    && (r.lieu_id === draftId || r.lieu_id === 'lieu-demo' || r.lieu_id === 'draft')).forEach(add);
+  return out;
+}
+
+// Quêtes rattachées à l'espace `idx` qui n'ont pas de nœud solution propre :
+// quêtes ajoutées depuis la biblio (via quetesEspMap) + quêtes sur mesure.
+function _creerQuetesEspaceExtra(idx){
+  const retirQ = new Set(cData.quetesRetirees || []);
+  const qEsp = cData.quetesEspMap || {};
+  const out = [];
+  (cData.quetesAjoutees || []).forEach(nom => {
+    if (qEsp[nom] !== idx || retirQ.has('sol:' + nom)) return;
+    const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === nom) : null;
+    if (sol && sol.quete) out.push({ titre: sol.quete.titre || nom });
+  });
+  _creerCustomQuetes().forEach(q => { if (q.espIdx === idx) out.push({ titre: q.titre || 'Quête' }); });
+  return out;
+}
+
 // Phase quêtes : révèle la quête de chaque solution de tous les espaces.
 function mmRevealQuetesAll(){
   document.querySelectorAll('#mm-nodes [id^="mn-q-"], #mm-nodes [id^="mn-ici-"]').forEach(n => n.remove());
@@ -6375,6 +6405,26 @@ function mmRevealQuetesAll(){
     const p = mmLine(sx, sy, qx, qy, '#c8732a', '3,5', 'mn-sol-' + base, 'mn-q-' + base);
     if (p) p.setAttribute('data-reveal', '1');
     mmAdd('q-' + base, '⚡ ' + (sol.quete.titre || 'Quête'), qx, qy, 'quete', '#c8732a', 'rgba(200,115,42,.14)');
+  });
+  // Quêtes rattachées directement à un espace (sans nœud solution) : quêtes
+  // ajoutées depuis la biblio + quêtes créées sur mesure. Elles rayonnent
+  // autour du nœud espace.
+  document.querySelectorAll('#mm-nodes [id^="mn-e-"]').forEach(eEl => {
+    const m = (eEl.id || '').match(/^mn-e-(\d+)$/); if (!m) return;
+    const idx = +m[1];
+    const extra = _creerQuetesEspaceExtra(idx);
+    if (!extra.length) return;
+    const ex = parseFloat(eEl.style.left), ey = parseFloat(eEl.style.top);
+    if (isNaN(ex) || isNaN(ey)) return;
+    let edx = ex - cx, edy = ey - cy; const edl = Math.hypot(edx, edy) || 1; edx /= edl; edy /= edl;
+    const baseAng = Math.atan2(edy, edx);
+    extra.forEach((q, k) => {
+      const ang = baseAng + (k - (extra.length - 1) / 2) * 0.42;
+      const qx = ex + Math.cos(ang) * 132, qy = ey + Math.sin(ang) * 132;
+      const p = mmLine(ex, ey, qx, qy, '#c8732a', '3,5', 'mn-e-' + idx, 'mn-q-' + idx + '-add' + k);
+      if (p) p.setAttribute('data-reveal', '1');
+      mmAdd('q-' + idx + '-add' + k, '⚡ ' + (q.titre || 'Quête'), qx, qy, 'quete', '#c8732a', 'rgba(200,115,42,.14)');
+    });
   });
 }
 
