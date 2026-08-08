@@ -6100,7 +6100,7 @@ function genMM(espItems){
           if(isSel){nd.style.fontWeight='600';nd.classList.add('sol-sel');}
           nd.style.cursor='grab';
           nd.title=sol.impact;
-          nd.onclick=()=>togSol(sol.nom);
+          // Les solutions ne sont pas cliquables sur le mind map (retrait via la sidebar).
           mmIciNodes(sol.nom, sx, sy, solDomId);
         },j*140);
       });
@@ -6185,7 +6185,7 @@ function mmRefreshSolsStep4() {
       nd.style.fontWeight = '600';
       nd.style.cursor = 'grab';
       nd.title = sol.impact || '';
-      nd.onclick = () => togSol(sol.nom);
+      // Les solutions ne sont pas cliquables sur le mind map (retrait via la sidebar).
       mmIciNodes(sol.nom, sx, sy, solDomId);
     });
   });
