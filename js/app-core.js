@@ -6039,7 +6039,7 @@ function genMM(espItems){
       eNode.title='Replier / déplier les solutions';
       eNode.onclick=()=>mmToggleEspace(i);
       sols.forEach((sol,j)=>{
-        const sa=a+(j-(sols.length-1)/2)*.82; const rs=re+185;
+        const sa=a+(j-(sols.length-1)/2)*_mmSolSpread(sols.length); const rs=re+185;
         const sx=cx+rs*Math.cos(sa),sy=cy+rs*Math.sin(sa);
         const isSel=cData.solutions.includes(sol.nom);
         const solDomId='mn-sol-'+i+'-'+j;
@@ -6128,7 +6128,7 @@ function mmRefreshSolsStep4() {
     solNoms.forEach((solNom, j) => {
       const sol = SOLS.find(s => s.nom === solNom);
       if (!sol) return;
-      const sa = a + (j - (solNoms.length-1)/2) * .82;
+      const sa = a + (j - (solNoms.length-1)/2) * _mmSolSpread(solNoms.length);
       const rs = re + 185;
       const sx = cx + rs*Math.cos(sa), sy = cy + rs*Math.sin(sa);
       const solDomId = 'mn-sol-'+idx+'-'+j;
@@ -6218,7 +6218,7 @@ function creerApplyMapFocus(){
   const pts = [[ex, ey]];
   const n = solNoms.length;
   for (let j = 0; j < n; j++) {
-    const sa = ep.a + (j - (n - 1) / 2) * 0.82;
+    const sa = ep.a + (j - (n - 1) / 2) * _mmSolSpread(n);
     const rs = ep.re + 185;
     pts.push([st.cx + rs * Math.cos(sa), st.cy + rs * Math.sin(sa)]);
   }
@@ -6280,6 +6280,14 @@ function mmSetDim(active){
 
 // Révèle (ou nettoie si idx==null) la quête et les indicateurs de chaque
 // solution de l'espace `idx`, en nœuds qui rayonnent depuis la solution.
+// Écartement angulaire entre solutions d'un même espace, borné à ~⅔ du secteur
+// de l'espace pour qu'elles ne débordent pas sur les espaces voisins.
+function _mmSolSpread(nSol){
+  const nEsp = (window._mmStep4EspPos && window._mmStep4EspPos.length) || 1;
+  const maxSpan = ((2 * Math.PI) / Math.max(1, nEsp)) * 0.66;
+  return (nSol > 1) ? Math.min(0.6, maxSpan / (nSol - 1)) : 0.6;
+}
+
 function mmRevealEsp(idx){
   document.querySelectorAll('#mm-nodes [id^="mn-q-"], #mm-nodes [id^="mn-ici-"]').forEach(n => n.remove());
   document.querySelectorAll('#mm-svg path[data-reveal="1"]').forEach(p => p.remove());
