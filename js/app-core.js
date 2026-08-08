@@ -5055,8 +5055,12 @@ function creerEspaceQuetesHTML(idx){
     n++; const q = sol.quete; const safeNom = String(nom).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     cards += card(sol.img || '⚡', q.titre || 'Quête', q.duree, q.nb, q.impact_quete, 'issue de « ' + nom + ' »', 'var(--moss)', "creerRemoveQuete('sol:" + safeNom + "')", "creerOpenQueteDetail('" + safeNom + "')", _quetePersoChips(nom));
   });
-  // Sur mesure (custom, rattachées à cet espace).
-  const customs = (window.store) ? store.where('quetes', q => q.custom === true && q.statut !== 'retiree' && ((q.espIdx === idx) || (q.donnees && q.donnees.espIdx === idx))) : [];
+  // Sur mesure (custom, rattachées à cet espace) : uniquement celles du lieu
+  // en cours (sinon les quêtes d'un autre lieu du même Pilote apparaissent).
+  const _qLieuId = (cData && cData.id) || (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.id) || 'lieu-demo';
+  const customs = (window.store) ? store.where('quetes', q => q.custom === true && q.statut !== 'retiree'
+    && (q.lieu_id === _qLieuId || q.lieu_id === 'lieu-demo' || q.lieu_id === 'draft' || !q.lieu_id)
+    && ((q.espIdx === idx) || (q.donnees && q.donnees.espIdx === idx))) : [];
   customs.forEach(q => { n++; cards += card(q.sourceIc || '⚡', q.titre || 'Quête', q.duree, q.nb, q.impact, '✦ créée sur mesure', 'var(--forest)', "creerRemoveQuete('cst:" + q.id + "')", null, ''); });
   if (!n) cards = '<div style="font-size:.62rem;color:var(--moss);opacity:.5;font-style:italic;padding:.15rem 0 .3rem">Les quêtes des solutions de cet espace apparaîtront ici.</div>';
   let html = cards;
@@ -5540,7 +5544,16 @@ function creerRemoveQuete(key){
   if (key.indexOf('cst:') === 0) {
     // Quête sur mesure : on la retire du store (statut « retiree »).
     const id = key.slice(4);
-    if (window.store) { const r = store.get('quetes', id); if (r) store.upsert('quetes', Object.assign({}, r, { statut: 'retiree' })); }
+    if (window.store) {
+      const r = store.get('quetes', id);
+      if (r) {
+        const wasPublished = r.statut === 'ouverte';
+        store.upsert('quetes', Object.assign({}, r, { statut: 'retiree' }));
+        // Si elle était publiée, on la retire aussi de Supabase (donc du
+        // réseau) : sans ça, elle resterait visible des bâtisseurs à jamais.
+        if (wasPublished && typeof store.deleteQueteRemote === 'function') store.deleteQueteRemote(id);
+      }
+    }
     // Reflète le retrait dans la copie en mémoire, sinon _creerCustomQuetes la
     // relit et la quête reste dessinée sur le mind map.
     if (typeof PILOTE_QUETES_DEMO !== 'undefined') {
@@ -7120,6 +7133,17 @@ async function createLieuOnMap(){
         if (myLieuData.id) {
           store.where('quetes', function (r) { return r.custom === true && (!r.lieu_id || r.lieu_id === 'draft' || r.lieu_id === 'lieu-demo'); })
             .forEach(function (r) { store.upsert('quetes', Object.assign({}, r, { lieu_id: myLieuData.id })); });
+          // Quêtes issues de solutions créées en brouillon (id « draft-sol-… ») :
+          // ré-identifiées avec l'id du lieu, sinon elles restent orphelines
+          // (lieu_id null → invisibles) et leur id entre en collision entre
+          // Pilotes dans Supabase (upsert onConflict id).
+          store.where('quetes', function (r) { return r.custom !== true && typeof r.id === 'string' && r.id.indexOf('draft-sol-') === 0; })
+            .forEach(function (r) {
+              var newId = myLieuData.id + r.id.slice('draft'.length); // draft-sol-x → <lieuId>-sol-x
+              store.remove('quetes', r.id);
+              if (r.statut === 'ouverte' && typeof store.deleteQueteRemote === 'function') store.deleteQueteRemote(r.id);
+              store.upsert('quetes', Object.assign({}, r, { id: newId, lieu_id: myLieuData.id }));
+            });
         }
       } catch (e2) {}
       if (typeof syncPiloteQuetesFromLieu === 'function') syncPiloteQuetesFromLieu();
@@ -8192,7 +8216,7 @@ function qdSaveSection() {
   const q = qdQuest();
   if (q && q.srcId && window.store) {
     try {
-      store.update('quetes', q.srcId, {
+      const patch = {
         titre: q.titre,
         duree: q.duree,
         graines: (typeof q.tokens === 'number') ? q.tokens : (parseInt(q.tokens, 10) || 50),
@@ -8200,7 +8224,12 @@ function qdSaveSection() {
         desc: q.desc,
         dateISO: q.dateISO || null,
         heure: q.heure || null
-      });
+      };
+      // Matériel et étapes édités dans la fiche : sans ces deux lignes, le
+      // bouton « Enregistrer » les affichait comme sauvés sans rien écrire.
+      if (Array.isArray(q.materiel)) patch.materiel = q.materiel.filter(Boolean);
+      if (Array.isArray(q.plan)) patch.plan = q.plan;
+      store.update('quetes', q.srcId, patch);
     } catch (e) {}
   }
   _qdEditSection = null;

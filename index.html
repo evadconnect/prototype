@@ -1247,6 +1247,12 @@
         <div class="lq-stat" style="border-top:3px solid var(--lavender)"><div class="lq-stat-val" style="color:var(--lavender)">-</div><div class="lq-stat-lbl">graines distribués</div><div class="lq-stat-trend">aucun pour l'instant</div></div>
       </div>
 
+      <!-- Conseil de Deva sur l'état des quêtes (rempli par renderPiloteQuetes) -->
+      <div style="display:flex;align-items:flex-start;gap:0.55rem;background:rgba(120,110,168,0.06);border:1px solid rgba(120,110,168,0.18);border-radius:12px;padding:0.6rem 0.8rem;margin-bottom:0.9rem">
+        <span style="font-size:1rem;flex-shrink:0">🧚</span>
+        <div id="deva-quetes-msg" style="font-size:0.72rem;color:var(--ink);line-height:1.5"></div>
+      </div>
+
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.9rem">
         <div style="display:flex;gap:0.4rem">
           <button class="pmkt-filter-btn active" onclick="lqPiloteFilter('toutes',this)">Toutes</button>

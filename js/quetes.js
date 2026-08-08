@@ -221,6 +221,12 @@ function syncPiloteQuetesFromLieu() {
   Object.keys(solsByEsp).forEach(function (k) {
     (solsByEsp[k] || []).forEach(function (n) { if (solEspIdx[n] == null) solEspIdx[n] = +k; });
   });
+  // Quêtes ajoutées depuis la bibliothèque dans le wizard : leur espace est
+  // mémorisé dans quetesEspMap (elles n'apparaissent pas dans solsByEspace).
+  const qEspMap = (L && L.quetesEspMap) || {};
+  Object.keys(qEspMap).forEach(function (n) {
+    if (solEspIdx[n] == null && qEspMap[n] != null) solEspIdx[n] = +qEspMap[n];
+  });
   const espNomOf = function (idx) {
     if (idx == null) return null;
     const e = espData[idx];
@@ -625,9 +631,19 @@ function renderPiloteQuetes() {
 function piloteQuetePublier(id) {
   const q = PILOTE_QUETES_DEMO.find(x => x.id === id); if (!q) return;
   q.statut = 'ouverte';
-  if (window.store) store.update('quetes', id, { statut: 'ouverte' });
+  if (window.store) _quetePublierStore(id, q);
   if (typeof mmBubble === 'function') mmBubble('🟢 Quête publiée · désormais visible par les bâtisseurs');
   renderPiloteQuetes();
+}
+// Publie dans le store en résistant à une ligne manquante : si l'update ne
+// trouve rien (store.update renvoie null), on recrée la ligne complète au lieu
+// d'afficher « publiée » sans avoir rien écrit.
+function _quetePublierStore(id, q) {
+  const r = store.update('quetes', id, { statut: 'ouverte' });
+  if (!r) {
+    const lieuId = (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.id) || null;
+    store.upsert('quetes', Object.assign({}, q, { id: id, lieu_id: lieuId, statut: 'ouverte' }));
+  }
 }
 function piloteQueteRetirer(id) {
   const q = PILOTE_QUETES_DEMO.find(x => x.id === id); if (!q) return;
@@ -652,7 +668,7 @@ function piloteQueteReactiver(id) {
 function piloteQuetesPublierToutes() {
   let n = 0;
   PILOTE_QUETES_DEMO.forEach(q => {
-    if (q.statut === 'a_verifier') { q.statut = 'ouverte'; if (window.store) store.update('quetes', q.id, { statut: 'ouverte' }); n++; }
+    if (q.statut === 'a_verifier') { q.statut = 'ouverte'; if (window.store) _quetePublierStore(q.id, q); n++; }
   });
   if (typeof mmBubble === 'function') mmBubble('🟢 ' + n + ' quête' + (n > 1 ? 's' : '') + ' publiée' + (n > 1 ? 's' : '') + ' · visibles par les bâtisseurs');
   renderPiloteQuetes();
