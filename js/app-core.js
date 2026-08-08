@@ -2821,6 +2821,19 @@ function mapShowLieu(idx) {
   const panel = document.getElementById('map-acteur-panel');
   const mainPanel = document.getElementById('map-panel-main');
 
+  // Vadité (preuve) + indice de confiance : figés pour les lieux du réseau, mais
+  // recalculés EN DIRECT pour le lieu du Pilote, afin qu'ils restent cohérents
+  // avec le tableau de bord (qui, lui, calcule toujours en direct).
+  let _vadite = (place.vadite != null) ? place.vadite : 0;
+  let _taux   = (place.taux   != null) ? place.taux   : 0;
+  const _estMonLieu = (typeof myLieuData !== 'undefined' && myLieuData) &&
+    ((place.fiche && place.fiche.id && place.fiche.id === myLieuData.id) ||
+     (place.nom && place.nom === myLieuData.nom));
+  if (_estMonLieu && typeof evadImpactData === 'function') {
+    const _imp = evadImpactData();
+    _vadite = _imp.vadite; _taux = _imp.taux;
+  }
+
   panel.innerHTML = `
     <div class="acteur-fiche">
       <!-- Hero vert -->
@@ -2852,10 +2865,10 @@ function mapShowLieu(idx) {
         <div class="score-bar-bg" style="height:5px;margin-bottom:.6rem"><div class="score-bar-fill" style="width:${place.score}%"></div></div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem;padding-top:.5rem;border-top:1px solid rgba(46,102,66,.08)">
           <span style="font-size:.68rem;font-weight:600;color:var(--ink)">✅ Vadité <span style="font-weight:500;opacity:.55;font-size:.58rem">(preuve)</span></span>
-          <span style="font-family:'Satoshi', sans-serif;font-size:1.2rem;font-weight:900;color:var(--fern)">${place.vadite != null ? place.vadite : 0}</span>
+          <span style="font-family:'Satoshi', sans-serif;font-size:1.2rem;font-weight:900;color:var(--fern)">${_vadite}</span>
         </div>
-        <div class="score-bar-bg" style="height:5px;margin-bottom:.45rem;background:rgba(46,102,66,.1)"><div style="height:100%;border-radius:100px;width:${place.vadite != null ? place.vadite : 0}%;background:linear-gradient(90deg,#2e6b3e,var(--fern))"></div></div>
-        <div style="text-align:right;font-size:.58rem;color:var(--fern);font-weight:700;margin-bottom:.7rem">⚖️ Indice de confiance ${place.taux != null ? place.taux : 0}%</div>
+        <div class="score-bar-bg" style="height:5px;margin-bottom:.45rem;background:rgba(46,102,66,.1)"><div style="height:100%;border-radius:100px;width:${_vadite}%;background:linear-gradient(90deg,#2e6b3e,var(--fern))"></div></div>
+        <div style="text-align:right;font-size:.58rem;color:var(--fern);font-weight:700;margin-bottom:.7rem">⚖️ Indice de confiance ${_taux}%</div>
         <div style="display:grid;grid-template-columns:repeat(${place.dims.length || 1},1fr);gap:.55rem">
           ${place.dims.map(d => `
           <div style="text-align:center;padding:.5rem .35rem;background:${d.c}0d;border:1px solid ${d.c}26;border-radius:10px">
@@ -9191,7 +9204,7 @@ function evadImpactData() {
     const p = apercuCapitauxPaire();
     vadite = Math.round(((p.ecologie.vit || 0) + (p.social.vit || 0) + (p.economie_locale.vit || 0)) / 3);
   } else if (typeof evadLieuScoreData === 'function') {
-    vadite = evadLieuScoreData().score || 0;
+    vadite = evadLieuScoreData().bonus || 0;   // preuve réelle (0 tant que rien n'est validé)
   }
   // La preuve ne dépasse pas la promesse : l'indice de confiance est plafonné à 100 %.
   if (vadance > 0) vadite = Math.min(vadite, vadance);
@@ -9275,7 +9288,7 @@ function apercuCapitauxPaire() {
   const seen = {};
   if (typeof ICI_CATALOG !== 'undefined') ICI_CATALOG.forEach(i => total[i.livre] = (total[i.livre] || 0) + 1);
   if (typeof iciPourSolution === 'function') sols.forEach(sn => (iciPourSolution(sn) || []).forEach(i => { if (!seen[i.id]) { seen[i.id] = 1; covered[i.livre] = (covered[i.livre] || 0) + 1; } }));
-  const questGlobal = (typeof evadLieuScoreData === 'function') ? (evadLieuScoreData().score || 0) : 0; // 10..100 (quêtes validées)
+  const questGlobal = (typeof evadLieuScoreData === 'function') ? (evadLieuScoreData().bonus || 0) : 0; // 0..90 : preuve RÉELLE (points des quêtes validées, sans le plancher de 10)
   const fun = (typeof funCapBonus === 'function') ? funCapBonus() : { ecologie: 0, social: 0, economie_locale: 0 };
   const share = {}; let maxShare = 0;
   ['ecologie', 'social', 'economie_locale'].forEach(k => {
