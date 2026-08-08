@@ -3787,7 +3787,8 @@ const STEPS=[
   {t:'Identité',    h:'Étape 1 · Nom, type et localisation'},
   {t:'Description', h:'Étape 2 · Description, labels, réseaux et contact'},
   {t:'Espaces',     h:'Étape 3 · Les espaces du lieu'},
-  {t:'Solutions',   h:'Étape 4 · Solutions proposées par Deva'},
+  {t:'Solutions',   h:'Étape 4 · Solutions & indicateurs proposés par Deva'},
+  {t:'Quête',       h:'Étape 5 · Les quêtes de ton lieu'},
 ];
 
 const ESP_ACTS={
@@ -4244,14 +4245,17 @@ function creerUpdateHint(silent){
 }
 
 function renderStep(){
-  navWizardSet(STEPS.map(s=>s.t), cStep, (i)=>{ cStep=i; renderStep(); });
+  // Étape 5 « Quête » = phase quêtes de l'étape guidée (cStep reste 3 en interne).
+  const _stepIdx = (cStep === 3 && window._creerPhase === 'quetes') ? 4 : cStep;
+  navWizardSet(STEPS.map(s=>s.t), _stepIdx, creerGoStep);
   if (typeof creerUpdateVadance === 'function') creerUpdateVadance();
   document.getElementById('creer-prev').style.display=cStep>0?'block':'none';
   const nx=document.getElementById('creer-next');
   const sv=document.getElementById('creer-save-btn');
   nx.style.display=cStep<3?'block':'none';
   nx.textContent=cStep===2?'Générer les solutions ✦':'Suivant →';
-  sv.style.display=cStep===3?'block':'none';
+  // « Créer le lieu » n'apparaît qu'à l'étape Quête (phase quêtes).
+  sv.style.display=(cStep===3 && window._creerPhase==='quetes')?'block':'none';
 
   const c=document.getElementById('creer-step-content');
   if(cStep===0){
@@ -4678,6 +4682,7 @@ function creerRevoirEspaces(){
   creerRefreshSidebar();
   creerApplyMapFocus();
   _creerMajBoutonVueMap();
+  _creerMajStepper();   // stepper → retour à l'étape Solutions
   if (typeof creerUpdateHint === 'function') creerUpdateHint(true);   // bulle Deva : retour au message solutions
 }
 
@@ -5144,6 +5149,7 @@ function creerGenererQuetes(){
   creerRefreshSidebar();
   creerApplyMapFocus();
   _creerMajBoutonVueMap();
+  _creerMajStepper();   // stepper → étape Quête + bouton « Créer le lieu »
   if (typeof creerUpdateHint === 'function') creerUpdateHint(true);   // bulle Deva : message des quêtes
 }
 
@@ -5726,7 +5732,25 @@ function mmDrawCircularLinks(espItems, links) {
 }
 
 function creerNext(){if(cStep<3){if(cStep===2)cData._solsReady=false;/* (re)générer → rejoue l'attente Deva */cStep++;renderStep();}}
-function creerPrev(){if(cStep>0){cStep--;renderStep();}}
+function creerPrev(){
+  // Depuis l'étape Quête : revenir à Solutions (phase espaces) plutôt qu'à Espaces.
+  if(cStep===3 && window._creerPhase==='quetes'){ window._creerPhase='espaces'; window._creerMapOverview=false; renderStep(); if(typeof creerUpdateHint==='function') creerUpdateHint(true); return; }
+  if(cStep>0){cStep--;renderStep();}
+}
+// Saut d'étape via le stepper (seules les étapes passées sont cliquables).
+function creerGoStep(i){
+  if(i===3){ cStep=3; window._creerPhase='espaces'; window._creerMapOverview=false; renderStep(); if(typeof creerUpdateHint==='function') creerUpdateHint(true); return; }
+  cStep=i; window._creerPhase='espaces'; renderStep();
+}
+// Met à jour le stepper (étape Solutions ↔ Quête) + bouton « Créer le lieu »
+// sans redessiner tout le mind map (transition espaces ↔ quêtes).
+function _creerMajStepper(){
+  if (cStep !== 3) return;
+  const _stepIdx = (window._creerPhase === 'quetes') ? 4 : 3;
+  navWizardSet(STEPS.map(s=>s.t), _stepIdx, creerGoStep);
+  const sv = document.getElementById('creer-save-btn'); if (sv) sv.style.display = (window._creerPhase === 'quetes') ? 'block' : 'none';
+  const nx = document.getElementById('creer-next'); if (nx) nx.style.display = 'none';
+}
 
 function showSolDetail(nom){
   const s=SOLS.find(x=>x.nom===nom);
