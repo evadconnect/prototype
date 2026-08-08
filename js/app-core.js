@@ -6208,10 +6208,28 @@ function creerApplyMapFocus(){
     return;
   }
   const ep = pos[idx];
-  const s = 1.5;
-  // Point focalisé : l'espace décalé vers ses solutions (qui rayonnent vers l'extérieur).
-  const fx = ep.x + Math.cos(ep.a) * 155;
-  const fy = ep.y + Math.sin(ep.a) * 155;
+  // Cadrage automatique : emprise de l'espace + TOUTES ses solutions (mêmes
+  // formules de position que mmRefreshSolsStep4) + marge pour les nœuds
+  // indicateurs révélés autour, puis zoom ajusté pour que tout soit visible.
+  const eEl = document.getElementById('mn-e-' + idx);
+  let ex = ep.x, ey = ep.y;
+  if (eEl) { ex = parseFloat(eEl.style.left) || ex; ey = parseFloat(eEl.style.top) || ey; }
+  const solNoms = (cData.solsByEspace && cData.solsByEspace[idx]) || [];
+  const pts = [[ex, ey]];
+  const n = solNoms.length;
+  for (let j = 0; j < n; j++) {
+    const sa = ep.a + (j - (n - 1) / 2) * 0.82;
+    const rs = ep.re + 185;
+    pts.push([st.cx + rs * Math.cos(sa), st.cy + rs * Math.sin(sa)]);
+  }
+  const pad = 170;   // éventail d'indicateurs (~118px) + largeur des étiquettes
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  pts.forEach(p => {
+    minX = Math.min(minX, p[0] - pad); maxX = Math.max(maxX, p[0] + pad);
+    minY = Math.min(minY, p[1] - pad); maxY = Math.max(maxY, p[1] + pad);
+  });
+  const s = Math.max(0.85, Math.min(1.5, Math.min((st.W - 30) / (maxX - minX), (st.H - 30) / (maxY - minY))));
+  const fx = (minX + maxX) / 2, fy = (minY + maxY) / 2;
   if (window.mmSetView) window.mmSetView(s * (st.cx - fx), s * (st.cy - fy), s);
   mmRevealEsp(idx);
   mmSetDim(idx);
