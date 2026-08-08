@@ -2437,22 +2437,64 @@ const MAP_SEMEURS = [];
 // Remplit l'onglet « Impact » de la modale lieu depuis cData (KPIs + score détaillé).
 function lieuRenderImpact() {
   const kpisEl = document.getElementById('lieu-impact-kpis');
-  const im = cData.impact;
-  if (kpisEl && im) {
-    const cards = [
-      {lbl:'kWh produits/an',     val:im.kwh,     sub:'énergie renouvelable', col:'var(--forest)',   bd:'var(--fern)'},
-      {lbl:'CO₂ évité/an',        val:im.co2,     sub:'estimation',           col:'var(--amber)',    bd:'var(--amber)'},
-      {lbl:'Pers. touchées/mois', val:im.pers,    sub:'communauté',           col:'var(--sky)',      bd:'var(--sky)'},
-      {lbl:'Déchets évités/an',   val:im.dechets, sub:'réemploi & compost',   col:'var(--forest)',   bd:'var(--fern)'},
-      {lbl:'Emplois soutenus',    val:im.emplois, sub:'ETP équivalents',      col:'var(--lavender)', bd:'var(--lavender)'},
-      {lbl:'Financements levés',  val:im.fin,     sub:'partenaires actifs',   col:'var(--amber)',    bd:'var(--amber)'}
-    ];
-    kpisEl.innerHTML = cards.map(c => `
-      <div style="background:white;border:1px solid rgba(74,140,92,.15);border-radius:var(--r-lg);padding:.85rem 1rem;border-left:3px solid ${c.bd}">
-        <div style="font-size:.58rem;color:var(--moss);opacity:.65;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.3rem">${c.lbl}</div>
-        <div style="font-family:'Satoshi', sans-serif;font-size:1.6rem;font-weight:900;color:${c.col};line-height:1">${c.val}</div>
-        <div style="font-size:.6rem;color:var(--moss);opacity:.5;margin-top:.15rem">${c.sub}</div>
-      </div>`).join('');
+  if (kpisEl) {
+    // Lieu de référence : la fiche affichée (cData, alimentée par le lieu ouvert).
+    const L = (typeof cData !== 'undefined' && cData) ? cData : {};
+    // Indicateurs sélectionnés à la création de la fiche (ICI des solutions
+    // retenues + ajoutés − retirés).
+    const iciIds = (typeof evadLieuIciIds === 'function') ? evadLieuIciIds(L) : [];
+    const icis = (typeof ICI_CATALOG !== 'undefined')
+      ? iciIds.map(id => ICI_CATALOG.find(i => i.id === id)).filter(Boolean) : [];
+
+    // Quêtes du lieu : ce sont elles qui apportent la preuve. On les lit dans le
+    // store par lieu_id (repli sur la liste en mémoire du tableau de bord).
+    const lieuQuetes = (window.store && L && L.id)
+      ? store.where('quetes', r => r.lieu_id === L.id && r.statut !== 'retiree')
+      : ((typeof PILOTE_QUETES_DEMO !== 'undefined') ? PILOTE_QUETES_DEMO : []);
+    const estProuvee = (q) => (typeof quetesValidees !== 'undefined') && quetesValidees.has(q.id);
+
+    // Preuve d'un indicateur : quêtes qui le portent (lien explicite icis, ou via
+    // la solution dont elles sont issues) et proportion déjà validée.
+    const preuveDe = (ici) => {
+      const liees = (lieuQuetes || []).filter(q =>
+        (Array.isArray(q.icis) && q.icis.indexOf(ici.id) >= 0) ||
+        (q.source && Array.isArray(ici.solutionIds) && ici.solutionIds.indexOf(q.source) >= 0)
+      );
+      const prouvees = liees.filter(estProuvee);
+      const pct = liees.length ? Math.round(prouvees.length / liees.length * 100) : 0;
+      return { liees: liees.length, prouvees: prouvees.length, pct };
+    };
+
+    const fmt = (n) => { n = Math.round(n); return (n >= 1000) ? n.toLocaleString('fr-FR') : String(n); };
+
+    if (!icis.length) {
+      kpisEl.innerHTML = `<div style="grid-column:1/-1;padding:1.4rem;text-align:center;font-size:.72rem;color:var(--moss);opacity:.55;border:1.5px dashed rgba(46,102,66,.15);border-radius:var(--r-lg)">Aucun indicateur sélectionné dans la fiche de ce lieu.</div>`;
+    } else {
+      kpisEl.innerHTML = icis.map(ici => {
+        const meta = (typeof ICI_LIVRE_META !== 'undefined' ? ICI_LIVRE_META[ici.livre] : null) || { col: '#4a8c5c', ic: '◆' };
+        const col = meta.col;
+        const p = preuveDe(ici);
+        const p0 = (typeof ici.point0 === 'number') ? ici.point0 : 0;
+        const p100 = (typeof ici.point100 === 'number') ? ici.point100 : 100;
+        const val = p0 + (p100 - p0) * p.pct / 100;
+        const statut = p.prouvees > 0
+          ? `✓ ${p.pct}% prouvé · ${p.prouvees}/${p.liees} quête${p.liees > 1 ? 's' : ''}`
+          : (p.liees > 0
+              ? `${p.liees} quête${p.liees > 1 ? 's' : ''} à valider`
+              : 'à renseigner');
+        return `
+          <div style="background:white;border:1px solid ${col}26;border-radius:var(--r-lg);padding:.85rem 1rem;border-left:3px solid ${col}">
+            <div style="font-size:.58rem;color:var(--moss);opacity:.7;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.3rem;line-height:1.25">${meta.ic} ${ici.nom}</div>
+            <div style="display:flex;align-items:baseline;gap:.3rem">
+              <span style="font-family:'Satoshi', sans-serif;font-size:1.5rem;font-weight:900;color:${col};line-height:1">${p.pct > 0 ? fmt(val) : '-'}</span>
+              <span style="font-size:.6rem;color:var(--moss);opacity:.6">${ici.unite || ''}</span>
+            </div>
+            <div style="height:4px;background:rgba(46,102,66,.1);border-radius:100px;overflow:hidden;margin:.45rem 0 .3rem"><div style="width:${p.pct}%;height:100%;background:${col};border-radius:100px;transition:width .5s ease"></div></div>
+            <div style="font-size:.58rem;color:${p.prouvees > 0 ? col : 'var(--moss)'};opacity:${p.prouvees > 0 ? '.9' : '.5'};font-weight:${p.prouvees > 0 ? '700' : '500'}">${statut}</div>
+            <div style="font-size:.54rem;color:var(--moss);opacity:.45;margin-top:.15rem">cible ${fmt(p100)} ${ici.unite || ''}</div>
+          </div>`;
+      }).join('');
+    }
   }
   const scoreEl = document.getElementById('lieu-impact-score');
   if (scoreEl) {
