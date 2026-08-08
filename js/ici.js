@@ -69,6 +69,10 @@ const ICI_CATALOG = [
     desc: 'Ce qui ne part plus à la benne : composté, réparé, réemployé. La mesure concrète de l\'économie circulaire du lieu.',
     photo: 'https://images.unsplash.com/photo-1591857177580-dc82b9ac4e1e?w=800&q=80&auto=format&fit=crop',
     solutionIds: ['Compostage partagé', 'Repair café', 'Réemploi matériaux', 'Toilettes sèches'] },
+  { id: 'eco_prod_locale', nom: 'Production locale', livre: 'ecologie', unite: 'kg/an', point0: 0, point100: 3000, poids: 1,
+    desc: 'Les fruits, légumes et plants produits sur place plutôt qu\'importés : une alimentation de proximité qui supprime les kilomètres alimentaires et régénère les sols cultivés.',
+    photo: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&q=80&auto=format&fit=crop',
+    solutionIds: ['Jardin permaculture', 'Potager en buttes', 'Haie champêtre', 'AMAP circuit court'] },
   // ── Social ──
   { id: 'soc_insertion', nom: 'Personnes en insertion accueillies', livre: 'social', unite: 'personnes/an', point0: 0, point100: 12,  poids: 1,
     desc: 'Les personnes éloignées de l\'emploi que le lieu accueille et accompagne à travers ses activités. Le cœur de l\'impact d\'inclusion.',
@@ -502,6 +506,7 @@ const ICI_EXPORTS = {
   eco_enr:       { odd: [7],      esrs: ['E1'],       vsme: ['B3 · Énergie & GES'] },
   eco_fraicheur: { odd: [11, 13], esrs: ['E1'],       vsme: ['B3 · Énergie & GES'] },
   eco_dechets:   { odd: [12],     esrs: ['E5'],       vsme: ['B7 · Ressources & déchets'] },
+  eco_prod_locale: { odd: [2, 12], esrs: ['E4'],      vsme: ['B5 · Biodiversité'] },
   soc_insertion: { odd: [8, 10],  esrs: ['S1', 'S3'], vsme: ['B8 · Main-d\'œuvre'] },
   soc_formation: { odd: [4],      esrs: ['S1'],       vsme: ['B9 · Formation & développement'] },
   soc_benevoles: { odd: [11, 17], esrs: ['S3'],       vsme: ['B8 · Main-d\'œuvre'] },
