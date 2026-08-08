@@ -13207,7 +13207,11 @@ function _lieuRowToMapPlace(row){
     ],
     quetes_list: [],
     besoins: (row.besoins && row.besoins.length) ? row.besoins : ['Premiers bâtisseurs','Financement de départ'],
-    deva: `"${row.nom}" fait partie de la carte EVAD.`
+    deva: `"${row.nom}" fait partie de la carte EVAD.`,
+    // Formulaire complet du lieu (espaces, solutions, écosystème…) : permet à
+    // openLieuModalFromPlace de reconstruire cData avec toutes ses données,
+    // sinon la fiche complète affiche « Aucun espace renseigné ».
+    fiche: row
   };
 }
 
