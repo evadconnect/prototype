@@ -140,6 +140,14 @@ function openPiloteQueteFiche(qid) {
   const _icis = (Array.isArray(pq.icis) && pq.icis.length && typeof iciGetICI === 'function')
     ? pq.icis.map(id => iciGetICI(id)).filter(Boolean)
     : ((sol && typeof iciPourSolution === 'function') ? (iciPourSolution(sol.nom) || []) : []);
+  // Bâtisseurs réellement inscrits (table quete_candidatures) : le Pilote
+  // voit son équipe, plus un tableau vide codé en dur.
+  const _cands = (window.store) ? store.where('quete_candidatures', function (c) { return c.quete_id === pq.id && c.statut === 'inscrit'; }) : [];
+  const _eqCols = ['#4a8c5c', '#c8732a', '#7a6ea8', '#3a6e8c', '#b84e35', '#2e6642'];
+  const _equipe = _cands.map(function (c, i) {
+    return { i: ((c.batisseur_nom || 'B').trim().charAt(0) || 'B').toUpperCase(), c: _eqCols[i % _eqCols.length], nom: c.batisseur_nom || 'Bâtisseur' };
+  });
+  const _nbMax = parseInt(pq.nb, 10) || 6;
   showQueteFiche({
     titre: pq.titre,
     type: (pq.sourceIc || (sol && sol.img) || '⚡') + ' ' + ((sol && sol.cat) || 'Quête'),
@@ -151,15 +159,15 @@ function openPiloteQueteFiche(qid) {
     preuve: pq.preuve || 'Photos de l\'action réalisée + indicateurs mesurés.',
     apprendre: pq.competence ? ('Compétence : ' + pq.competence) : ('Mise en œuvre de « ' + ((sol && sol.nom) || pq.titre) + ' ».'),
     duree: pq.duree || '1 journée',
-    places: '0/' + (parseInt(pq.nb, 10) || 6),
+    places: Math.min(_equipe.length, _nbMax) + '/' + _nbMax,
     etape_actuelle: 1, etapes: _plan.length || 4,
     etapeLabels: _plan.length ? _plan.map(p => p.titre) : ['Lancement', 'Préparation', 'Réalisation', 'Certification'],
     tokens: pq.graines || 50, co2: (sol && sol.co2) || 0,
     esrs: ((sol && sol.esrs) || []).map(e => String(e).replace('ESRS ', '').trim()),
     financement: { objectif: 0, montant: 0, semeur: null },
-    equipe: [], dates: [], dateISO: pq.dateISO || null, heure: pq.heure || null,
+    equipe: _equipe, dates: [], dateISO: pq.dateISO || null, heure: pq.heure || null,
     icis: _icis,
-    srcId: pq.id, published: pq.statut === 'ouverte', paused: pq.statut === 'en_pause'
+    srcId: pq.id, published: pq.statut === 'ouverte' || pq.statut === 'terminee', paused: pq.statut === 'en_pause'
   }, 'pilote');
 }
 
@@ -510,11 +518,13 @@ function renderPiloteQuetes() {
 
   const F = (typeof piloteQueteFilter !== 'undefined') ? piloteQueteFilter : 'toutes';
   const aVerifier = PILOTE_QUETES_DEMO.filter(q => q.statut === 'a_verifier');
-  const enLigne   = PILOTE_QUETES_DEMO.filter(q => q.statut === 'ouverte');
+  const enLigne   = PILOTE_QUETES_DEMO.filter(q => q.statut === 'ouverte' || q.statut === 'terminee');
   const enPause   = PILOTE_QUETES_DEMO.filter(q => q.statut === 'en_pause');
-  // Sections affichées selon le filtre actif
-  const enLigneActives = enLigne.filter(q => !isVal(q.id));   // publiées, non terminées
-  const terminees      = enLigne.filter(q =>  isVal(q.id));   // validées / propagées
+  // Sections affichées selon le filtre actif. Une quête est « terminée » si son
+  // statut persistant le dit (base) ou si elle vient d'être validée (session).
+  const estTerminee = (q) => q.statut === 'terminee' || isVal(q.id);
+  const enLigneActives = enLigne.filter(q => !estTerminee(q));   // publiées, non terminées
+  const terminees      = enLigne.filter(estTerminee);            // validées / propagées
   const showAverif    = (F === 'toutes' || F === 'a_publier');
   const showOuvertes  = (F === 'toutes' || F === 'ouvertes');
   const showTerminees = (F === 'toutes' || F === 'terminees');
@@ -522,7 +532,7 @@ function renderPiloteQuetes() {
   const card = (q) => {
     const estAVerif  = q.statut === 'a_verifier';
     const estPause   = q.statut === 'en_pause';
-    const estValidee = !estAVerif && !estPause && isVal(q.id);
+    const estValidee = !estAVerif && !estPause && (q.statut === 'terminee' || isVal(q.id));
     const badges = renderQueteConvBadges(q);
     const statutHtml = estAVerif
       ? `<span class="pq-status a-verifier">🕓 À vérifier</span>`
@@ -607,11 +617,24 @@ function renderPiloteQuetes() {
   }
   container.innerHTML = html;
 
-  // Stats KPI : « actives » = quêtes en ligne
-  const nbTerminees = (typeof quetesValidees !== 'undefined') ? quetesValidees.size : 0;
-  const totalGraines = enLigne.reduce((s, q) => s + (isVal(q.id) ? (q.graines || 0) : 0), 0);
+  // Stats KPI : « actives » = quêtes en ligne non terminées
+  const nbTerminees = terminees.length;
+  const totalGraines = terminees.reduce((s, q) => s + (q.graines || 0), 0);
   const stats = document.querySelectorAll('#pilote-panel-quetes .lq-stat-val');
-  if (stats[0]) stats[0].textContent = enLigne.length;
+  if (stats[0]) stats[0].textContent = enLigneActives.length;
+  // Bâtisseurs impliqués : inscrits distincts sur les quêtes du lieu
+  // (table quete_candidatures) : la stat n'était jamais renseignée.
+  if (stats[1]) {
+    let nbBats = 0;
+    if (window.store) {
+      const qids = new Set(PILOTE_QUETES_DEMO.map(q => q.id));
+      const bset = new Set();
+      store.where('quete_candidatures', c => c.statut === 'inscrit' && qids.has(c.quete_id))
+        .forEach(c => bset.add(c.batisseur_id || c.id));
+      nbBats = bset.size;
+    }
+    stats[1].textContent = nbBats || '-';
+  }
   if (stats[2]) stats[2].textContent = nbTerminees;
   if (stats[3]) stats[3].textContent = totalGraines || '-';
 

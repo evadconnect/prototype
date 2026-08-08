@@ -7662,6 +7662,8 @@ async function publishBatProfil() {
   // Persistance (prête pour Supabase) : enregistre le bâtisseur publié, vide le brouillon.
   if (window.store) {
     try {
+      _currentBatisseurId(); // garantit l'id stable AVANT l'insertion (sinon
+      // les candidatures déjà faites référencent un autre id de bâtisseur)
       const row = store.insert('batisseurs', Object.assign({}, batFicheData));
       batFicheData.id = row.id;
       store.clearDraft('batisseur');
@@ -7916,7 +7918,6 @@ function batRenderCompetences() {
 
 function batFilterQuetes(filter, btn) {
   batCurrentFilter = filter;
-  document.querySelectorAll('#bat-quetes-list').length; // just reference
   document.querySelectorAll('[onclick^="batFilterQuetes"]').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   batRenderQuetes();
@@ -7927,70 +7928,158 @@ function batFilterQuetes(filter, btn) {
 const BAT_SKILL_KW = {
   maraichage:  ['jardin','permacult','potager','compost','maraîch','aliment','amap','graine'],
   energie:     ['solaire','énergie','chauffe','pv','électr','low-tech'],
-  reparation:  ['repair','réemploi','réparation','recycl','vélo','matériau'],
-  facilitation:['atelier','animation','formation','sensibilis','médiation','amap'],
+  reparation:  ['repair','réemploi','réparation','recycl','vélo','matériau','récup'],
+  facilitation:['atelier','animation','formation','sensibilis','médiation','amap','facilitation'],
   construction:['isolation','paille','toiture','construction','chantier','bois','maçonn'],
   biodiversite:['haie','mare','biodiv','pollinis','arbre','verger','permacult','jardin'],
 };
+// Palette des pastilles d'équipe (bâtisseurs inscrits).
+const _BAT_EQ_COLS = ['#4a8c5c', '#c8732a', '#7a6ea8', '#3a6e8c', '#b84e35', '#2e6642'];
+
+// Construit BAT_QUETES depuis les quêtes RÉELLES publiées par les Pilotes
+// (store ← Supabase). Le contenu saisi par le Pilote (desc, plan, matériel,
+// preuve attendue, indicateurs, date) est transmis tel quel : une quête sur
+// mesure n'arrive plus « vide » chez le Bâtisseur.
 function batBuildQuetesFromProfile() {
   if (typeof BAT_QUETES === 'undefined' || typeof SOLS === 'undefined') return;
   const fd = (typeof batFicheData !== 'undefined') ? batFicheData : {};
-  const skills = fd.skills || [];
-  const ville = (fd.ville || '').trim().toLowerCase();
   BAT_QUETES.length = 0;
   if (!window.store) return;
+  const myBid = fd.id || null; // sans créer d'id à la volée : lecture seule ici
 
-  // Toutes les quêtes OUVERTES publiées par les Pilotes (partagées via Supabase,
-  // hydratées dans le store). On retrouve le lieu hôte réel via lieu_id.
-  store.where('quetes', q => q.statut === 'ouverte').forEach((q, idx) => {
+  // Quêtes ouvertes (proposables) + terminées (pour l'historique « Mes quêtes »).
+  store.where('quetes', q => q.statut === 'ouverte' || q.statut === 'terminee').forEach(q => {
     const lieu = q.lieu_id ? store.get('lieux', q.lieu_id) : null;
-    const hostNom = (lieu && lieu.nom) || 'Lieu EVAD';
-    const hostVille = (lieu && (lieu.localisation || lieu.ville)) || 'Bordeaux';
+    const hostNom = (lieu && lieu.nom) || q.lieu_nom || 'Lieu EVAD';
+    const hostVille = (lieu && (lieu.localisation || lieu.ville)) || q.adresse || 'Bordeaux';
+    const lieuLat = lieu && Number(lieu.lat), lieuLng = lieu && Number(lieu.lng);
 
-    // Détail riche depuis la solution d'origine (si la quête vient d'une solution).
+    // Solution d'origine en repli (quêtes dérivées d'une solution).
     const sol = q.source ? SOLS.find(s => s.nom === q.source) : null;
     const _ind = (sol && typeof SOLS_INDICATORS !== 'undefined') ? SOLS_INDICATORS[sol.nom] : null;
-    const _plan = (_ind && _ind.plan) || [];
+    const plan = (Array.isArray(q.plan) && q.plan.length) ? q.plan : ((_ind && _ind.plan) || []);
+    const materiel = (Array.isArray(q.materiel) && q.materiel.length) ? q.materiel : ((_ind && _ind.materiel) || []);
+    // Indicateurs (ICI) que la preuve de la quête vient valider.
+    const icis = (Array.isArray(q.icis) && q.icis.length && typeof iciGetICI === 'function')
+      ? q.icis.map(id => iciGetICI(id)).filter(Boolean)
+      : ((sol && typeof iciPourSolution === 'function') ? (iciPourSolution(sol.nom) || []) : []);
 
-    const text = ((sol ? sol.nom + ' ' + (sol.cat || '') : '') + ' ' + (q.titre || '') + ' ' + (q.impact || '')).toLowerCase();
-    const matchedSkills = skills.filter(sk => (BAT_SKILL_KW[sk] || []).some(k => text.includes(k)));
-    const matched = matchedSkills.length > 0;
-    const villeMatch = ville && hostVille && hostVille.toLowerCase().includes(ville);
-    let match = 62 + (matched ? 28 : 0) + (villeMatch ? 8 : 0) - (idx % 3);
-    match = Math.max(55, Math.min(99, match));
+    // Équipe réelle : bâtisseurs inscrits (table quete_candidatures).
+    const cands = store.where('quete_candidatures', c => c.quete_id === q.id && c.statut === 'inscrit');
+    const equipe = cands.map((c, i) => ({
+      i: ((c.batisseur_nom || 'B').trim().charAt(0) || 'B').toUpperCase(),
+      c: _BAT_EQ_COLS[i % _BAT_EQ_COLS.length],
+      nom: c.batisseur_nom || 'Bâtisseur'
+    }));
+    const joined = !!(myBid && cands.some(c => c.batisseur_id === myBid));
+    const nbMax = parseInt(q.nb, 10) || 6;
 
-    BAT_QUETES.push({
+    const entry = {
       id: 0,
+      srcId: q.id, lieuId: q.lieu_id || null, statut: q.statut,
       type: (q.sourceIc || (sol && sol.img) || '⚡') + ' ' + ((sol && sol.cat) || 'Quête'),
       titre: q.titre || (sol && sol.quete && sol.quete.titre) || 'Quête',
-      match: match,
       lieu: hostNom, pilote: hostNom, ville: hostVille,
-      desc: (sol && sol.desc) || q.titre || '',
+      lieuLat: Number.isFinite(lieuLat) ? lieuLat : null,
+      lieuLng: Number.isFinite(lieuLng) ? lieuLng : null,
+      desc: q.desc || (sol && sol.desc) || q.titre || '',
       impact: q.impact || (sol && sol.quete && sol.quete.impact_quete) || '',
-      plan: _plan,
-      materiel: (_ind && _ind.materiel) || [],
-      preuve: 'Photos de l\'action réalisée + indicateurs mesurés (CO₂, énergie, déchets…).',
-      apprendre: sol ? ('Mise en œuvre de « ' + sol.nom + ' » et documentation de l\'impact.') : (q.titre || ''),
+      competence: q.competence || '',
+      solNom: sol ? sol.nom : '', solCat: (sol && sol.cat) || '',
+      plan: plan,
+      materiel: materiel,
+      preuve: q.preuve || 'Photos de l\'action réalisée + indicateurs mesurés (avant / après).',
+      apprendre: q.competence ? ('Compétence : ' + q.competence)
+        : (sol ? ('Mise en œuvre de « ' + sol.nom + ' » et documentation de l\'impact.') : (q.titre || '')),
       duree: q.duree || (sol && sol.quete && sol.quete.duree) || '1 journée',
-      places: '0/' + (parseInt(q.nb, 10) || 6),
-      etape_actuelle: 1, etapes: _plan.length || 4,
-      etapeLabels: _plan.length ? _plan.map(p => p.titre) : ['Lancement', 'Préparation', 'Réalisation', 'Certification'],
+      places: Math.min(equipe.length, nbMax) + '/' + nbMax,
+      etape_actuelle: 1, etapes: plan.length || 4,
+      etapeLabels: plan.length ? plan.map(p => p.titre) : ['Lancement', 'Préparation', 'Réalisation', 'Certification'],
       tokens: q.graines || (sol && sol.tok) || 50, co2: (sol && sol.co2) || 0,
       esrs: ((sol && sol.esrs) || []).map(e => String(e).replace('ESRS ', '').trim()),
       financement: { objectif: 0, montant: 0, semeur: null },
-      equipe: [],
-      dates: ['Samedi · 9h–17h', 'Dimanche · 9h–13h'], _matched: matched, matchedSkills: matchedSkills
-    });
+      equipe: equipe, joined: joined,
+      dateISO: q.dateISO || null, heure: q.heure || null,
+      icis: icis,
+      dates: [] // plus de dates factices : la vraie date vient de dateISO/heure
+    };
+
+    // Score de compatibilité : calcul UNIQUE (le même partout).
+    const mf = calcMatchFull(fd, entry);
+    entry.match = mf.score;
+    entry.matchDetails = mf.details;
+    entry.matchedSkills = mf.matchedSkills;
+    entry._matched = mf.matchedSkills.length > 0;
+    // Proximité réelle pour le filtre « 📍 Proches ».
+    const rayon = Number(fd.rayon) || 20;
+    if (Number.isFinite(fd.lat) && Number.isFinite(fd.lng) && entry.lieuLat != null && entry.lieuLng != null) {
+      entry._proche = _geoDistKm(fd.lat, fd.lng, entry.lieuLat, entry.lieuLng) <= rayon;
+    } else {
+      const bv = (fd.ville || '').trim().toLowerCase();
+      entry._proche = !!(bv && hostVille.toLowerCase().includes(bv));
+    }
+    BAT_QUETES.push(entry);
   });
 
   BAT_QUETES.sort((a, b) => b.match - a.match);
   BAT_QUETES.forEach((q, i) => { q.id = i; });
 }
 
+// Carte quête de la liste Bâtisseur (liste « pour toi » et « mes quêtes »).
+function _batQueteCard(q) {
+  const matchColor = q.match >= 65 ? 'var(--fern)' : q.match >= 45 ? 'var(--amber)' : 'var(--sky)';
+  const etapePct = Math.round((q.etape_actuelle / q.etapes) * 100);
+  const statutBadge = q.statut === 'terminee'
+    ? '<span class="quete-status" style="font-size:.58rem;background:rgba(74,140,92,.12);color:var(--fern)">✓ Terminée</span>'
+    : q.joined
+      ? '<span class="quete-status" style="font-size:.58rem;background:rgba(1,130,98,.1);color:var(--forest)">🔨 Inscrit</span>'
+      : '<span class="quete-status qs-open" style="font-size:.58rem">Ouvert</span>';
+  const dateTxt = (q.dateISO && typeof qdFormatDateFr === 'function') ? qdFormatDateFr(q.dateISO, q.heure) : '';
+  return `<div class="quete-card" onclick="batSelectQuete(${q.id})" style="display:flex;align-items:center;gap:1rem;padding:1rem 1.1rem">
+    <div style="width:42px;height:42px;border-radius:10px;background:rgba(74,140,92,0.1);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">${q.type.split(' ')[0]}</div>
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem">
+        <div style="font-size:.84rem;font-weight:600;color:var(--ink)">${q.titre}</div>
+        <span style="font-size:.58rem;padding:.1rem .4rem;border-radius:100px;background:rgba(74,140,92,.1);color:${matchColor};font-weight:700;flex-shrink:0">${q.match}% match</span>
+      </div>
+      <div style="font-size:.67rem;color:var(--moss);opacity:.7;display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:.35rem">
+        <span>📍 ${q.lieu}</span><span>⏱ ${q.duree}</span><span>👥 ${q.places}</span>${dateTxt ? `<span>📅 ${dateTxt}</span>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <div style="flex:1;height:3px;background:rgba(46,102,66,.1);border-radius:100px;overflow:hidden"><div style="height:100%;width:${etapePct}%;background:var(--fern);border-radius:100px"></div></div>
+        <span style="font-size:.6rem;color:var(--moss);white-space:nowrap">Étape ${q.etape_actuelle}/${q.etapes}</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0">
+      <span style="font-size:.72rem;font-weight:700;color:var(--amber)">🪙 +${q.tokens}</span>
+      <span style="font-size:.62rem;color:#4a9a40;font-weight:600">−${q.co2}t CO₂</span>
+      ${statutBadge}
+    </div>
+  </div>`;
+}
+
 function batRenderQuetes() {
   const list = document.getElementById('bat-quetes-list');
   if (!list) return;
   batBuildQuetesFromProfile();
+
+  const joined = BAT_QUETES.filter(q => q.joined);
+  const terminees = joined.filter(q => q.statut === 'terminee');
+  const ouvertes = BAT_QUETES.filter(q => q.statut === 'ouverte' && !q.joined);
+
+  // ── KPIs « Mes quêtes » (réels, plus jamais figés à 0) ──
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('bat-q-kpi-encours', joined.length - terminees.length);
+  set('bat-q-kpi-terminees', terminees.length);
+  set('bat-q-kpi-graines', terminees.reduce((s, q) => s + (q.tokens || 0), 0));
+  set('bat-q-kpi-co2', terminees.reduce((s, q) => s + (q.co2 || 0), 0) + ' t');
+
+  // ── Mes quêtes rejointes (inscriptions persistées via quete_candidatures) ──
+  const mesBox = document.getElementById('bat-mes-quetes-box');
+  const mesList = document.getElementById('bat-mes-quetes');
+  if (mesBox) mesBox.style.display = joined.length ? 'block' : 'none';
+  if (mesList) mesList.innerHTML = joined.map(q => _batQueteCard(q)).join('');
+
   if (!BAT_QUETES.length) {
     list.innerHTML = `<div style="text-align:center;padding:2.5rem 1.2rem;color:var(--moss)">
       <div style="font-size:2rem;margin-bottom:.75rem">🌱</div>
@@ -7999,36 +8088,18 @@ function batRenderQuetes() {
     </div>`;
     return;
   }
-  let quetes = [...BAT_QUETES];
-  if (batCurrentFilter === 'proches') quetes = quetes.filter(q => q.ville === 'Bordeaux' || q.ville === 'Libourne');
-  if (batCurrentFilter === 'competences') quetes = quetes.filter(q => q.match >= 85);
-  quetes.sort((a,b) => b.match - a.match);
-
-  list.innerHTML = quetes.map(q => {
-    const matchColor = q.match >= 90 ? 'var(--fern)' : q.match >= 80 ? 'var(--amber)' : 'var(--sky)';
-    const etapePct = Math.round((q.etape_actuelle / q.etapes) * 100);
-    return `<div class="quete-card" onclick="batSelectQuete(${q.id})" style="display:flex;align-items:center;gap:1rem;padding:1rem 1.1rem">
-      <div style="width:42px;height:42px;border-radius:10px;background:rgba(74,140,92,0.1);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">${q.type.split(' ')[0]}</div>
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem">
-          <div style="font-size:.84rem;font-weight:600;color:var(--ink)">${q.titre}</div>
-          <span style="font-size:.58rem;padding:.1rem .4rem;border-radius:100px;background:rgba(74,140,92,.1);color:${matchColor};font-weight:700;flex-shrink:0">${q.match}% match</span>
-        </div>
-        <div style="font-size:.67rem;color:var(--moss);opacity:.7;display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:.35rem">
-          <span>📍 ${q.lieu}</span><span>⏱ ${q.duree}</span><span>👥 ${q.places}</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:.5rem">
-          <div style="flex:1;height:3px;background:rgba(46,102,66,.1);border-radius:100px;overflow:hidden"><div style="height:100%;width:${etapePct}%;background:var(--fern);border-radius:100px"></div></div>
-          <span style="font-size:.6rem;color:var(--moss);white-space:nowrap">Étape ${q.etape_actuelle}/${q.etapes}</span>
-        </div>
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0">
-        <span style="font-size:.72rem;font-weight:700;color:var(--amber)">🪙 +${q.tokens}</span>
-        <span style="font-size:.62rem;color:#4a9a40;font-weight:600">−${q.co2}t CO₂</span>
-        <span class="quete-status qs-open" style="font-size:.58rem">Ouvert</span>
-      </div>
-    </div>`;
-  }).join('');
+  let quetes = [...ouvertes];
+  if (batCurrentFilter === 'proches') quetes = quetes.filter(q => q._proche);
+  if (batCurrentFilter === 'competences') quetes = quetes.filter(q => q._matched);
+  quetes.sort((a, b) => b.match - a.match);
+  if (!quetes.length) {
+    const msg = batCurrentFilter === 'proches' ? 'Aucune quête ouverte dans ton rayon d\'action pour l\'instant.'
+      : batCurrentFilter === 'competences' ? 'Aucune quête ouverte ne correspond à tes compétences pour l\'instant.'
+      : 'Toutes les quêtes ouvertes sont déjà dans « Mes quêtes rejointes » 💪';
+    list.innerHTML = `<div style="text-align:center;padding:1.6rem 1rem;color:var(--moss);font-size:.72rem;opacity:.8">${msg}</div>`;
+    return;
+  }
+  list.innerHTML = quetes.map(q => _batQueteCard(q)).join('');
 }
 
 function batSelectQuete(id) {
@@ -8717,7 +8788,15 @@ function renderQueteDetail() {
    transactions graines. Chaque action métier écrit une ligne de jointure. ── */
 function _currentBatisseurId() {
   if (!window.store) return null;
-  if (!batFicheData.id) batFicheData.id = store.uuid();
+  if (!batFicheData.id) {
+    // Id stable entre sessions (localStorage) : sans lui, une inscription
+    // faite hier ne serait plus reconnue comme la mienne au rechargement.
+    try {
+      const saved = localStorage.getItem('evad:batisseur-id');
+      batFicheData.id = saved || store.uuid();
+      localStorage.setItem('evad:batisseur-id', batFicheData.id);
+    } catch (e) { batFicheData.id = store.uuid(); }
+  }
   return batFicheData.id;
 }
 function _currentSemeurId() {
@@ -8725,12 +8804,13 @@ function _currentSemeurId() {
   if (!semFicheData.id) semFicheData.id = store.uuid();
   return semFicheData.id;
 }
-// Garantit que la quête existe comme ligne (cible de FK), renvoie son id de store.
+// Id réel de la quête dans le store (posé par batBuildQuetesFromProfile /
+// openPiloteQueteFiche dans `srcId`). On ne crée plus de ligne fantôme
+// « q-<index> » : l'index de BAT_QUETES change à chaque rendu et polluait
+// la table quetes avec des doublons sans statut.
 function _persistQuete(q) {
-  if (!window.store || !q) return null;
-  const qid = 'q-' + (q.id != null ? q.id : store.uuid());
-  store.upsert('quetes', { id: qid, titre: q.titre || '', lieu: q.lieu || q.lieuNom || '', duree: q.duree || '', tokens: q.tokens || 0 });
-  return qid;
+  if (!q) return null;
+  return q.srcId || null;
 }
 function _grainesTx(userId, type, montant, label, refTable, refId) {
   if (!window.store || !montant) return;
@@ -8740,17 +8820,28 @@ function _grainesTx(userId, type, montant, label, refTable, refId) {
 function qdJoindre() {
   const q = qdQuest(); if (!q) return;
   if (q.joined) { mmBubble('Tu participes déjà à cette quête'); return; }
+  const prenom = (typeof batFicheData !== 'undefined' && batFicheData.prenom) || '';
+  const nom = (typeof batFicheData !== 'undefined' && batFicheData.nom) || '';
+  const batNom = (prenom + ' ' + nom).trim() || 'Bâtisseur';
   q.joined = true;
   q.equipe = q.equipe || [];
-  q.equipe.push({ i: 'M', c: '#018262' });
+  q.equipe.push({ i: (batNom.charAt(0) || 'B').toUpperCase(), c: '#018262', nom: batNom });
   const m = String(q.places || '0/6').split('/');
   const cur = Math.min((parseInt(m[0], 10) || 0) + 1, parseInt(m[1], 10) || 6);
   q.places = cur + '/' + (m[1] || 6);
-  // Candidature : jointure bâtisseur × quête (id composite → pas de doublon).
-  if (window.store) {
+  // Inscription persistée : table quete_candidatures (locale + Supabase).
+  // Id composite bâtisseur × quête → pas de doublon, et le Pilote la voit.
+  if (window.store && q.srcId) {
     try {
-      const bid = _currentBatisseurId(), qid = _persistQuete(q);
-      store.upsert('candidatures', { id: 'cand-' + bid + '-' + qid, batisseur_id: bid, quete_id: qid, statut: 'rejoint' });
+      const bid = _currentBatisseurId();
+      store.upsert('quete_candidatures', {
+        id: 'cand-' + bid + '-' + q.srcId,
+        quete_id: q.srcId,
+        lieu_id: q.lieuId || null,
+        batisseur_id: bid,
+        batisseur_nom: batNom,
+        statut: 'inscrit'
+      });
     } catch (e) {}
   }
   mmBubble('✅ Inscription confirmée · tu as rejoint « ' + (q.titre || 'la quête') + ' »');
@@ -10295,16 +10386,14 @@ function batTab(tab, btn) {
   if (tab === 'graines') setTimeout(bmktRender, 60);
   if (tab === 'competences') setTimeout(batRenderCompetences, 60);
   if (tab === 'fiche')   setTimeout(() => { batDashFicheRender(); }, 80);
+  // Onglet « Mes quêtes » : rendre la liste (avant, un clic direct sur
+  // l'onglet affichait un panneau vide tant que l'Aperçu n'avait pas tourné).
+  if (tab === 'quetes') setTimeout(batRenderQuetes, 60);
   if (tab === 'apercu') setTimeout(() => {
-    if (document.getElementById('bat-quetes-list') && !document.getElementById('bat-quetes-list').children.length) batInitDashboard();
+    batRenderQuetes();
     batReflectProfile();
     regenLoopBuild('regenB', 'batisseur');
   }, 50);
-}
-
-function batQFilter(filter, btn) {
-  document.querySelectorAll('#bat-panel-quetes .pmkt-filter-btn').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
 }
 
 /* ══════════════════════════════════════════════════
@@ -10655,7 +10744,7 @@ function batFicheRenderStep() {
       return;
     }
     const scored = BAT_QUETES
-      .map(q => ({ ...q, score: calcMatch(batFicheData, q) }))
+      .map(q => ({ ...q, score: q.match }))  // score unique, calculé dans batBuildQuetesFromProfile
       .sort((a, b) => b.score - a.score);
 
     // ── Sélection par compétence du bâtisseur ──
@@ -10665,7 +10754,10 @@ function batFicheRenderStep() {
     if (batQueteFilter === 'all') list = scored;
     else if (batQueteFilter === 'matched') list = scored.filter(q => q._matched);
     else list = scored.filter(q => (q.matchedSkills || []).includes(batQueteFilter));
-    if (!list.length) list = scored; // garde-fou : ne jamais afficher une liste vide
+    // Garde-fou : ne jamais afficher une liste vide, mais on le DIT à
+    // l'utilisateur (sinon Deva prétend que tout « correspond »).
+    const _filterFallback = !list.length;
+    if (_filterFallback) list = scored;
 
     const chip = (id, ic, label, active) =>
       `<button onclick="batSetQueteFilter('${id}')" style="display:inline-flex;align-items:center;gap:.28rem;padding:.32rem .6rem;border-radius:100px;border:1.5px solid ${active ? 'var(--fern)' : 'rgba(46,102,66,.2)'};background:${active ? 'rgba(74,140,92,.12)' : 'white'};color:${active ? 'var(--fern)' : 'var(--moss)'};font-size:.64rem;font-weight:${active ? 700 : 500};cursor:pointer;transition:all .18s;white-space:nowrap"><span style="font-size:.78rem">${ic}</span><span>${label}</span></button>`;
@@ -10689,7 +10781,11 @@ function batFicheRenderStep() {
     let _devaMsg = mySkills.length
       ? `J'ai croisé tes compétences (${escapeHtml(_skillLabels)})${_villeTxt ? ' et ton ancrage à ' + escapeHtml(_villeTxt) : ''} avec les quêtes ouvertes des lieux de la communauté. `
       : `J'ai exploré les quêtes ouvertes des lieux de la communauté. `;
-    _devaMsg += `J'en ai trouvé <b>${_n}</b> qui te ${_n > 1 ? 'correspondent' : 'correspond'}, classée${_n > 1 ? 's' : ''} par pertinence.`;
+    if (_filterFallback) {
+      _devaMsg += `Aucune ne correspond exactement à ce filtre : voici les <b>${_n}</b> quête${_n > 1 ? 's' : ''} ouverte${_n > 1 ? 's' : ''}, classée${_n > 1 ? 's' : ''} par pertinence.`;
+    } else {
+      _devaMsg += `J'en ai trouvé <b>${_n}</b> qui te ${_n > 1 ? 'correspondent' : 'correspond'}, classée${_n > 1 ? 's' : ''} par pertinence.`;
+    }
     if (_top) _devaMsg += ` La plus alignée avec ton profil : <b>${escapeHtml(_top.titre)}</b>, ${escapeHtml(_top.lieu)} (${_top.score}%).`;
     _devaMsg += ` Clique sur une quête pour postuler 👇`;
 
@@ -10750,80 +10846,79 @@ function batSetQueteFilter(id) { batQueteFilter = id; batFicheRenderStep(); }
 function batFicheNext() { if (batFicheStep < 3) { if (batFicheStep === 2) batFicheData._quetesReady = false; /* (re)chercher → rejoue l'attente Deva */ batFicheStep++; if (window.batPanReset) window.batPanReset(); batFicheRenderStep(); } }
 function batFichePrev() { if (batFicheStep > 0) { batFicheStep--; if (window.batPanReset) window.batPanReset(); batFicheRenderStep(); } }
 
-/* ── Algorithme de matching bâtisseur ↔ quête ── */
-const BAT_SKILL_MAP = {
-  maraichage:   ['Maraîchage','Alimentation','🥦'],
-  energie:      ['Énergie','Eau','💧','⚡'],
-  reparation:   ['Réparation','FabLab','🔧'],
-  facilitation: ['Documentation','Collectif','📚'],
-  construction: ['Construction','Biosourcé','🏗'],
-  biodiversite: ['Biodiversité','Eau','💧'],
-};
+/* ── Algorithme de matching bâtisseur ↔ quête : calcul UNIQUE ──
+   Le même score sert le wizard, le tableau de bord et la fiche quête,
+   pour qu'une même quête affiche partout le même pourcentage.
+   Il s'appuie sur les données RÉELLES de la quête (compétence saisie par le
+   Pilote, solution d'origine, titre/impact/description, coordonnées du lieu
+   hôte) et non plus sur un champ `tags` qui n'existait sur aucune quête. */
+function _geoDistKm(lat1, lng1, lat2, lng2) {
+  const R = 6371, toR = Math.PI / 180;
+  const dLat = (lat2 - lat1) * toR, dLng = (lng2 - lng1) * toR;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+          + Math.cos(lat1 * toR) * Math.cos(lat2 * toR) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
 
-function calcMatch(bat, quete) {
+function calcMatchFull(bat, quete) {
+  bat = bat || {}; quete = quete || {};
+  // Texte de référence de la quête, insensible à la casse.
+  const text = [
+    quete.competence || '', quete.solNom || '', quete.solCat || '',
+    quete.titre || '', quete.impact || '', quete.desc || ''
+  ].join(' ').toLowerCase();
+  const details = [];
+  const matchedSkills = [];
   let score = 0;
-  const allText = (quete.tags || []).concat([quete.type || '']);
 
-  /* 1. Compétences (0–35 pts), pondérées par niveau (1=×0.6 / 2=×0.85 / 3=×1.2) */
+  /* 1. Compétences (0–45 pts), pondérées par niveau (1=×0.6 / 2=×0.85 / 3=×1.2) */
   const LVL_W = [0, 0.6, 0.85, 1.2];
-  const hits = (bat.skills || []).filter(sid =>
-    (BAT_SKILL_MAP[sid] || []).some(kw => allText.some(t => t.includes(kw)))
-  );
-  const skillPts = hits.reduce((sum, sid) => {
+  let skillPts = 0;
+  (bat.skills || []).forEach(sid => {
+    if (!(BAT_SKILL_KW[sid] || []).some(k => text.includes(k))) return;
     const lvl = (bat.skillLevels || {})[sid] || 1;
-    return sum + 20 * (LVL_W[lvl] || 1);
-  }, 0);
-  score += Math.min(35, Math.round(skillPts));
+    skillPts += 22 * (LVL_W[lvl] || 1);
+    matchedSkills.push(sid);
+    const def = (typeof BAT_SKILLS !== 'undefined') ? BAT_SKILLS.find(s => s.id === sid) : null;
+    details.push({ skill: def ? (def.ic + ' ' + def.label) : sid, pct: Math.min(100, 55 + 15 * lvl) });
+  });
+  score += Math.min(45, Math.round(skillPts));
 
-  /* 2. Disponibilité ↔ durée (0–25 pts) */
+  /* 2. Disponibilité ↔ durée (0–20 pts) : les durées du catalogue sont en
+     journées / demi-journées ; une quête de 3+ journées est plus dure à
+     caser sur des week-ends. */
   const dur = (quete.duree || '').toLowerCase();
-  const DISPO_MATCH = { Weekends: dur.includes('week-end'), Semaine: dur.includes('journée'), Flexible: true, 'Sur mission': dur.includes('séance') || dur === 'flexible' };
+  const mJ = dur.match(/(\d+)\s*(demi-)?journée/);
+  const nbJours = mJ ? (parseInt(mJ[1], 10) || 1) * (mJ[2] ? 0.5 : 1) : 1;
   const dispos = Array.isArray(bat.dispo) ? bat.dispo : (bat.dispo ? [bat.dispo] : []);
-  const dispoHit = dispos.some(d => DISPO_MATCH[d]);
-  score += dispoHit ? 25 : (dur.includes('flexible') ? 18 : 10);
+  if (dispos.includes('Flexible') || dispos.includes('Semaine')) score += 20;
+  else if (dispos.length) score += (nbJours <= 2 ? 16 : 10);
+  else score += 8;
 
-  /* 3. Géographie (0–25 pts) */
-  if (quete.ville === bat.ville) {
-    score += 25;
-  } else if ((quete.tags || []).includes('Distanciel ok') && bat.mode !== 'presentiel') {
-    score += 20;
-  } else {
-    const approxDist = { Libourne: 30, Périgueux: 90, Vannes: 350 };
-    const dist = approxDist[quete.ville] || 150;
-    const rayon = Number(bat.rayon) || 20;
+  /* 3. Proximité (0–25 pts) : distance réelle profil ↔ lieu quand les deux
+     ont des coordonnées, sinon comparaison souple des villes ; inconnu = neutre. */
+  const rayon = Number(bat.rayon) || 20;
+  const hasGeo = Number.isFinite(bat.lat) && Number.isFinite(bat.lng)
+              && Number.isFinite(quete.lieuLat) && Number.isFinite(quete.lieuLng);
+  if (hasGeo) {
+    const dist = _geoDistKm(bat.lat, bat.lng, quete.lieuLat, quete.lieuLng);
     if (dist <= rayon) score += 25;
     else if (dist <= rayon * 2.5) score += 12;
+    else score += 4;
+  } else {
+    const bv = (bat.ville || '').trim().toLowerCase();
+    const qv = (quete.ville || '').trim().toLowerCase();
+    if (bv && qv && (qv.includes(bv) || bv.includes(qv))) score += 25;
+    else score += 8;
   }
 
-  /* 4. Axe d'impact (0–8 pts) */
-  const AXE_TYPE = { alimentation: 'Alimentation', energie: 'Énergie', social: 'Documentation', circulaire: 'Réparation' };
-  if ((quete.type || '').includes(AXE_TYPE[bat.axe] || '__')) score += 8;
+  /* 4. Engagement souhaité (0–10 pts) */
+  const engHit = { ponctuel: nbJours <= 1, recurrent: true, immersif: nbJours >= 2 }[bat.engagement];
+  score += bat.engagement ? (engHit ? 10 : 4) : 5;
 
-  /* 5. Type de contribution (0–7 pts) */
-  const CONTRIB_KW = { terrain: ['Construction','🏗'], formation: ['Documentation','📚','Formation'], doc: ['Documentation','📚'], animation: ['Collectif'] };
-  if ((CONTRIB_KW[bat.contrib] || []).some(kw => allText.some(t => t.includes(kw)))) score += 7;
-
-  /* 6. Contrainte distanciel */
-  if (bat.mode === 'distanciel' && !(quete.tags || []).includes('Distanciel ok')) score -= 20;
-
-  /* 7. Engagement souhaité (±8 pts) */
-  const engHit = {
-    ponctuel:  dur.includes('journée') || dur.includes('après-midi') || dur.includes('flexible'),
-    recurrent: dur.includes('mois') || (quete.tags || []).includes('Récurrent'),
-    immersif:  dur.includes('week-end') || dur.includes('séance'),
-  }[bat.engagement];
-  score += engHit ? 8 : -3;
-
-  /* 8. Bonus "je veux apprendre" + formation incluse (+10 pts) */
-  if ((bat.wantLearn || []).length > 0 && (quete.tags || []).includes('Formation incluse')) {
-    const learnHit = bat.wantLearn.some(sid =>
-      (BAT_SKILL_MAP[sid] || []).some(kw => allText.some(t => t.includes(kw)))
-    );
-    if (learnHit) score += 10;
-  }
-
-  return Math.max(0, Math.min(100, score));
+  return { score: Math.max(0, Math.min(100, Math.round(score))), details: details, matchedSkills: matchedSkills };
 }
+function calcMatch(bat, quete) { return calcMatchFull(bat, quete).score; }
 
 function batExchangeToggle(field, id) {
   const arr = batFicheData[field];
@@ -11005,7 +11100,7 @@ function batMatchViz() {
 
   /* Calcul des scores + tri */
   const scored = BAT_QUETES
-    .map(q => ({ ...q, score: calcMatch(batFicheData, q) }))
+    .map(q => ({ ...q, score: q.match }))  // score unique, calculé dans batBuildQuetesFromProfile
     .sort((a, b) => b.score - a.score);
 
   /* N'affiche que les quêtes proposées par Deva (mêmes que le panneau de gauche).
@@ -13378,6 +13473,16 @@ window.addEventListener('evad:quetes-ready', function(){
     if (typeof renderPiloteQuetes === 'function') renderPiloteQuetes();
     if (typeof batRenderQuetes === 'function') batRenderQuetes();  // vue Bâtisseur : quêtes du réseau
   } catch(e){}
+});
+// Inscriptions et preuves reçues de Supabase : re-rendre les deux vues
+// (équipes, statut « inscrit », preuves en attente de validation).
+['evad:candidatures-ready', 'evad:preuves-ready'].forEach(function (ev) {
+  window.addEventListener(ev, function(){
+    try {
+      if (typeof renderPiloteQuetes === 'function') renderPiloteQuetes();
+      if (typeof batRenderQuetes === 'function') batRenderQuetes();
+    } catch(e){}
+  });
 });
 
 // Bibliothèque (solutions + indicateurs) hydratée depuis Supabase : on rafraîchit

@@ -657,10 +657,19 @@
   <div class="bat-panel" id="bat-panel-quetes">
     <div style="padding:1.1rem 2rem">
       <div class="bat-kpi-row">
-        <div class="bat-kpi" style="border-top:3px solid var(--amber)"><div class="bat-kpi-val" style="color:var(--amber)">0</div><div class="bat-kpi-lbl">En cours</div><div class="bat-kpi-trend" style="color:var(--amber)">-</div></div>
-        <div class="bat-kpi" style="border-top:3px solid var(--fern)"><div class="bat-kpi-val" style="color:var(--fern)">0</div><div class="bat-kpi-lbl">Terminées</div><div class="bat-kpi-trend" style="color:var(--fern)">-</div></div>
-        <div class="bat-kpi" style="border-top:3px solid var(--sky)"><div class="bat-kpi-val" style="color:var(--sky)">0</div><div class="bat-kpi-lbl">graines gagnés</div><div class="bat-kpi-trend" style="color:var(--fern)">-</div></div>
-        <div class="bat-kpi" style="border-top:3px solid var(--lavender)"><div class="bat-kpi-val" style="color:var(--lavender)">0</div><div class="bat-kpi-lbl">CO₂ évité</div><div class="bat-kpi-trend" style="color:var(--fern)">-</div></div>
+        <div class="bat-kpi" style="border-top:3px solid var(--amber)"><div class="bat-kpi-val" id="bat-q-kpi-encours" style="color:var(--amber)">0</div><div class="bat-kpi-lbl">En cours</div><div class="bat-kpi-trend" style="color:var(--amber)">-</div></div>
+        <div class="bat-kpi" style="border-top:3px solid var(--fern)"><div class="bat-kpi-val" id="bat-q-kpi-terminees" style="color:var(--fern)">0</div><div class="bat-kpi-lbl">Terminées</div><div class="bat-kpi-trend" style="color:var(--fern)">-</div></div>
+        <div class="bat-kpi" style="border-top:3px solid var(--sky)"><div class="bat-kpi-val" id="bat-q-kpi-graines" style="color:var(--sky)">0</div><div class="bat-kpi-lbl">graines gagnés</div><div class="bat-kpi-trend" style="color:var(--fern)">-</div></div>
+        <div class="bat-kpi" style="border-top:3px solid var(--lavender)"><div class="bat-kpi-val" id="bat-q-kpi-co2" style="color:var(--lavender)">0</div><div class="bat-kpi-lbl">CO₂ évité</div><div class="bat-kpi-trend" style="color:var(--fern)">-</div></div>
+      </div>
+      <!-- Mes quêtes rejointes (inscriptions persistées) -->
+      <div id="bat-mes-quetes-box" style="display:none;background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-xl);overflow:hidden;margin-bottom:1rem">
+        <div style="padding:.75rem 1rem;border-bottom:1px solid rgba(46,102,66,.08)">
+          <div style="font-size:.76rem;font-weight:600;color:var(--ink)">🔨 Mes quêtes rejointes</div>
+        </div>
+        <div style="padding:.6rem .9rem">
+          <div id="bat-mes-quetes" style="display:flex;flex-direction:column;gap:.55rem"></div>
+        </div>
       </div>
       <!-- Quêtes pour toi (déplacé depuis l'Aperçu) -->
       <div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-xl);overflow:hidden">
