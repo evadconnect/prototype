@@ -881,10 +881,19 @@ function lieuRenderHero() {
   // Bandeau Vadance (promesse) + Vadité (preuve) + dimensions
   const heroStats = document.getElementById('lieu-hero-stats');
   if (heroStats) {
-    const imp = (typeof evadImpactData === 'function') ? evadImpactData()
-              : { vadance: (typeof cData.score === 'number' ? cData.score : 0), vadite: 0, taux: 0 };
+    // Mon lieu = fiche en cours (brouillon sans id) ou fiche portant l'id de
+    // mon lieu publié. Pour un lieu du réseau, on affiche SES valeurs figées
+    // (et pas mon evadImpactData à moi).
+    const _estMonLieu = !cData.id || (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.id === cData.id);
+    const imp = (_estMonLieu && typeof evadImpactData === 'function') ? evadImpactData()
+              : { vadance: (typeof cData.score === 'number' ? cData.score : (cData.vadance || 0)),
+                  vadite: (typeof cData.vadite === 'number' ? cData.vadite : 0),
+                  taux: (typeof cData.taux === 'number' ? cData.taux
+                        : (cData.score ? Math.round(((cData.vadite || 0) / cData.score) * 100) : 0)) };
     const hasV = imp.vadance > 0;
-    const dims  = (cData.dims && cData.dims.length) ? cData.dims : [
+    // Preuve par capital, reliée aux indicateurs (ICI) : 0 tant que rien
+    // n'est prouvé, jamais de valeurs décoratives.
+    const dims = (typeof evadLieuDims === 'function') ? evadLieuDims(cData, _estMonLieu) : [
       {l:'Environnement',v:0,c:'#82b894'},{l:'Social',v:0,c:'#6aa0bc'},
       {l:'Éco. locale',v:0,c:'#e8a55a'}
     ];
@@ -2833,6 +2842,11 @@ function mapShowLieu(idx) {
     const _imp = evadImpactData();
     _vadite = _imp.vadite; _taux = _imp.taux;
   }
+  // Preuve par capital (reliée aux ICI), recalculée à l'ouverture : reflète
+  // les quêtes terminées du lieu (0 sans preuve, comme la Vadité).
+  const _dims = (typeof evadLieuDims === 'function')
+    ? evadLieuDims(_estMonLieu ? ((typeof myLieuData !== 'undefined' && myLieuData) || place.fiche) : (place.fiche || null), _estMonLieu)
+    : (place.dims || []);
 
   panel.innerHTML = `
     <div class="acteur-fiche">
@@ -2869,8 +2883,8 @@ function mapShowLieu(idx) {
         </div>
         <div class="score-bar-bg" style="height:5px;margin-bottom:.45rem;background:rgba(46,102,66,.1)"><div style="height:100%;border-radius:100px;width:${_vadite}%;background:linear-gradient(90deg,#2e6b3e,var(--fern))"></div></div>
         <div style="text-align:right;font-size:.58rem;color:var(--fern);font-weight:700;margin-bottom:.7rem">⚖️ Indice de confiance ${_taux}%</div>
-        <div style="display:grid;grid-template-columns:repeat(${place.dims.length || 1},1fr);gap:.55rem">
-          ${place.dims.map(d => `
+        <div style="display:grid;grid-template-columns:repeat(${_dims.length || 1},1fr);gap:.55rem">
+          ${_dims.map(d => `
           <div style="text-align:center;padding:.5rem .35rem;background:${d.c}0d;border:1px solid ${d.c}26;border-radius:10px">
             <div style="font-family:'Satoshi', sans-serif;font-size:1.1rem;font-weight:900;color:${d.c};line-height:1">${d.v}</div>
             <div style="font-size:.55rem;color:var(--moss);opacity:.75;margin:.18rem 0 .35rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.l}</div>
@@ -7186,11 +7200,8 @@ async function createLieuOnMap(){
     lat, lng,
     desc: cData.desc || `${typeLabel} en phase ${cData.phase || 'de démarrage'}, situé à ${adresse}.`,
     batisseurs: 0, semeurs: 0, score_trim: '+0',
-    dims: [
-      {l:'Environnement',v:10,c:'var(--fern)'},
-      {l:'Social',v:10,c:'var(--sky)'},
-      {l:'Éco. locale',v:10,c:'var(--amber)'}
-    ],
+    // Preuve par capital (ICI) : 0 à la création, monte avec les quêtes prouvées.
+    dims: (typeof evadLieuDims === 'function') ? evadLieuDims(myLieuData, true) : [],
     quetes_list: [],
     besoins: cData.besoins?.length ? cData.besoins : ['Premiers bâtisseurs','Financement de départ'],
     deva: `"${nom}" vient de rejoindre la carte EVAD. Score de départ : 10/100. Publie 2 quêtes pour atteindre 25 en 30 jours et attirer tes premiers bâtisseurs.`
@@ -9483,6 +9494,62 @@ function evadImpactData() {
   if (vadance > 0) vadite = Math.min(vadite, vadance);
   const taux = vadance > 0 ? Math.round(vadite / vadance * 100) : 0;
   return { vadance: vadance, vadite: vadite, taux: taux };
+}
+
+/* ─── Preuve PAR capital d'un lieu (0..100), reliée aux indicateurs (ICI) ───
+   Fini les « 10 » décoratifs : chaque barre reflète la preuve réelle.
+   - Mon lieu : valeurs de l'aperçu (quêtes validées + actions du jardin,
+     réparties par couverture ICI) → la Vadité est exactement leur moyenne.
+   - Lieu du réseau : points des quêtes TERMINÉES du lieu, répartis selon la
+     couverture ICI de ses solutions (table lieu_solutions). Sans preuve : 0. */
+function evadLieuDims(lieuRow, estMonLieu) {
+  // Couleurs en hexa (les consommateurs composent des alphas « ${c}0d »).
+  const DIM_META = [
+    { k: 'ecologie',        l: 'Environnement', c: '#4a8c5c' },
+    { k: 'social',          l: 'Social',        c: '#3a6e8c' },
+    { k: 'economie_locale', l: 'Éco. locale',   c: '#c8732a' }
+  ];
+  const zero = () => DIM_META.map(d => ({ l: d.l, v: 0, c: d.c }));
+  try {
+    if (estMonLieu && typeof apercuCapitauxPaire === 'function') {
+      const p = apercuCapitauxPaire();
+      return DIM_META.map(d => ({ l: d.l, v: (p[d.k] && p[d.k].vit) || 0, c: d.c }));
+    }
+    if (!lieuRow) return zero();
+    // Solutions du lieu : champ à plat de la fiche, sinon table lieu_solutions.
+    let sols = (typeof evadLieuSols === 'function') ? evadLieuSols(lieuRow) : ((lieuRow.solutions) || []);
+    if ((!sols || !sols.length) && lieuRow.id && window.store) {
+      sols = store.where('lieu_solutions', s => s.lieu_id === lieuRow.id).map(s => s.nom).filter(Boolean);
+    }
+    // Points de preuve : quêtes terminées du lieu (« +X pts » de leur impact).
+    let bonus = 0;
+    if (lieuRow.id && window.store) {
+      store.where('quetes', q => q.lieu_id === lieuRow.id && q.statut === 'terminee').forEach(q => {
+        const m = String(q.impact || '').match(/(\d+)\s*pts?/i);
+        bonus += m ? parseInt(m[1], 10) : 5;
+      });
+    }
+    if (!bonus) return zero();
+    // Répartition par couverture ICI (mêmes poids que l'aperçu du Pilote).
+    const covered = { ecologie: 0, social: 0, economie_locale: 0 };
+    const total = { ecologie: 0, social: 0, economie_locale: 0 };
+    const seen = {};
+    if (typeof ICI_CATALOG !== 'undefined') ICI_CATALOG.forEach(i => total[i.livre] = (total[i.livre] || 0) + 1);
+    if (typeof iciPourSolution === 'function') (sols || []).forEach(sn => (iciPourSolution(sn) || []).forEach(i => {
+      if (!seen[i.id]) { seen[i.id] = 1; covered[i.livre] = (covered[i.livre] || 0) + 1; }
+    }));
+    const POIDS = (typeof APERCU_PREUVE_POIDS !== 'undefined') ? APERCU_PREUVE_POIDS : { ecologie: 1, social: 1, economie_locale: 1 };
+    const share = {}; let maxShare = 0;
+    DIM_META.forEach(d => {
+      const r = total[d.k] ? (covered[d.k] || 0) / total[d.k] : 0;
+      share[d.k] = r * (POIDS[d.k] || 1);
+      if (share[d.k] > maxShare) maxShare = share[d.k];
+    });
+    return DIM_META.map(d => ({
+      l: d.l, c: d.c,
+      v: maxShare > 0 ? Math.max(0, Math.min(100, Math.round(bonus * (share[d.k] / maxShare)))) : 0
+    }));
+  } catch (e) { return zero(); }
 }
 
 /* ─── APERÇU : « où en est mon lieu, et quel est le prochain cran ? » ─── */
@@ -13571,11 +13638,8 @@ function _lieuRowToMapPlace(row){
     lng: row.lng ?? row.longitude ?? -2.8,
     desc: row.desc || row.description || `${typeLabel} situé à ${row.localisation || 'Nouvelle-Aquitaine'}.`,
     batisseurs: 0, semeurs: 0, score_trim: '+0',
-    dims: [
-      {l:'Environnement',v:10,c:'var(--fern)'},
-      {l:'Social',v:10,c:'var(--sky)'},
-      {l:'Éco. locale',v:10,c:'var(--amber)'}
-    ],
+    // Preuve par capital (ICI) : calculée depuis les quêtes terminées du lieu.
+    dims: (typeof evadLieuDims === 'function') ? evadLieuDims(row, false) : [],
     quetes_list: [],
     besoins: (row.besoins && row.besoins.length) ? row.besoins : ['Premiers bâtisseurs','Financement de départ'],
     deva: `"${row.nom}" fait partie de la carte EVAD.`,
