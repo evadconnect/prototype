@@ -4818,9 +4818,12 @@ function creerQueteBiblioPanelBody(idx){
 function creerIciBiblioPanelBody(idx){
   if (typeof ICI_CATALOG === 'undefined') return '';
   const retir = new Set(cData.icisRetires || []);
+  // Toute la bibliothèque d'indicateurs ; on exclut seulement ceux déjà présents
+  // dans CET espace (dérivés de ses solutions ou ajoutés à lui).
   const shown = new Set();
-  (cData.solutions || []).forEach(nom => { (typeof iciPourSolution === 'function' ? (iciPourSolution(nom) || []) : []).forEach(i => { if (!retir.has(i.id)) shown.add(i.id); }); });
-  (cData.icisAjoutes || []).forEach(id => { if (!retir.has(id)) shown.add(id); });
+  ((cData.solsByEspace && cData.solsByEspace[idx]) || []).forEach(nom => { (typeof iciPourSolution === 'function' ? (iciPourSolution(nom) || []) : []).forEach(i => { if (!retir.has(i.id)) shown.add(i.id); }); });
+  const _espMap = cData.icisEspMap || {};
+  (cData.icisAjoutes || []).forEach(id => { if (_espMap[id] === idx && !retir.has(id)) shown.add(id); });
   const searchRaw = window._creerIciSearch || '', search = searchRaw.toLowerCase().trim();
   let dispo = ICI_CATALOG.filter(i => !shown.has(i.id));
   if (search) dispo = dispo.filter(i => ((i.nom + ' ' + (i.unite || '')).toLowerCase().indexOf(search) >= 0));
