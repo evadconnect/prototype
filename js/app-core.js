@@ -2923,7 +2923,7 @@ function mapRenderCommunity() {
   if (sLieux) {
     // Retire toutes les cartes déjà affichées (évite les doublons si cette
     // fonction est rejouée après une mise à jour Supabase) et le placeholder
-    // "Aucun lieu" — le tout sera reconstruit ci-dessous si besoin.
+    // "Aucun lieu", le tout sera reconstruit ci-dessous si besoin.
     sLieux.querySelectorAll(':scope > div').forEach(el => { if (!el.matches('[style*="text-transform:uppercase"]')) el.remove(); });
   }
   if (sLieux && MAP_PLACES.length) {
@@ -4413,8 +4413,8 @@ function renderStep(){
       if (typeof creerUpdateVadance === 'function') creerUpdateVadance();
     }
 
-    // Rattrapage (une fois par fiche) : les sélections déjà en place — brouillons
-    // d'avant la garantie des 3 capitaux — reçoivent aussi leur complément.
+    // Rattrapage (une fois par fiche) : les sélections déjà en place, brouillons
+    // d'avant la garantie des 3 capitaux, reçoivent aussi leur complément.
     if (!cData._capsEnsured) {
       espItems.forEach((_, idx) => {
         const chosen = cData.solsByEspace[idx] || (cData.solsByEspace[idx] = []);
@@ -4531,14 +4531,14 @@ window._creerActiveEsp = (window._creerActiveEsp !== undefined) ? window._creerA
 window._creerPhase = window._creerPhase || 'espaces';
 
 /* ───────────────────────────────────────────────────────────────────────────
-   Étape 3 — flux guidé « espace par espace »
+   Étape 3, flux guidé « espace par espace »
    Boutons d'espace en haut ; en cliquant sur un espace, on ne voit que ses
    solutions / quêtes / indicateurs et le mind map zoome dessus ; « Valider cet
    espace » coche l'espace et bascule sur le suivant.
    ─────────────────────────────────────────────────────────────────────────── */
 function creerStep3SidebarHTML(){
   const espItems = window._creerEspItems || [];
-  if (!espItems.length) return '<div style="padding:1rem;font-size:.72rem;color:var(--moss)">Aucun espace défini — reviens à l\'étape précédente pour en ajouter.</div>';
+  if (!espItems.length) return '<div style="padding:1rem;font-size:.72rem;color:var(--moss)">Aucun espace défini, reviens à l\'étape précédente pour en ajouter.</div>';
   let active = window._creerActiveEsp;
   if (active == null || active < 0 || active >= espItems.length) active = 0;
   window._creerActiveEsp = active;
@@ -4643,14 +4643,14 @@ function creerQuetesPhaseHTML(){
   const espItems = window._creerEspItems || [];
   let h = '<div style="background:rgba(200,115,42,.06);border:1px solid rgba(200,115,42,.22);border-radius:14px;padding:.85rem .9rem">'
     + '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem"><span style="font-size:1.15rem">⚡</span><div style="font-size:.92rem;font-weight:800;color:var(--ink)">Les quêtes de ton lieu</div></div>'
-    + '<div style="font-size:.64rem;color:var(--moss);opacity:.8;margin-bottom:.4rem;line-height:1.5">✦ Deva a choisi une quête par action, adaptée à chaque espace. Ajuste-les, ajoute-en ou crée les tiennes.</div>';
+    + '<div style="font-size:.64rem;color:var(--moss);opacity:.8;margin-bottom:.4rem;line-height:1.5">✦ Deva a choisi une quête par solutions, adaptée à chaque espace. Ajoute-en ou crée les tiennes. Tu pourras modifier les quêtes avant leur publication dans le tableau de bord.</div>';
   espItems.forEach((it, idx) => {
     const c2 = it.c || '#2e9970';
     h += '<div style="display:flex;align-items:center;gap:.4rem;margin:.9rem 0 .5rem"><span style="font-size:.85rem">' + (it.ic || '📦') + '</span><span style="font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:' + c2 + '">' + ((it.esp && it.esp.nom) || ('Espace ' + (idx + 1))) + '</span></div>';
     h += creerEspaceQuetesHTML(idx);
   });
   h += '<button onclick="creerRevoirEspaces()" style="width:100%;margin-top:1rem;padding:.6rem;border:1.5px solid rgba(46,102,66,.2);border-radius:100px;background:white;color:var(--moss);font-family:inherit;font-size:.74rem;font-weight:700;cursor:pointer">← Revoir les solutions & indicateurs</button>'
-    + '<div style="margin-top:.5rem;text-align:center;font-size:.66rem;color:var(--fern);font-weight:600">🎉 Ton lieu est prêt — tu peux le créer 👉</div>'
+    + '<div style="margin-top:.5rem;text-align:center;font-size:.66rem;color:var(--fern);font-weight:600">🎉 Ton lieu est prêt, tu peux le créer 👉</div>'
     + '</div>';
   return h;
 }
@@ -4741,7 +4741,7 @@ function creerOpenPanel(kind, ref){ window._creerPanel = { kind: kind, ref: ref 
 function creerQueteFormPanelHTML(){
   const inS = 'width:100%;box-sizing:border-box;padding:.55rem .7rem;border-radius:8px;border:1px solid rgba(46,102,66,.2);font-family:inherit;font-size:.8rem;color:var(--ink);background:#fff';
   const lbS = 'display:block;font-size:.7rem;font-weight:700;color:var(--moss);margin:.75rem 0 .3rem';
-  const comp = ['— Aucune en particulier —','💧 Gestion de l\'eau','⚡ Énergie','🧱 Éco-construction','🌾 Maraîchage & permaculture','♻️ Réemploi & compostage','🌿 Biodiversité','🤝 Animation & facilitation','🌡 Adaptation climatique','🔧 Autre / polyvalent'];
+  const comp = ['Aucune en particulier','💧 Gestion de l\'eau','⚡ Énergie','🧱 Éco-construction','🌾 Maraîchage & permaculture','♻️ Réemploi & compostage','🌿 Biodiversité','🤝 Animation & facilitation','🌡 Adaptation climatique','🔧 Autre / polyvalent'];
   const icisChips = (typeof ICI_CATALOG !== 'undefined' ? ICI_CATALOG : []).map(function(ici){ var m = ((typeof ICI_LIVRE_META !== 'undefined') ? ICI_LIVRE_META[ici.livre] : null) || {ic:'◆', col:'#4a8c5c'}; return '<button type="button" data-ici="' + ici.id + '" data-col="' + m.col + '" data-sel="0" onclick="pqCreerToggleIci(this)" style="font-size:.66rem;font-weight:600;color:' + m.col + ';background:transparent;border:1px solid ' + m.col + '55;border-radius:100px;padding:.28rem .6rem;cursor:pointer;font-family:inherit">' + m.ic + ' ' + ici.nom + '</button>'; }).join('');
   return ''
     + '<label style="' + lbS + '" for="pq-create-titre">Titre de la quête *</label>'
@@ -4896,7 +4896,7 @@ function creerEspaceSolBlockHTML(idx){
   };
   let html = assigned.length
     ? assigned.map(solCard).join('')
-    : '<div style="font-size:.62rem;color:var(--moss);opacity:.5;font-style:italic;padding:.15rem 0">Aucune solution — ajoute-en depuis la bibliothèque.</div>';
+    : '<div style="font-size:.62rem;color:var(--moss);opacity:.5;font-style:italic;padding:.15rem 0">Aucune solution, ajoute-en depuis la bibliothèque.</div>';
   html += '<div style="margin-top:.5rem"><button onclick="creerOpenPanel(\'biblio-sol\',' + idx + ')" style="font-size:.66rem;color:var(--forest);background:rgba(1,130,98,.05);border:1.5px dashed rgba(1,130,98,.4);border-radius:10px;padding:.5rem;width:100%;cursor:pointer;font-family:inherit;font-weight:700">+ Ajouter une solution depuis la bibliothèque</button></div>';
   return html;
 }
@@ -4929,7 +4929,7 @@ function creerEspaceQuetesHTML(idx){
     + '<button onclick="' + removeCall + '" title="Retirer" style="flex-shrink:0;border:1px solid rgba(46,102,66,.14);border-left:none;border-radius:0 10px 10px 0;background:rgba(200,115,42,.05);color:var(--amber);cursor:pointer;font-size:.78rem;line-height:1;padding:0 .55rem;opacity:.55" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'.55\'">✕</button>'
     + '</div>';
   let cards = '', n = 0;
-  // Dérivées des solutions de l'espace — personnalisées par Deva.
+  // Dérivées des solutions de l'espace, personnalisées par Deva.
   ((cData.solsByEspace && cData.solsByEspace[idx]) || []).forEach(nom => {
     const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === nom) : null;
     if (!sol || !sol.quete || retir.has('sol:' + nom)) return;
@@ -5186,7 +5186,7 @@ function creerStep3IndicateursHTML(){
       });
     });
   } else {
-    html += '<div style="padding:1rem;text-align:center;font-size:.7rem;color:var(--moss);opacity:.55;border:1px dashed rgba(46,102,66,.2);border-radius:var(--r);margin-bottom:.5rem">Aucun indicateur — ajoute des solutions qui en portent, ou ajoute-en depuis la bibliothèque.</div>';
+    html += '<div style="padding:1rem;text-align:center;font-size:.7rem;color:var(--moss);opacity:.55;border:1px dashed rgba(46,102,66,.2);border-radius:var(--r);margin-bottom:.5rem">Aucun indicateur, ajoute des solutions qui en portent, ou ajoute-en depuis la bibliothèque.</div>';
   }
   // Panneau « ajouter depuis la bibliothèque » (groupé par capital + recherche)
   const shown = new Set(effIds);
@@ -5272,7 +5272,7 @@ function creerStep3QuetesHTML(){
       if (sol && sol.quete) quetes.push({ sol: sol, q: sol.quete });
     });
   }
-  // Quêtes créées manuellement (custom) — visibles ici dès leur création.
+  // Quêtes créées manuellement (custom), visibles ici dès leur création.
   const customs = (window.store) ? store.where('quetes', function(q){ return q.custom === true && q.statut !== 'retiree'; }) : [];
   const total = quetes.length + customs.length;
   const btnNouvelle = '<button onclick="creerQueteNouvelle()" style="width:100%;margin-top:.4rem;padding:.6rem;border:1.5px dashed rgba(1,130,98,.4);border-radius:var(--r);background:rgba(1,130,98,.05);color:var(--forest);font-family:inherit;font-size:.74rem;font-weight:700;cursor:pointer">＋ Créer une nouvelle quête</button>';
@@ -5333,7 +5333,7 @@ function creerStep3QuetesHTML(){
     + '</div>'
     + '<div style="font-size:.65rem;color:var(--moss);opacity:.75;margin-bottom:.9rem;line-height:1.55">Chaque solution propose une quête : l\'action concrète que les Bâtisseurs pourront rejoindre. Retire celles qui ne conviennent pas, ajoute-en depuis la bibliothèque ou crée-en une sur mesure. Tu les retrouveras dans « Mes quêtes » pour les publier.</div>';
   if (!total) {
-    return html + '<div style="padding:1rem;text-align:center;font-size:.7rem;color:var(--moss);opacity:.55;border:1px dashed rgba(46,102,66,.2);border-radius:var(--r);margin-bottom:.5rem">Aucune quête pour l\'instant — ajoute des solutions qui en portent, ajoute-en depuis la bibliothèque, ou crée-en une sur mesure.</div>' + bddPanel + btnNouvelle;
+    return html + '<div style="padding:1rem;text-align:center;font-size:.7rem;color:var(--moss);opacity:.55;border:1px dashed rgba(46,102,66,.2);border-radius:var(--r);margin-bottom:.5rem">Aucune quête pour l\'instant, ajoute des solutions qui en portent, ajoute-en depuis la bibliothèque, ou crée-en une sur mesure.</div>' + bddPanel + btnNouvelle;
   }
   // Carte d'une quête portée par une solution (avec bouton retirer).
   const queteCard = function(sol, q){
@@ -5507,7 +5507,7 @@ function creerSolSearchInput(v){
   _creerRefocusSearch('creer-sol-search');
 }
 
-// Rafraîchit sidebar + branches de solutions du mind map, puis re-focalise —
+// Rafraîchit sidebar + branches de solutions du mind map, puis re-focalise,
 // sans ré-animer tout le mind map (utilisé après add/remove de solution).
 function creerSolChangeRefresh(){
   if (typeof creerUpdateVadance === 'function') creerUpdateVadance();
@@ -6354,7 +6354,7 @@ function mmRevealEsp(idx){
     let dx = sx - cx, dy = sy - cy; const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
     const base = sn.id.replace('mn-sol-', '');           // "idx-j"
     const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === solNom) : null;
-    // Quête (au-delà de la solution) — seulement en phase quêtes (choisie plus tard).
+    // Quête (au-delà de la solution), seulement en phase quêtes (choisie plus tard).
     // Les indicateurs ne sont plus représentés sur le mind map.
     if (window._creerPhase === 'quetes' && sol && sol.quete && !retirQ.has('sol:' + solNom)) {
       const qx = sx + dx * 118, qy = sy + dy * 118;
@@ -6364,7 +6364,7 @@ function mmRevealEsp(idx){
     }
   });
   // Quêtes ajoutées depuis la biblio (leur solution n'est pas dans l'espace),
-  // rattachées au nœud espace — uniquement en phase quêtes.
+  // rattachées au nœud espace, uniquement en phase quêtes.
   const eEl = document.getElementById('mn-e-' + idx);
   if (eEl && window._creerPhase === 'quetes') {
     const ex = parseFloat(eEl.style.left), ey = parseFloat(eEl.style.top);
@@ -6764,7 +6764,7 @@ try {
 
 // Solutions retenues d'un lieu : le champ à plat `solutions`, sinon
 // reconstruites depuis `solsByEspace` (certaines fiches ont ce champ vide
-// alors que la répartition par espace est complète — c'est elle qui fait foi).
+// alors que la répartition par espace est complète, c'est elle qui fait foi).
 function evadLieuSols(L){
   if (!L) return [];
   if (Array.isArray(L.solutions) && L.solutions.length) return L.solutions;
@@ -6808,7 +6808,7 @@ function evadSyncLieuChildren(lieuId){
   const solsByEsp = (L && L.solsByEspace) || {};
   const slug = (s) => String(s).replace(/[^a-z0-9]+/gi, '-').toLowerCase();
 
-  // Espace (nom) qui porte chaque solution — le premier rencontré.
+  // Espace (nom) qui porte chaque solution, le premier rencontré.
   const espaceParSol = {};
   Object.keys(solsByEsp).forEach(idx => {
     (solsByEsp[idx] || []).forEach(nom => {
@@ -7363,7 +7363,7 @@ function _captureActeurCard(kind) {
   const prevHTML = panel.innerHTML, prevDisp = panel.style.display;
   const prevMain = mainPanel ? mainPanel.style.display : null;
   // Aperçu du lieu : refléter l'ÉDITION EN COURS (cData), pas la version déjà
-  // enregistrée (myLieuData) — c'est cData qui sera publié.
+  // enregistrée (myLieuData), c'est cData qui sera publié.
   let _savedMyLieu, _lieuOverride = false;
   if (kind === 'lieu' && typeof cData !== 'undefined' && cData) {
     _savedMyLieu = myLieuData;
@@ -7991,7 +7991,7 @@ function qdSaveSection() {
   mmBubble('✏️ Modifications enregistrées');
   qdRerender();
 }
-// Replie / déplie une section (matériel, étapes) — repliées par défaut.
+// Replie / déplie une section (matériel, étapes), repliées par défaut.
 function qdToggleSection(sec) {
   _qdOpenSections[sec] = !_qdOpenSections[sec];
   qdRerender();
@@ -8068,7 +8068,7 @@ function renderQueteDetail() {
   const EDmat    = _qdEditSection === 'materiel';
   const EDplan   = _qdEditSection === 'etapes';
   const EDimpact = _qdEditSection === 'impact';
-  // Sections repliables (matériel/étapes) — dépliées si ouvertes OU en édition
+  // Sections repliables (matériel/étapes), dépliées si ouvertes OU en édition
   const matOpen  = !!_qdOpenSections.materiel || EDmat;
   const planOpen = !!_qdOpenSections.etapes   || EDplan;
   // Contrôle pilote d'une section repliable : crayon (éditer) / ✓ (enregistrer)
@@ -8145,7 +8145,7 @@ function renderQueteDetail() {
     </div>`;
   })() : '';
 
-  // Équipe — masquée tant qu'aucun Bâtisseur n'a rejoint (fiche épurée).
+  // Équipe, masquée tant qu'aucun Bâtisseur n'a rejoint (fiche épurée).
   const equipeHtml = (!q.equipe || !q.equipe.length) ? '' : `<div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-lg);padding:.9rem 1rem">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
       <div style="font-size:.72rem;font-weight:600;color:var(--ink)">👥 Équipe (${q.equipe.length}/${q.places.split('/')[1]})</div>
@@ -8161,7 +8161,7 @@ function renderQueteDetail() {
   const esrsColors = {E1:'#2e7d32',E2:'#388e3c',E3:'#43a047',E4:'#4caf50',S1:'#1565c0',S2:'#1976d2',S3:'#1e88e5',S4:'#2196f3',G1:'#6a1b9a'};
   const esrsBadges = (q.esrs||[]).map(e=>`<span style="font-size:.62rem;padding:.18rem .5rem;border-radius:var(--r);background:${esrsColors[e]||'#546e7a'}22;color:${esrsColors[e]||'#546e7a'};border:1px solid ${esrsColors[e]||'#546e7a'}44;font-weight:600">📋 ESRS ${e}</span>`).join('');
 
-  // Date de la quête — choisie au calendrier (input type=date). Rétro-compat :
+  // Date de la quête, choisie au calendrier (input type=date). Rétro-compat :
   // à défaut de dateISO, on affiche les anciennes dates libres (q.dates).
   const _dateSet = !!q.dateISO;
   const _legacyDates = (!_dateSet && q.dates && q.dates.length) ? q.dates : null;
@@ -8178,7 +8178,7 @@ function renderQueteDetail() {
       ? `<div style="font-size:.78rem;color:var(--ink)">📅 ${qdFormatDateFr(q.dateISO, q.heure)}</div>`
       : _legacyDates
         ? `<div style="display:flex;gap:.4rem;flex-wrap:wrap">${_legacyDates.map(d=>`<span style="font-size:.68rem;padding:.3rem .7rem;border-radius:var(--r);background:rgba(46,102,66,.07);border:1px solid rgba(46,102,66,.15);color:var(--ink)">📅 ${d}</span>`).join('')}</div>`
-        : `<div style="font-size:.72rem;color:var(--moss);opacity:.7">Aucune date définie${currentRole === 'pilote' ? ' — clique sur ✏️ pour en choisir une.' : ''}</div>`;
+        : `<div style="font-size:.72rem;color:var(--moss);opacity:.7">Aucune date définie${currentRole === 'pilote' ? ', clique sur ✏️ pour en choisir une.' : ''}</div>`;
 
   // Colonne principale (mode édition: champs contenteditable)
   document.getElementById('qd-main').innerHTML = `
@@ -10445,7 +10445,7 @@ function batFicheRenderStep() {
       ? `J'ai croisé tes compétences (${escapeHtml(_skillLabels)})${_villeTxt ? ' et ton ancrage à ' + escapeHtml(_villeTxt) : ''} avec les quêtes ouvertes des lieux de la communauté. `
       : `J'ai exploré les quêtes ouvertes des lieux de la communauté. `;
     _devaMsg += `J'en ai trouvé <b>${_n}</b> qui te ${_n > 1 ? 'correspondent' : 'correspond'}, classée${_n > 1 ? 's' : ''} par pertinence.`;
-    if (_top) _devaMsg += ` La plus alignée avec ton profil : <b>${escapeHtml(_top.titre)}</b> — ${escapeHtml(_top.lieu)} (${_top.score}%).`;
+    if (_top) _devaMsg += ` La plus alignée avec ton profil : <b>${escapeHtml(_top.titre)}</b>, ${escapeHtml(_top.lieu)} (${_top.score}%).`;
     _devaMsg += ` Clique sur une quête pour postuler 👇`;
 
     c.innerHTML = `
@@ -12965,7 +12965,7 @@ function ficheMmRender() {
   });
 
   // Pre-fill solutions from ESPS suggestions on first render (une solution
-  // n'est présélectionnée que sur le premier espace concerné — pas de doublon).
+  // n'est présélectionnée que sur le premier espace concerné, pas de doublon).
   const _seenMmSols = new Set();
   espItems.forEach((item, i) => {
     if (!ficheSolsByEspace[i]) {

@@ -483,7 +483,7 @@
 
       /*
        * La requête a réussi : on reflète l'état EXACT de Supabase, y compris
-       * une liste vide (tout supprimé) — sinon les lieux supprimés restent
+       * une liste vide (tout supprimé), sinon les lieux supprimés restent
        * affichés depuis le cache local.
        */
       write('lieux', remoteRows);

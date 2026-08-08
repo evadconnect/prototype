@@ -145,7 +145,7 @@ function devaBuildAppContext() {
     const lignes = espaces
       .filter(e => e && (e.nom || e.probleme))
       .map(e => `- Espace « ${e.nom || 'sans nom'} »`
-        + (e.probleme ? ` — problématique à résoudre : ${e.probleme}` : '')
+        + (e.probleme ? `, problématique à résoudre : ${e.probleme}` : '')
         + (e.fonctions && e.fonctions.length ? ` (fonctions : ${e.fonctions.join(', ')})` : ''));
     if (lignes.length) parts.push('ESPACES DU LIEU EN COURS :\n' + lignes.join('\n'));
   } catch (e) {}

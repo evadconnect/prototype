@@ -14,7 +14,7 @@ const RESEAU_POSTS = [];
 /* ── Synchronisation Supabase ──────────────────────────────────────────────
    Le fil du Réseau est stocké dans la table `reseau_posts`. On utilise le
    client global `window.evadSupabase` (initialisé dans supabase-config.js,
-   chargé plus bas dans la page) — d'où l'attente de DOMContentLoaded avant
+   chargé plus bas dans la page), d'où l'attente de DOMContentLoaded avant
    la première hydratation. ── */
 const RESEAU_BUCKET = 'reseau';
 

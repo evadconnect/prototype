@@ -237,7 +237,7 @@ function syncPiloteQuetesFromLieu() {
   store.where('quetes', function (r) {
     if (r.statut === 'retiree') return false;
     // Quête d'une solution explicitement retirée dans l'onglet Quêtes : masquée
-    // (sauf si déjà publiée « ouverte » — on ne dépublie pas en douce).
+    // (sauf si déjà publiée « ouverte », on ne dépublie pas en douce).
     if (!r.custom && r.source && quetesRetirees.has('sol:' + r.source) && r.statut !== 'ouverte') return false;
     // Toute quête rattachée au lieu du Pilote reste dans son onglet, quel que
     // soit son statut : une quête publiée (« ouverte ») ne disparaît donc plus,
@@ -303,7 +303,7 @@ function piloteQueteCreerEnsureDom() {
   +   '</div>'
   +   '<label style="' + labelStyle + '" for="pq-create-competence">🎯 Compétence nécessaire</label>'
   +   '<select id="pq-create-competence" style="' + inputStyle + '">'
-  +     ['— Aucune en particulier —','💧 Gestion de l\'eau','⚡ Énergie','🧱 Éco-construction','🌾 Maraîchage & permaculture','♻️ Réemploi & compostage','🌿 Biodiversité','🤝 Animation & facilitation','🌡 Adaptation climatique','🔧 Autre / polyvalent'].map(function(o){return '<option>'+o+'</option>';}).join('')
+  +     ['Aucune en particulier','💧 Gestion de l\'eau','⚡ Énergie','🧱 Éco-construction','🌾 Maraîchage & permaculture','♻️ Réemploi & compostage','🌿 Biodiversité','🤝 Animation & facilitation','🌡 Adaptation climatique','🔧 Autre / polyvalent'].map(function(o){return '<option>'+o+'</option>';}).join('')
   +   '</select>'
   +   '<label style="' + labelStyle + '" for="pq-create-impact">🌿 Impact visé (facultatif)</label>'
   +   '<input id="pq-create-impact" style="' + inputStyle + '" placeholder="Ex : +8 pts eau · 200 m de haie">'
