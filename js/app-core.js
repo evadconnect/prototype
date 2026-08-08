@@ -4249,13 +4249,7 @@ function renderStep(){
   const _stepIdx = (cStep === 3 && window._creerPhase === 'quetes') ? 4 : cStep;
   navWizardSet(STEPS.map(s=>s.t), _stepIdx, creerGoStep);
   if (typeof creerUpdateVadance === 'function') creerUpdateVadance();
-  document.getElementById('creer-prev').style.display=cStep>0?'block':'none';
-  const nx=document.getElementById('creer-next');
-  const sv=document.getElementById('creer-save-btn');
-  nx.style.display=cStep<3?'block':'none';
-  nx.textContent=cStep===2?'Générer les solutions ✦':'Suivant →';
-  // « Créer le lieu » n'apparaît qu'à l'étape Quête (phase quêtes).
-  sv.style.display=(cStep===3 && window._creerPhase==='quetes')?'block':'none';
+  _creerMajNav();
 
   const c=document.getElementById('creer-step-content');
   if(cStep===0){
@@ -4595,14 +4589,13 @@ function creerStep3SidebarHTML(){
     return titre + btns + creerQuetesPhaseHTML();
   }
 
-  // 4. Navigation : aller au prochain espace non visité ; une fois tous les
-  //    espaces parcourus, le bouton devient « Générer les quêtes ».
+  // 4. Navigation d'espace : aller au prochain non visité. Une fois tous les
+  //    espaces parcourus, le bouton « Générer les quêtes » est dans la barre du bas.
   let _next = -1;
   for (let k = 1; k <= totalN; k++) { const j = (active + k) % totalN; if (valides.indexOf(j) < 0) { _next = j; break; } }
   const navBtn = (_next >= 0)
     ? '<button onclick="creerFocusEsp(' + _next + ')" style="width:100%;margin-top:1rem;padding:.72rem;border:none;border-radius:100px;background:var(--forest);color:#fff;font-family:inherit;font-size:.8rem;font-weight:800;cursor:pointer">Aller à l\'espace suivant →</button>'
-    : '<button onclick="creerGenererQuetes()" style="width:100%;margin-top:1rem;padding:.72rem;border:none;border-radius:100px;background:#c8732a;color:#fff;font-family:inherit;font-size:.8rem;font-weight:800;cursor:pointer">⚡ Générer les quêtes</button>'
-      + '<div style="margin-top:.4rem;text-align:center;font-size:.62rem;color:var(--fern);font-weight:600">✓ Tous les espaces sont passés en revue</div>';
+    : '<div style="margin-top:1rem;text-align:center;font-size:.66rem;color:var(--fern);font-weight:700;line-height:1.5">✓ Tous les espaces sont passés en revue.<br>Génère les quêtes en bas 👇</div>';
 
   return titre + btns
     + '<div style="background:' + col + '0a;border:1px solid ' + col + '26;border-radius:14px;padding:.85rem .9rem">'
@@ -4669,7 +4662,7 @@ function creerQuetesPhaseHTML(){
     h += creerEspaceQuetesHTML(idx);
   });
   h += '<button onclick="creerRevoirEspaces()" style="width:100%;margin-top:1rem;padding:.6rem;border:1.5px solid rgba(46,102,66,.2);border-radius:100px;background:white;color:var(--moss);font-family:inherit;font-size:.74rem;font-weight:700;cursor:pointer">← Revoir les solutions & indicateurs</button>'
-    + '<div style="margin-top:.5rem;text-align:center;font-size:.66rem;color:var(--fern);font-weight:600">🎉 Ton lieu est prêt, tu peux le créer 👉</div>'
+    + '<div style="margin-top:.5rem;text-align:center;font-size:.66rem;color:var(--fern);font-weight:600">🎉 Ton lieu est prêt, crée-le en bas 👇</div>'
     + '</div>';
   return h;
 }
@@ -5123,6 +5116,7 @@ function creerFocusEsp(idx){
   creerRefreshSidebar();
   creerApplyMapFocus();
   _creerMajBoutonVueMap();
+  _creerMajNav();   // « Générer les quêtes » apparaît quand tous les espaces sont visités
 }
 
 // Bascule entre vue d'ensemble (tout le mind map) et focus sur l'espace actif.
@@ -5742,14 +5736,36 @@ function creerGoStep(i){
   if(i===3){ cStep=3; window._creerPhase='espaces'; window._creerMapOverview=false; renderStep(); if(typeof creerUpdateHint==='function') creerUpdateHint(true); return; }
   cStep=i; window._creerPhase='espaces'; renderStep();
 }
-// Met à jour le stepper (étape Solutions ↔ Quête) + bouton « Créer le lieu »
-// sans redessiner tout le mind map (transition espaces ↔ quêtes).
+// Met à jour le stepper (étape Solutions ↔ Quête) sans redessiner le mind map.
 function _creerMajStepper(){
   if (cStep !== 3) return;
   const _stepIdx = (window._creerPhase === 'quetes') ? 4 : 3;
   navWizardSet(STEPS.map(s=>s.t), _stepIdx, creerGoStep);
-  const sv = document.getElementById('creer-save-btn'); if (sv) sv.style.display = (window._creerPhase === 'quetes') ? 'block' : 'none';
-  const nx = document.getElementById('creer-next'); if (nx) nx.style.display = 'none';
+  _creerMajNav();
+}
+
+// Barre du bas : « Retour » + bouton d'action contextuel (Suivant / Générer les
+// solutions / Générer les quêtes / Créer mon lieu). Le bouton « Créer le lieu »
+// du bandeau haut est masqué (déplacé ici).
+function _creerMajNav(){
+  const prev = document.getElementById('creer-prev');
+  const nx = document.getElementById('creer-next');
+  const sv = document.getElementById('creer-save-btn');
+  if (sv) sv.style.display = 'none';
+  if (prev) prev.style.display = cStep > 0 ? 'block' : 'none';
+  if (!nx) return;
+  const show = (txt, fn) => { nx.style.display = 'block'; nx.textContent = txt; nx.onclick = fn; };
+  if (cStep < 2) { show('Suivant →', creerNext); return; }
+  if (cStep === 2) { show('Générer les solutions ✦', creerNext); return; }
+  if (cStep === 3) {
+    if (window._creerPhase === 'quetes') { show('Créer mon lieu ✦', function(){ openPublishPreview('lieu'); }); return; }
+    // Phase espaces : « Générer les quêtes » seulement quand tous les espaces sont parcourus.
+    const espItems = window._creerEspItems || [], valides = cData.espacesValides || [];
+    if (espItems.length && valides.length >= espItems.length) show('Générer les quêtes ✦', creerGenererQuetes);
+    else nx.style.display = 'none';
+    return;
+  }
+  nx.style.display = 'none';
 }
 
 function showSolDetail(nom){
