@@ -4568,7 +4568,7 @@ function creerStep3SidebarHTML(){
 
   // Titre d'étape (comme « Les espaces du lieu »), selon la phase.
   const _t = (window._creerPhase === 'quetes')
-    ? { l: 'Les quêtes du lieu', s: 'Une quête par solution proposée par Deva, à ajuster avant publication.' }
+    ? { l: 'Les quêtes du lieu', s: 'Choisis les quêtes ou crée les tiennes.' }
     : { l: 'Les solutions du lieu', s: 'Choisis les solutions et vérifie les indicateurs de chaque espace.' };
   const titre = '<label class="creer-lbl">' + _t.l + '</label>'
     + '<p style="font-size:.68rem;color:var(--moss);opacity:.7;margin:-.3rem 0 .9rem;line-height:1.5">' + _t.s + '</p>';
