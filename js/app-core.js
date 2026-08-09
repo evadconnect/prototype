@@ -2918,7 +2918,8 @@ function mapShowSemeur(idx) {
   const s = MAP_SEMEURS[idx];
   const panel = document.getElementById('map-acteur-panel');
   const mainPanel = document.getElementById('map-panel-main');
-  const pctRetour = Math.round((s.graines_retournes / s.graines_engages) * 100);
+  // Garde anti-division-par-zéro : un semeur sans financement affiche 0 %, pas NaN.
+  const pctRetour = s.graines_engages > 0 ? Math.round((s.graines_retournes / s.graines_engages) * 100) : 0;
 
   panel.innerHTML = `
     <div class="acteur-fiche">
@@ -7902,89 +7903,45 @@ async function publishBatProfil() {
 
 /* ─── PUBLIER FICHE FINANCEUR → Carte communauté ─── */
 async function publishSemProfil() {
-  // Persistance (prête pour Supabase) : enregistre le semeur publié, vide le brouillon.
-  if (window.store) {
-    try { const row = store.insert('semeurs', Object.assign({}, semFicheData)); semFicheData.id = row.id; store.clearDraft('semeur'); if (typeof evadMarkFicheDone === 'function') evadMarkFicheDone('semeur'); } catch(e) {}
-  }
-  const nom      = semFicheData.nom  || 'Financeur';
-  const ville    = semFicheData.localisation || 'France';
-  const type     = semFicheData.type || 'Fondation';
-  const zone     = semFicheData.zone || '';
-  const cadres   = semFicheData.selectedCadres || [];
-  const odd      = semFicheData.selectedODD    || [];
-  const typeIc   = { Entreprise:'🏭', Fondation:'🌍', Association:'🤝', Collectivité:'🏛', Particulier:'🙋' }[type] || '🌱';
-  const cadreStr = cadres.length
-    ? cadres.slice(0,2).map(id => {
-        const td = SEM_IMPACT_BY_TYPE[type] || SEM_IMPACT_BY_TYPE['Fondation'];
-        return td.cadres.find(c=>c.id===id)?.label || id;
-      }).join(' · ')
-    : (semFicheData.reporting || 'Reporting');
+  const nom   = semFicheData.nom  || 'Financeur';
+  const ville = semFicheData.localisation || 'France';
 
-  // Panneau communauté
-  const sectionSem = document.getElementById('map-section-semeurs');
-  if (sectionSem) {
-    sectionSem.querySelectorAll(':scope > div:not(:first-child)').forEach(el => {
-      if (el.textContent.includes('Aucun semeur')) el.remove();
-    });
-    const card = document.createElement('div');
-    card.className = 'place-card-mini';
-    card.style.cssText = 'background:rgba(58,110,140,0.06);border-left:3px solid var(--sky);cursor:pointer';
-    card.onclick = () => mapShowNewSemeur();
-    card.innerHTML = `
-      <div class="pcm-top">
-        <div class="pcm-icon" style="background:rgba(58,110,140,0.15);color:var(--sky)">${typeIc}</div>
-        <div>
-          <div class="pcm-name">${nom}</div>
-          <div class="pcm-type">${type} · ${ville}</div>
-        </div>
-      </div>
-      <div class="pcm-score-row">
-        <div style="font-size:.6rem;color:var(--moss);opacity:.7;flex:1">${cadreStr}</div>
-        <div class="score-label" style="color:var(--sky)">${zone}</div>
-      </div>
-      <div class="pcm-quetes" style="color:var(--sky)">✦ ${odd.length} ODD · ${semFicheData.axes.length} axe${semFicheData.axes.length!==1?'s':''} d'impact</div>
-    `;
-    // Insère en haut de la liste (juste après l'en-tête de section)
-    const header = sectionSem.firstElementChild;
-    sectionSem.insertBefore(card, header ? header.nextElementSibling : sectionSem.firstChild);
-    const countEl = document.getElementById('map-sem-count');
-    if (countEl) {
-      const n = sectionSem.querySelectorAll('.place-card-mini').length;
-      countEl.textContent = `🌾 ${n} Semeur${n>1?'s':''}`;
-    }
-  }
-
-  // Géocodage + marqueur carte
-  showScreen('carte');
-  setTimeout(initRealMap, 80);
-  let lat = 46.6, lng = 2.3;
-  if (ville && ville !== 'France') {
+  // Géocodage AVANT l'enregistrement : coordonnées persistées (sinon la fiche
+  // relue de Supabase n'aurait pas de position sur la carte).
+  let lat = semFicheData.lat ?? 46.6, lng = semFicheData.lng ?? 2.3;
+  if (!semFicheData.lat && ville && ville !== 'France') {
     try {
       const r = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(ville)}&limit=1`);
       const d = await r.json();
       if (d.features?.length) { lng = d.features[0].geometry.coordinates[0]; lat = d.features[0].geometry.coordinates[1]; }
     } catch(e) {}
   }
+  semFicheData.lat = lat; semFicheData.lng = lng;
+
+  // Persistance Supabase : enregistre la fiche Semeur, vide le brouillon.
+  if (window.store) {
+    try {
+      const sid = _currentSemeurId(); // id stable AVANT l'insertion
+      const row = store.upsert('semeurs', Object.assign({ id: sid }, semFicheData));
+      semFicheData.id = row.id;
+      store.clearDraft('semeur');
+      if (typeof evadMarkFicheDone === 'function') evadMarkFicheDone('semeur');
+    } catch(e) {}
+  }
+
+  // Panneau communauté : repeuplé depuis le store (persiste au rechargement).
+  if (typeof syncMapSemeursFromStore === 'function') syncMapSemeursFromStore();
+  _mapCommunityRendered = false;
+  if (typeof mapRenderCommunity === 'function') mapRenderCommunity();
+
+  // Carte + zoom sur le nouveau membre (marqueur déjà créé par initRealMap).
+  showScreen('carte');
+  setTimeout(() => { if (typeof initRealMap === 'function') initRealMap(); }, 80);
   setTimeout(() => {
     if (!evadMap) return;
-    const marker = L.marker([lat, lng], {
-      icon: createEmojiIcon(typeIc, '#1a4a6a', '#3a6e8c', false, true)
-    }).addTo(evadMap);
-    marker.bindPopup(`
-      <div class="popup-place-title">${nom}</div>
-      <div class="popup-place-meta" style="color:#3a6e8c">🌾 ${type} · ${ville}</div>
-      <div class="popup-place-score" style="color:#3a6e8c">${cadreStr}</div>
-    `, { className: 'custom-popup' });
-    marker.on('click', () => {
-      mapShowNewSemeur();
-      document.getElementById('map-panel-main').style.display = 'none';
-      document.getElementById('map-acteur-panel').style.display = '';
-    });
-    semeurMarkers.push(marker);
-    marker.openPopup();
     evadMap.flyTo([lat, lng], 11, { duration: 1.2 });
     mmBubble(`🌾 ${nom} a rejoint la communauté EVAD !`);
-  }, 200);
+  }, 220);
 }
 
 /* ─── TABLEAU DE BORD BÂTISSEUR ─── */
@@ -9144,7 +9101,15 @@ function _currentBatisseurId() {
 }
 function _currentSemeurId() {
   if (!window.store) return null;
-  if (!semFicheData.id) semFicheData.id = store.uuid();
+  if (!semFicheData.id) {
+    // Id stable entre sessions (localStorage) : ma fiche reste reconnue comme
+    // la mienne au rechargement, et les financements pointent le bon semeur.
+    try {
+      const saved = localStorage.getItem('evad:semeur-id');
+      semFicheData.id = saved || store.uuid();
+      localStorage.setItem('evad:semeur-id', semFicheData.id);
+    } catch (e) { semFicheData.id = store.uuid(); }
+  }
   return semFicheData.id;
 }
 // Id réel de la quête dans le store (posé par batBuildQuetesFromProfile /
@@ -13914,6 +13879,70 @@ function syncMapBatisseursFromStore(){
     if (row && (row.prenom || row.nom)) MAP_BATISSEURS.push(_batisseurRowToMapEntry(row));
   });
 }
+
+// Convertit une ligne fiche_semeur (store) vers l'entrée de carte lue par
+// mapShowSemeur / mapRenderCommunity / les marqueurs.
+function _semeurRowToMapEntry(row){
+  const type = row.type || 'Fondation';
+  const typeIc = { Entreprise:'🏭', Fondation:'🌍', Association:'🤝', Collectivité:'🏛', Particulier:'🙋' }[type] || '🌱';
+  const odd = row.selectedODD || [];
+  const axes = row.axes || [];
+  const cadres = row.selectedCadres || [];
+  const esrs = (row.selectedCadreItems && row.selectedCadreItems.ESRS) || [];
+  const focus = axes.map(id => {
+    const a = (typeof SEM_AXES !== 'undefined') ? SEM_AXES.find(x => x.id === id) : null;
+    return a ? (a.ic + ' ' + a.label) : id;
+  });
+  return {
+    id: row.id,
+    nom: row.nom || 'Financeur',
+    ville: row.localisation || 'France',
+    type: type, icon: typeIc,
+    description: row.description || (row.reporting ? ('Financeur engagé · reporting ' + row.reporting) : 'Financeur d\'impact engagé dans la transition.'),
+    graines_engages: 0, graines_retournes: 0, contrats_actifs: 0, score_impact: 0,
+    focus: focus,
+    esrs: esrs.map(e => String(e).replace('ESRS ', '').trim()),
+    lieux_finances: [],
+    prochain_jalon: 'À définir avec les lieux financés.',
+    contact: row.nom || 'Contact organisation',
+    lat: (row.lat != null ? Number(row.lat) : 46.6),
+    lng: (row.lng != null ? Number(row.lng) : 2.3),
+    fiche: row
+  };
+}
+
+// Reconstruit MAP_SEMEURS à partir des fiches du store (miroir Supabase).
+function syncMapSemeursFromStore(){
+  if (!window.store || typeof MAP_SEMEURS === 'undefined') return;
+  MAP_SEMEURS.length = 0;
+  store.all('semeurs').forEach(row => { if (row && row.nom) MAP_SEMEURS.push(_semeurRowToMapEntry(row)); });
+}
+
+// Fiches Semeur reçues de Supabase : on repeuple la carte et on re-rend.
+window.addEventListener('evad:semeurs-ready', function(){
+  try {
+    syncMapSemeursFromStore();
+    // Restaure MA fiche Semeur après un rechargement, via l'id stable.
+    try {
+      const mySid = localStorage.getItem('evad:semeur-id');
+      if (mySid && (typeof semFicheData === 'undefined' || !semFicheData || !semFicheData.id)) {
+        const mine = store.get('semeurs', mySid);
+        if (mine) {
+          semFicheData = Object.assign(_SEM_FICHE_EMPTY(), mine);
+          if (typeof semReflectProfile === 'function') semReflectProfile();
+        }
+      }
+    } catch(e){}
+    _mapCommunityRendered = false;
+    const carteScreen = document.getElementById('screen-carte');
+    if (carteScreen && carteScreen.classList.contains('active')) {
+      if (typeof mapRenderCommunity === 'function') mapRenderCommunity();
+      if (evadMap) { try { evadMap.remove(); } catch (e) {} }
+      evadMap = null;
+      if (typeof initRealMap === 'function') initRealMap();
+    }
+  } catch(e){}
+});
 
 // Fiches Bâtisseur reçues de Supabase : on repeuple la carte et on re-rend.
 window.addEventListener('evad:batisseurs-ready', function(){

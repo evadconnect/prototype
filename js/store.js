@@ -284,6 +284,59 @@
   }
   function updateBatisseurRemote(row) { insertBatisseurRemote(row); }
 
+  // ── Synchronisation des fiches Semeur (table fiche_semeur) ──
+  function remoteSemeurRow(row) {
+    var lat = (row.lat != null && row.lat !== '') ? Number(row.lat) : null;
+    var lng = (row.lng != null && row.lng !== '') ? Number(row.lng) : null;
+    if (!Number.isFinite(lat)) lat = null;
+    if (!Number.isFinite(lng)) lng = null;
+    return {
+      id: row.id,
+      user_id: currentUserId || null,
+      nom: row.nom || null,
+      type: row.type || null,
+      localisation: row.localisation || null,
+      zone: row.zone || null,
+      latitude: lat,
+      longitude: lng,
+      donnees: row,
+      updated_at: nowISO()
+    };
+  }
+  function insertSemeurRemote(row) {
+    if (!global.evadSupabase || !row || !row.id) return;
+    global.evadSupabase
+      .from('fiche_semeur')
+      .upsert(remoteSemeurRow(row), { onConflict: 'id' })
+      .then(function (result) {
+        if (result.error) notifySyncError('Fiche Semeur non enregistrée en base : ' + result.error.message);
+      });
+  }
+  function updateSemeurRemote(row) { insertSemeurRemote(row); }
+
+  async function hydrateSemeurs() {
+    if (!global.evadSupabase) return;
+    try {
+      var result = await global.evadSupabase.from('fiche_semeur').select('*');
+      if (result.error) { console.warn('Lecture des fiches Semeur impossible : ' + result.error.message); return; }
+      var remoteRows = (result.data || []).map(function (row) {
+        return Object.assign({}, row.donnees || {}, {
+          id: row.id, nom: row.nom, type: row.type,
+          localisation: row.localisation, zone: row.zone,
+          lat: row.latitude, lng: row.longitude
+        });
+      });
+      var remoteIds = {};
+      remoteRows.forEach(function (r) { remoteIds[r.id] = true; });
+      var localUnsynced = read('semeurs').filter(function (r) { return r && !remoteIds[r.id]; });
+      localUnsynced.forEach(function (r) { insertSemeurRemote(r); });
+      write('semeurs', remoteRows.concat(localUnsynced));
+      global.dispatchEvent(new CustomEvent('evad:semeurs-ready', { detail: { semeurs: remoteRows } }));
+    } catch (error) {
+      console.warn('Erreur de récupération des fiches Semeur :', error);
+    }
+  }
+
   async function hydrateBatisseurs() {
     if (!global.evadSupabase) return;
     try {
@@ -795,6 +848,8 @@
         insertLieuRemote(row);
       } else if (table === 'batisseurs') {
         insertBatisseurRemote(row);
+      } else if (table === 'semeurs') {
+        insertSemeurRemote(row);
       } else if (table === 'quetes') {
         upsertQueteRemote(row);
       } else if (table === 'quete_candidatures') {
@@ -827,6 +882,8 @@
             updateLieuRemote(rows[i]);
           } else if (table === 'batisseurs') {
             updateBatisseurRemote(rows[i]);
+          } else if (table === 'semeurs') {
+            updateSemeurRemote(rows[i]);
           } else if (table === 'quetes') {
             upsertQueteRemote(rows[i]);
           } else if (table === 'quete_candidatures') {
@@ -1026,6 +1083,7 @@
         hydrateRemote();
         hydrateBiblio();
         hydrateBatisseurs();
+        hydrateSemeurs();
         hydrateQuetes();
         hydrateCandidatures();
         hydratePreuves();
@@ -1049,6 +1107,7 @@
         );
         setTimeout(hydrateBiblio, 0);
         setTimeout(hydrateBatisseurs, 0);
+        setTimeout(hydrateSemeurs, 0);
         setTimeout(hydrateQuetes, 0);
         setTimeout(hydrateCandidatures, 0);
         setTimeout(hydratePreuves, 0);
