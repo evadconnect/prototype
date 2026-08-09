@@ -10987,6 +10987,10 @@ function batFicheRenderStep() {
   const c = document.getElementById('bat-fiche-content');
   if (!c) return;
 
+  // La bulle de Deva ne porte le récap du matching qu'à l'étape « Matching » :
+  // on la masque sur les autres étapes pour ne pas laisser traîner un message.
+  if (batFicheStep !== 3) { const _h = document.getElementById('deva-fiche-hint'); if (_h) _h.style.display = 'none'; }
+
   if (batFicheStep === 0) {
     c.innerHTML = `
       <label class="creer-lbl">Prénom</label>
@@ -11176,14 +11180,11 @@ function batFicheRenderStep() {
     if (_top) _devaMsg += ` La plus alignée avec ton profil : <b>${escapeHtml(_top.titre)}</b>, ${escapeHtml(_top.lieu)} (${_top.score}%).`;
     _devaMsg += ` Clique sur une quête pour postuler 👇`;
 
+    // Le récap du matching s'affiche dans la bulle de Deva (au-dessus du pill),
+    // plus dans une carte inline : la liste des quêtes reste dégagée.
+    if (typeof _creerHintSay === 'function') _creerHintSay(_devaMsg);
+
     c.innerHTML = `
-      <div style="display:flex;gap:.55rem;align-items:flex-start;background:linear-gradient(135deg,rgba(74,200,110,.08),rgba(74,140,92,.04));border:1px solid rgba(74,200,110,.22);border-radius:14px;padding:.65rem .75rem;margin-bottom:.7rem">
-        <img src="Deva.png" alt="Deva" style="width:34px;height:34px;object-fit:contain;object-position:bottom;transform:scaleX(-1);flex-shrink:0;filter:drop-shadow(0 0 5px rgba(74,200,110,.4))">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:.62rem;font-weight:800;color:var(--fern);letter-spacing:.02em;margin-bottom:.2rem">Deva</div>
-          <div style="font-size:.66rem;color:var(--ink);opacity:.85;line-height:1.5">${_devaMsg}</div>
-        </div>
-      </div>
       ${chipsHtml}
       <div style="display:flex;flex-direction:column;gap:.5rem">
         ${list.map(q => {
