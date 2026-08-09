@@ -8272,11 +8272,14 @@ function openQueteModalFromFiche(id) {
   _qdCurrentId = id;
   _qdFrom = 'fiche-bat';
   renderQueteDetail(); // remplit l'écran (caché) qd-main / qd-panel / qd-topbar-*
-  const modal = document.getElementById('bat-quete-modal');
-  const content = document.getElementById('bat-modal-content');
-  if (!modal || !content) { showScreen('quete-detail'); return; }
-  content.innerHTML = `
-    <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:1rem;padding-right:2rem">
+  // Affichage INLINE dans le panneau latéral (colonne de gauche), à la suite
+  // de la liste de matching — comme les fiches solution du wizard lieu, plus
+  // en modal. « ← Retour » restaure la liste.
+  const host = document.getElementById('bat-fiche-content');
+  if (!host) { showScreen('quete-detail'); return; }
+  host.scrollTop = 0;
+  host.innerHTML = `
+    <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:1rem">
       <button onclick="closeFicheQueteModal()" class="btn btn-ghost" style="font-size:.72rem;padding:.32rem .8rem;flex-shrink:0">← Retour</button>
       <div style="min-width:0">
         <div id="qm-title" style="font-size:.9rem;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
@@ -8286,22 +8289,20 @@ function openQueteModalFromFiche(id) {
     <div id="qm-main" style="display:flex;flex-direction:column;gap:1.1rem;margin-bottom:1rem"></div>
     <div id="qm-panel" style="display:flex;flex-direction:column;gap:.9rem"></div>
   `;
-  // La modale est définie dans l'écran dashboard (caché pendant la création de
-  // fiche) : on la rattache au body pour qu'elle s'affiche au-dessus de l'étape.
-  if (modal.parentElement !== document.body) document.body.appendChild(modal);
-  modal.style.display = 'flex';
+  window._batQueteInline = true;
   refreshFicheQueteModal();
 }
 
-// Recopie le contenu rendu de la fiche quête dans la modale (sync après une action).
+// Recopie le contenu rendu de la fiche quête dans le panneau (sync après une
+// action). Fonctionne tant que les cibles qm-main / qm-panel existent.
 function refreshFicheQueteModal() {
-  const modal = document.getElementById('bat-quete-modal');
-  if (!modal || modal.style.display === 'none') return;
   const map = { 'qm-main': 'qd-main', 'qm-panel': 'qd-panel' };
+  let any = false;
   for (const [dst, src] of Object.entries(map)) {
     const d = document.getElementById(dst), s = document.getElementById(src);
-    if (d && s) d.innerHTML = s.innerHTML;
+    if (d && s) { d.innerHTML = s.innerHTML; any = true; }
   }
+  if (!any) return;
   const t = document.getElementById('qm-title'), st = document.getElementById('qd-topbar-title');
   if (t && st) t.textContent = st.textContent;
   const sb = document.getElementById('qm-sub'), ss = document.getElementById('qd-topbar-sub');
@@ -8311,6 +8312,11 @@ function refreshFicheQueteModal() {
 function closeFicheQueteModal() {
   const modal = document.getElementById('bat-quete-modal');
   if (modal) modal.style.display = 'none';
+  // Vue inline : « ← Retour » restaure la liste de matching dans le panneau.
+  if (window._batQueteInline) {
+    window._batQueteInline = false;
+    if (typeof batFicheRenderStep === 'function') batFicheRenderStep();
+  }
 }
 
 // Ouvre la fiche quête (même présentation) pour n'importe quelle quête.
