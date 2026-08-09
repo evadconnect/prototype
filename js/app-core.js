@@ -2364,11 +2364,42 @@ function updateRoleNavigation(role){
 
 // Bascule de profil depuis la sidebar : relance l'onboarding du rôle,
 // qui enchaîne ensuite sur l'écran de création de fiche (comme à l'inscription).
-function switchRole(role){
+// Fiche de ce profil déjà faite ? Marqueur du compte (multi-appareils) OU
+// fiche créée pendant la session courante (couvre le mode visiteur sans compte).
+function roleFicheDone(role){
+  if (typeof evadFicheDone === 'function' && evadFicheDone(role)) return true;
+  if (role === 'pilote')    return !!(typeof myLieuData  !== 'undefined' && myLieuData  && myLieuData.id);
+  if (role === 'batisseur') return !!(typeof batFicheData !== 'undefined' && batFicheData && batFicheData.id);
+  if (role === 'semeur')    return !!(typeof semFicheData !== 'undefined' && semFicheData && semFicheData.id);
+  return false;
+}
+
+async function switchRole(role){
   if(!ROLE_CONFIG[role]) return;
   currentRole = role;
   updateRoleNavigation(role);            // met à jour la nav + le bouton actif
-  showOnboarding(role);                  // assistant du rôle → puis création de fiche
+  let done = roleFicheDone(role);
+  // Rattrapage comptes existants : une fiche Pilote déjà en base = fiche faite
+  // (même si le marqueur de compte n'a pas encore été posé).
+  if (!done && role === 'pilote' && window.evadSupabase) {
+    try {
+      const { data: sess } = await window.evadSupabase.auth.getSession();
+      const uid = sess && sess.session && sess.session.user && sess.session.user.id;
+      if (uid) {
+        const { data } = await window.evadSupabase.from('fiche_pilote').select('id').eq('user_id', uid).limit(1);
+        if (data && data.length) { done = true; if (typeof evadMarkFicheDone === 'function') evadMarkFicheDone('pilote'); }
+      }
+    } catch (e) {}
+  }
+  if (done) {
+    // Fiche déjà faite → tableau de bord direct (on est déjà dans l'app, pas
+    // besoin de repasser par l'onboarding ni la création de fiche).
+    if (typeof renderProfileContext === 'function') renderProfileContext();
+    const dash = { pilote:'pilote', batisseur:'quete', semeur:'semeur' }[role] || 'carte';
+    showScreen(dash);
+  } else {
+    showOnboarding(role);                // assistant du rôle → puis création de fiche
+  }
 }
 
 // Entrée directe au tableau de bord (fiche déjà faite) : on saute l'onboarding.
