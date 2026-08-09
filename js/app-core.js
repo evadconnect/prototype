@@ -4842,7 +4842,9 @@ function creerStep3SidebarHTML(){
   espItems.forEach((e, i) => {
     const on = i === active, done = valides.indexOf(i) >= 0;
     const c2 = e.c || '#2e9970';
-    btns += '<button onclick="creerFocusEsp(' + i + ')" style="flex-shrink:0;white-space:nowrap;display:inline-flex;align-items:center;gap:.32rem;font-size:.66rem;font-weight:700;font-family:inherit;padding:.42rem .7rem;border-radius:100px;cursor:pointer;border:1.5px solid ' + c2 + ';background:' + (on ? c2 : (done ? c2 + '1f' : 'white')) + ';color:' + (on ? '#fff' : c2) + ';transition:all .15s">'
+    // À l'étape quêtes, l'onglet FILTRE les quêtes par espace (creerSelectEsp) ;
+    // à l'étape solutions, il focalise l'édition de l'espace (creerFocusEsp).
+    btns += '<button onclick="creerSelectEsp(' + i + ')" style="flex-shrink:0;white-space:nowrap;display:inline-flex;align-items:center;gap:.32rem;font-size:.66rem;font-weight:700;font-family:inherit;padding:.42rem .7rem;border-radius:100px;cursor:pointer;border:1.5px solid ' + c2 + ';background:' + (on ? c2 : (done ? c2 + '1f' : 'white')) + ';color:' + (on ? '#fff' : c2) + ';transition:all .15s">'
       + (done ? '<span style="font-size:.72rem">✓</span>' : '')
       + '<span style="font-size:.82rem">' + (e.ic || '📦') + '</span>'
       + '<span>' + ((e.esp && e.esp.nom) || ('Espace ' + (i + 1))) + '</span>'
@@ -4935,15 +4937,17 @@ function _creerQuetesLoadingRun(){
   }, 2100);
 }
 
-// Phase finale : Deva a choisi les quêtes, présentées par espace.
+// Phase finale : quêtes de l'espace ACTIF uniquement (les onglets d'espace
+// filtrent la liste, cf. creerSelectEsp).
 function creerQuetesPhaseHTML(){
   const espItems = window._creerEspItems || [];
+  let active = window._creerActiveEsp;
+  if (active == null || active < 0 || active >= espItems.length) active = 0;
+  const it = espItems[active] || {};
+  const c2 = it.c || '#2e9970';
   let h = '<div style="background:rgba(200,115,42,.06);border:1px solid rgba(200,115,42,.22);border-radius:14px;padding:.85rem .9rem">';
-  espItems.forEach((it, idx) => {
-    const c2 = it.c || '#2e9970';
-    h += '<div style="display:flex;align-items:center;gap:.4rem;margin:.9rem 0 .5rem"><span style="font-size:.85rem">' + (it.ic || '📦') + '</span><span style="font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:' + c2 + '">' + ((it.esp && it.esp.nom) || ('Espace ' + (idx + 1))) + '</span></div>';
-    h += creerEspaceQuetesHTML(idx);
-  });
+  h += '<div style="display:flex;align-items:center;gap:.4rem;margin:.2rem 0 .6rem"><span style="font-size:.85rem">' + (it.ic || '📦') + '</span><span style="font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:' + c2 + '">' + ((it.esp && it.esp.nom) || ('Espace ' + (active + 1))) + '</span></div>';
+  h += creerEspaceQuetesHTML(active);
   h += '<button onclick="creerRevoirEspaces()" style="width:100%;margin-top:1rem;padding:.6rem;border:1.5px solid rgba(46,102,66,.2);border-radius:100px;background:white;color:var(--moss);font-family:inherit;font-size:.74rem;font-weight:700;cursor:pointer">← Revoir les solutions & indicateurs</button>'
     + '<div style="margin-top:.5rem;text-align:center;font-size:.66rem;color:var(--fern);font-weight:600">🎉 Ton lieu est prêt, crée-le en bas 👇</div>'
     + '</div>';
@@ -5394,6 +5398,18 @@ function creerRefreshSidebar(){
   if (c && cStep === 3) { c.innerHTML = creerStep3SidebarHTML(); _creerQuetesLoadingRun(); }
 }
 
+// Clic sur un onglet d'espace : à l'étape quêtes, il FILTRE la liste des
+// quêtes sur cet espace (on reste dans la phase quêtes) ; sinon il focalise
+// l'édition des solutions/indicateurs de l'espace.
+function creerSelectEsp(idx){
+  if (window._creerPhase === 'quetes') {
+    window._creerActiveEsp = idx;
+    creerRefreshSidebar();
+    return;
+  }
+  creerFocusEsp(idx);
+}
+
 // Clique sur un bouton d'espace : focalise sidebar + mind map sur cet espace.
 function creerFocusEsp(idx){
   window._creerActiveEsp = idx;
@@ -5423,6 +5439,7 @@ function _creerMajBoutonVueMap(){
 // Tous les espaces ont été parcourus → Deva compose les quêtes (chargement).
 function creerGenererQuetes(){
   window._creerPhase = 'quetes';
+  window._creerActiveEsp = 0;   // on démarre le tri des quêtes sur le 1er espace
   window._creerQuetesReady = false;
   window._creerQuetesLoadingScheduled = false;
   window._creerMapOverview = false;
