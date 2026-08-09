@@ -6077,7 +6077,7 @@ function _creerMajNav(){
   if (cStep < 2) { show('Suivant →', creerNext); return; }
   if (cStep === 2) { show('Générer les solutions ✦', creerNext); return; }
   if (cStep === 3) {
-    if (window._creerPhase === 'quetes') { show('Créer mon lieu ✦', function(){ openPublishPreview('lieu'); }); return; }
+    if (window._creerPhase === 'quetes') { show('Publier ma fiche →', function(){ openPublishPreview('lieu'); }); return; }
     // Phase espaces : « Générer les quêtes » seulement quand tous les espaces sont parcourus.
     const espItems = window._creerEspItems || [], valides = cData.espacesValides || [];
     if (espItems.length && valides.length >= espItems.length) show('Générer les quêtes ✦', creerGenererQuetes);
