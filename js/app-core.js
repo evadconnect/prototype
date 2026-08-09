@@ -13816,9 +13816,72 @@ function renderFicheFluxTable() {
    section le reconstruit à partir de store.all('lieux') (lui-même hydraté
    depuis Supabase par store.js). ── */
 
+/* ── Compteurs réels des fiches (carte communauté) ──
+   Calculés depuis le store (quêtes, candidatures, preuves, financements),
+   tous alimentés par Supabase sauf les financements (encore locaux). */
+
+// Lieu (Pilote) : quêtes ouvertes/terminées, bâtisseurs inscrits, semeurs
+// finançant, et la liste des quêtes ouvertes pour la fiche détaillée.
+function evadLieuStats(lieuId){
+  const out = { quetes: 0, quetesTerminees: 0, batisseurs: 0, semeurs: 0, quetes_list: [] };
+  if (!lieuId || !window.store) return out;
+  const qs = store.where('quetes', q => q.lieu_id === lieuId && (q.statut === 'ouverte' || q.statut === 'terminee'));
+  const ouvertes = qs.filter(q => q.statut === 'ouverte');
+  out.quetes = ouvertes.length;
+  out.quetesTerminees = qs.length - ouvertes.length;
+  const qids = new Set(qs.map(q => q.id));
+  out.quetes_list = ouvertes.slice(0, 6).map(q => ({
+    icon: q.sourceIc || '⚡', title: q.titre || 'Quête',
+    meta: [q.duree, q.nb, ((q.graines || 0) + ' graines')].filter(Boolean).join(' · '),
+    status: 'Ouverte', sBg: 'rgba(74,140,92,.1)', sC: 'var(--fern)'
+  }));
+  const bset = new Set();
+  store.where('quete_candidatures', c => c.statut === 'inscrit' && qids.has(c.quete_id))
+    .forEach(c => bset.add(c.batisseur_id || c.id));
+  out.batisseurs = bset.size;
+  const sset = new Set();
+  store.where('financements', f => qids.has(f.quete_id)).forEach(f => sset.add(f.semeur_id || f.id));
+  out.semeurs = sset.size;
+  return out;
+}
+
+// Bâtisseur : quêtes en cours (inscrit sur une quête ouverte) et réalisées
+// (quête terminée), + graines gagnées via les quêtes terminées.
+function evadBatisseurStats(batId){
+  const out = { quetes_actives: 0, quetes_realisees: 0, graines_quetes: 0 };
+  if (!batId || !window.store) return out;
+  store.where('quete_candidatures', c => c.batisseur_id === batId && c.statut === 'inscrit').forEach(c => {
+    const q = c.quete_id ? store.get('quetes', c.quete_id) : null;
+    if (!q) return;
+    if (q.statut === 'terminee') { out.quetes_realisees++; out.graines_quetes += (q.graines || 0); }
+    else if (q.statut === 'ouverte') out.quetes_actives++;
+  });
+  return out;
+}
+
+// Semeur : graines engagées, contrats actifs, lieux financés (financements
+// encore locaux → complets sur le navigateur du semeur).
+function evadSemeurStats(semId){
+  const out = { graines_engages: 0, contrats_actifs: 0, lieux_finances: [], score_impact: 0 };
+  if (!semId || !window.store) return out;
+  const fins = store.where('financements', f => f.semeur_id === semId);
+  out.contrats_actifs = fins.length;
+  out.graines_engages = fins.reduce((s, f) => s + (parseFloat(f.montant) || 0), 0);
+  const lieuNoms = new Set();
+  fins.forEach(f => {
+    const q = f.quete_id ? store.get('quetes', f.quete_id) : null;
+    const l = (q && q.lieu_id) ? store.get('lieux', q.lieu_id) : null;
+    if (l && l.nom) lieuNoms.add(l.nom);
+  });
+  out.lieux_finances = Array.from(lieuNoms);
+  out.score_impact = Math.min(100, out.contrats_actifs * 20);
+  return out;
+}
+
 function _lieuRowToMapPlace(row){
   const typeLabel = (typeof TYPES_LIEU !== 'undefined' && TYPES_LIEU.find(t => t.id === row.type)?.l) || row.type || 'Lieu';
   const ic = (typeof TYPE_IC !== 'undefined' ? TYPE_IC[row.type] : null) || row.icon || '✦';
+  const stats = evadLieuStats(row.id);
   return {
     nom: row.nom || 'Lieu sans nom',
     type: typeLabel,
@@ -13827,15 +13890,17 @@ function _lieuRowToMapPlace(row){
     vadite: (typeof row.vadite === 'number') ? row.vadite : 0,
     taux: (typeof row.taux === 'number') ? row.taux
           : (row.vadance ? Math.round(((row.vadite || 0) / row.vadance) * 100) : 0),
-    quetes: 0,
+    quetes: stats.quetes,
     icon: ic,
     lat: row.lat ?? row.latitude ?? 48.2,
     lng: row.lng ?? row.longitude ?? -2.8,
     desc: row.desc || row.description || `${typeLabel} situé à ${row.localisation || 'Nouvelle-Aquitaine'}.`,
-    batisseurs: 0, semeurs: 0, score_trim: '+0',
+    batisseurs: stats.batisseurs, semeurs: stats.semeurs,
+    // Tendance trimestrielle : quêtes terminées (preuves validées) du lieu.
+    score_trim: '+' + stats.quetesTerminees,
     // Preuve par capital (ICI) : calculée depuis les quêtes terminées du lieu.
     dims: (typeof evadLieuDims === 'function') ? evadLieuDims(row, false) : [],
-    quetes_list: [],
+    quetes_list: stats.quetes_list,
     besoins: (row.besoins && row.besoins.length) ? row.besoins : ['Premiers bâtisseurs','Financement de départ'],
     deva: `"${row.nom}" fait partie de la carte EVAD.`,
     // Formulaire complet du lieu (espaces, solutions, écosystème…) : permet à
@@ -13865,8 +13930,10 @@ function _batisseurRowToMapEntry(row){
     return s ? (s.ic + ' ' + s.label) : id;
   });
   const niveau = Math.max(1, Math.min(5, skills.length || 1));
-  const graines = 50 + skills.length * 15;
   const dispo = (row.dispo || []).join(' · ') || 'Non précisée';
+  // Compteurs réels : quêtes rejointes / réalisées + graines gagnées.
+  const st = evadBatisseurStats(row.id);
+  const graines = 50 + skills.length * 15 + st.graines_quetes;
   return {
     id: row.id,
     nom: nom,
@@ -13876,7 +13943,7 @@ function _batisseurRowToMapEntry(row){
     niveau: niveau,
     bio: row.bio || 'Bâtisseur d\'impact engagé dans la transition.',
     graines: graines, graines_passifs: 0,
-    quetes_realisees: 0, quetes_actives: 0,
+    quetes_realisees: st.quetes_realisees, quetes_actives: st.quetes_actives,
     competences: competences,
     disponibilite: dispo,
     lieux_frequentes: [],
@@ -13910,16 +13977,19 @@ function _semeurRowToMapEntry(row){
     const a = (typeof SEM_AXES !== 'undefined') ? SEM_AXES.find(x => x.id === id) : null;
     return a ? (a.ic + ' ' + a.label) : id;
   });
+  // Compteurs réels : financements engagés, contrats, lieux financés.
+  const st = evadSemeurStats(row.id);
   return {
     id: row.id,
     nom: row.nom || 'Financeur',
     ville: row.localisation || 'France',
     type: type, icon: typeIc,
     description: row.description || (row.reporting ? ('Financeur engagé · reporting ' + row.reporting) : 'Financeur d\'impact engagé dans la transition.'),
-    graines_engages: 0, graines_retournes: 0, contrats_actifs: 0, score_impact: 0,
+    graines_engages: st.graines_engages, graines_retournes: 0,
+    contrats_actifs: st.contrats_actifs, score_impact: st.score_impact,
     focus: focus,
     esrs: esrs.map(e => String(e).replace('ESRS ', '').trim()),
-    lieux_finances: [],
+    lieux_finances: st.lieux_finances,
     prochain_jalon: 'À définir avec les lieux financés.',
     contact: row.nom || 'Contact organisation',
     lat: (row.lat != null ? Number(row.lat) : 46.6),
@@ -14015,16 +14085,37 @@ window.addEventListener('evad:supabase-ready', function(){
 });
 
 // Quêtes reçues de Supabase : on resynchronise la liste et on re-rend l'onglet.
+// Recalcule les compteurs des fiches sur la carte (quêtes, bâtisseurs,
+// semeurs, financements) et re-rend la carte si elle est ouverte. Appelé
+// quand les quêtes / candidatures / preuves / financements changent.
+function evadRefreshCarteCompteurs(){
+  try {
+    if (typeof syncMapPlacesFromStore === 'function') syncMapPlacesFromStore();
+    if (typeof syncMapBatisseursFromStore === 'function') syncMapBatisseursFromStore();
+    if (typeof syncMapSemeursFromStore === 'function') syncMapSemeursFromStore();
+    _mapCommunityRendered = false;
+    const carte = document.getElementById('screen-carte');
+    if (carte && carte.classList.contains('active')) {
+      if (typeof mapRenderCommunity === 'function') mapRenderCommunity();
+      if (evadMap) { try { evadMap.remove(); } catch (e) {} }
+      evadMap = null;
+      if (typeof initRealMap === 'function') initRealMap();
+    }
+  } catch(e){}
+}
+
 window.addEventListener('evad:quetes-ready', function(){
   try {
     if (typeof syncPiloteQuetesFromLieu === 'function') syncPiloteQuetesFromLieu();
     if (typeof renderPiloteQuetes === 'function') renderPiloteQuetes();
     if (typeof batRenderQuetes === 'function') batRenderQuetes();  // vue Bâtisseur : quêtes du réseau
+    evadRefreshCarteCompteurs();
   } catch(e){}
 });
 // Inscriptions et preuves reçues de Supabase : re-rendre les deux vues
-// (équipes, statut « inscrit », preuves en attente de validation) et
-// reconstruire le journal des preuves (dossiers + impact).
+// (équipes, statut « inscrit », preuves en attente de validation),
+// reconstruire le journal des preuves (dossiers + impact) et rafraîchir
+// les compteurs de la carte (bâtisseurs inscrits, quêtes réalisées).
 ['evad:candidatures-ready', 'evad:preuves-ready'].forEach(function (ev) {
   window.addEventListener(ev, function(){
     try {
@@ -14032,6 +14123,7 @@ window.addEventListener('evad:quetes-ready', function(){
       if (typeof renderPiloteQuetes === 'function') renderPiloteQuetes();
       if (typeof batRenderQuetes === 'function') batRenderQuetes();
       if (typeof initDossiers === 'function') initDossiers();
+      evadRefreshCarteCompteurs();
     } catch(e){}
   });
 });
