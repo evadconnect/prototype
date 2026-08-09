@@ -252,6 +252,62 @@
       });
   }
 
+  // ── Synchronisation des fiches Bâtisseur (table fiche_batisseur) ──
+  function remoteBatisseurRow(row) {
+    var lat = (row.lat != null && row.lat !== '') ? Number(row.lat) : null;
+    var lng = (row.lng != null && row.lng !== '') ? Number(row.lng) : null;
+    if (!Number.isFinite(lat)) lat = null;
+    if (!Number.isFinite(lng)) lng = null;
+    return {
+      id: row.id,
+      user_id: currentUserId || null,
+      prenom: row.prenom || null,
+      nom: row.nom || null,
+      ville: row.ville || null,
+      latitude: lat,
+      longitude: lng,
+      bio: row.bio || null,
+      competences: row.skills || [],
+      donnees: row,
+      updated_at: nowISO()
+    };
+  }
+  function insertBatisseurRemote(row) {
+    if (!global.evadSupabase || !row || !row.id) return;
+    // upsert : republier ou rééditer met à jour la même ligne (pas de doublon).
+    global.evadSupabase
+      .from('fiche_batisseur')
+      .upsert(remoteBatisseurRow(row), { onConflict: 'id' })
+      .then(function (result) {
+        if (result.error) notifySyncError('Fiche Bâtisseur non enregistrée en base : ' + result.error.message);
+      });
+  }
+  function updateBatisseurRemote(row) { insertBatisseurRemote(row); }
+
+  async function hydrateBatisseurs() {
+    if (!global.evadSupabase) return;
+    try {
+      var result = await global.evadSupabase.from('fiche_batisseur').select('*');
+      if (result.error) { console.warn('Lecture des fiches Bâtisseur impossible : ' + result.error.message); return; }
+      var remoteRows = (result.data || []).map(function (row) {
+        return Object.assign({}, row.donnees || {}, {
+          id: row.id, prenom: row.prenom, nom: row.nom, ville: row.ville,
+          lat: row.latitude, lng: row.longitude, bio: row.bio,
+          skills: (row.donnees && row.donnees.skills) || row.competences || []
+        });
+      });
+      // La base fait foi ; on conserve les fiches locales pas encore poussées.
+      var remoteIds = {};
+      remoteRows.forEach(function (r) { remoteIds[r.id] = true; });
+      var localUnsynced = read('batisseurs').filter(function (r) { return r && !remoteIds[r.id]; });
+      localUnsynced.forEach(function (r) { insertBatisseurRemote(r); });
+      write('batisseurs', remoteRows.concat(localUnsynced));
+      global.dispatchEvent(new CustomEvent('evad:batisseurs-ready', { detail: { batisseurs: remoteRows } }));
+    } catch (error) {
+      console.warn('Erreur de récupération des fiches Bâtisseur :', error);
+    }
+  }
+
   // ── Synchronisation des quêtes avec Supabase (table quetes) ──
   function remoteQueteRow(row) {
     // Nom + adresse du lieu, résolus depuis la table lieux locale (miroir Supabase).
@@ -737,6 +793,8 @@
        */
       if (table === 'lieux') {
         insertLieuRemote(row);
+      } else if (table === 'batisseurs') {
+        insertBatisseurRemote(row);
       } else if (table === 'quetes') {
         upsertQueteRemote(row);
       } else if (table === 'quete_candidatures') {
@@ -767,6 +825,8 @@
 
           if (table === 'lieux') {
             updateLieuRemote(rows[i]);
+          } else if (table === 'batisseurs') {
+            updateBatisseurRemote(rows[i]);
           } else if (table === 'quetes') {
             upsertQueteRemote(rows[i]);
           } else if (table === 'quete_candidatures') {
@@ -965,6 +1025,7 @@
 
         hydrateRemote();
         hydrateBiblio();
+        hydrateBatisseurs();
         hydrateQuetes();
         hydrateCandidatures();
         hydratePreuves();
@@ -987,6 +1048,7 @@
           0
         );
         setTimeout(hydrateBiblio, 0);
+        setTimeout(hydrateBatisseurs, 0);
         setTimeout(hydrateQuetes, 0);
         setTimeout(hydrateCandidatures, 0);
         setTimeout(hydratePreuves, 0);

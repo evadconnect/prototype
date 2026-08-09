@@ -7847,20 +7847,6 @@ function confirmPublishPreview() {
 
 /* ─── PUBLIER FICHE BÂTISSEUR → Carte communauté ─── */
 async function publishBatProfil() {
-  // Persistance (prête pour Supabase) : enregistre le bâtisseur publié, vide le brouillon.
-  if (window.store) {
-    try {
-      _currentBatisseurId(); // garantit l'id stable AVANT l'insertion (sinon
-      // les candidatures déjà faites référencent un autre id de bâtisseur)
-      const row = store.insert('batisseurs', Object.assign({}, batFicheData));
-      batFicheData.id = row.id;
-      store.clearDraft('batisseur');
-      if (typeof evadMarkFicheDone === 'function') evadMarkFicheDone('batisseur');
-      // Transaction graines : gain (bonus de bienvenue lié au profil).
-      const bonus = (typeof batProfileGraines === 'function') ? batProfileGraines() : 0;
-      _grainesTx(row.id, 'gain', bonus, 'Bonus de bienvenue', 'batisseurs', row.id);
-    } catch(e) {}
-  }
   const prenom = batFicheData.prenom || 'Bâtisseur';
   const nom    = batFicheData.nom    || '';
   const ville  = batFicheData.ville  || 'France';
@@ -7870,43 +7856,8 @@ async function publishBatProfil() {
     ? skills.slice(0,3).map(id => BAT_SKILLS.find(s=>s.id===id)?.label || id).join(' · ')
     : 'Profil en cours';
 
-  // Panneau communauté
-  const sectionBat = document.getElementById('map-section-batisseurs');
-  if (sectionBat) {
-    sectionBat.querySelectorAll(':scope > div:not(:first-child)').forEach(el => {
-      if (el.textContent.includes('Aucun bâtisseur')) el.remove();
-    });
-    const card = document.createElement('div');
-    card.className = 'place-card-mini';
-    card.style.cssText = 'background:rgba(200,115,42,0.06);border-left:3px solid var(--amber);cursor:pointer';
-    card.onclick = () => mapShowNewBatisseur();
-    card.innerHTML = `
-      <div class="pcm-top">
-        <div class="pcm-icon" style="background:rgba(200,115,42,0.15);color:var(--amber)">🌿</div>
-        <div>
-          <div class="pcm-name">${prenom} ${nom}</div>
-          <div class="pcm-type">Bâtisseur · ${ville}</div>
-        </div>
-      </div>
-      <div class="pcm-score-row">
-        <div style="font-size:.6rem;color:var(--moss);opacity:.7;flex:1">${skillStr}</div>
-        <div class="score-label" style="color:var(--amber)">Nouveau</div>
-      </div>
-      <div class="pcm-quetes" style="color:var(--amber)">✦ ${bio.substring(0,60)}${bio.length>60?'…':''}</div>
-    `;
-    // Insère en haut de la liste (juste après l'en-tête de section)
-    const header = sectionBat.firstElementChild;
-    sectionBat.insertBefore(card, header ? header.nextElementSibling : sectionBat.firstChild);
-    const countEl = document.getElementById('map-bat-count');
-    if (countEl) {
-      const n = sectionBat.querySelectorAll('.place-card-mini').length;
-      countEl.textContent = `🌿 ${n} Bâtisseur${n>1?'s':''}`;
-    }
-  }
-
-  // Géocodage + marqueur carte
-  showScreen('carte');
-  setTimeout(initRealMap, 80);
+  // Géocodage AVANT l'enregistrement : les coordonnées sont ainsi persistées
+  // (sinon la fiche relue de Supabase n'aurait pas de position sur la carte).
   let lat = batFicheData.lat ?? 46.6, lng = batFicheData.lng ?? 2.3;
   if (!batFicheData.lat && ville && ville !== 'France') {
     try {
@@ -7915,26 +7866,38 @@ async function publishBatProfil() {
       if (d.features?.length) { lng = d.features[0].geometry.coordinates[0]; lat = d.features[0].geometry.coordinates[1]; }
     } catch(e) {}
   }
+  batFicheData.lat = lat; batFicheData.lng = lng;
+
+  // Persistance Supabase : enregistre la fiche Bâtisseur, vide le brouillon.
+  if (window.store) {
+    try {
+      _currentBatisseurId(); // garantit l'id stable AVANT l'insertion (sinon
+      // les candidatures déjà faites référencent un autre id de bâtisseur)
+      const row = store.upsert('batisseurs', Object.assign({}, batFicheData));
+      batFicheData.id = row.id;
+      store.clearDraft('batisseur');
+      if (typeof evadMarkFicheDone === 'function') evadMarkFicheDone('batisseur');
+      // Transaction graines : gain (bonus de bienvenue lié au profil).
+      const bonus = (typeof batProfileGraines === 'function') ? batProfileGraines() : 0;
+      _grainesTx(row.id, 'gain', bonus, 'Bonus de bienvenue', 'batisseurs', row.id);
+    } catch(e) {}
+  }
+
+  // Panneau communauté : repeuplé depuis le store (persiste au rechargement).
+  if (typeof syncMapBatisseursFromStore === 'function') syncMapBatisseursFromStore();
+  _mapCommunityRendered = false;
+  if (typeof mapRenderCommunity === 'function') mapRenderCommunity();
+
+  // Carte + marqueur du nouveau membre
+  showScreen('carte');
+  // Le marqueur du nouveau membre est déjà créé par initRealMap depuis
+  // MAP_BATISSEURS (repeuplé plus haut) : on se contente de zoomer dessus.
+  setTimeout(() => { if (typeof initRealMap === 'function') initRealMap(); }, 80);
   setTimeout(() => {
     if (!evadMap) return;
-    const marker = L.marker([lat, lng], {
-      icon: createEmojiIcon('🌿', '#b85e10', '#e07020', true)
-    }).addTo(evadMap);
-    marker.bindPopup(`
-      <div class="popup-place-title">${prenom} ${nom}</div>
-      <div class="popup-place-meta" style="color:#c8732a">🌿 Bâtisseur · ${ville}</div>
-      <div class="popup-place-score" style="color:#c8732a">${skillStr}</div>
-    `, { className: 'custom-popup' });
-    marker.on('click', () => {
-      mapShowNewBatisseur();
-      document.getElementById('map-panel-main').style.display = 'none';
-      document.getElementById('map-acteur-panel').style.display = '';
-    });
-    batisseurMarkers.push(marker);
-    marker.openPopup();
     evadMap.flyTo([lat, lng], 11, { duration: 1.2 });
     mmBubble(`🌿 ${prenom} ${nom} a rejoint la communauté EVAD !`);
-  }, 200);
+  }, 220);
 }
 
 /* ─── PUBLIER FICHE FINANCEUR → Carte communauté ─── */
@@ -13603,11 +13566,37 @@ function batDashFicheRender() {
     </div>
 
     <div style="display:flex;gap:.75rem">
-      <button class="btn btn-primary" style="flex:1;padding:.65rem" onclick="mmBubble('💾 Profil bâtisseur sauvegardé ✅')">💾 Enregistrer les modifications</button>
+      <button class="btn btn-primary" style="flex:1;padding:.65rem" onclick="batDashFicheSave()">💾 Enregistrer les modifications</button>
       <button class="btn btn-ghost" style="padding:.65rem 1rem" onclick="batDashFicheRender()">Annuler</button>
     </div>
   `;
   if (window._batDashAutreOpen) setTimeout(() => { const inp = document.getElementById('bat-dash-val-inp'); if (inp) inp.focus(); }, 40);
+}
+
+// Enregistre RÉELLEMENT les modifications de la fiche Bâtisseur (onglet « Ma
+// fiche ») : mise à jour du store → push Supabase, puis carte rafraîchie.
+async function batDashFicheSave() {
+  if (!window.store) { mmBubble('💾 Profil enregistré localement'); return; }
+  try {
+    const bid = (typeof _currentBatisseurId === 'function') ? _currentBatisseurId() : batFicheData.id;
+    // Si la ville a changé (sans coordonnées fraîches saisies), on re-géocode.
+    const existing = store.get('batisseurs', bid);
+    if (existing && existing.ville !== batFicheData.ville && batFicheData.ville) {
+      try {
+        const r = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(batFicheData.ville)}&limit=1`);
+        const d = await r.json();
+        if (d.features?.length) { batFicheData.lng = d.features[0].geometry.coordinates[0]; batFicheData.lat = d.features[0].geometry.coordinates[1]; }
+      } catch(e) {}
+    }
+    store.upsert('batisseurs', Object.assign({ id: bid }, batFicheData));
+    batFicheData.id = bid;
+    if (typeof syncMapBatisseursFromStore === 'function') syncMapBatisseursFromStore();
+    _mapCommunityRendered = false;
+    if (typeof mapRenderCommunity === 'function') mapRenderCommunity();
+    if (typeof batReflectProfile === 'function') batReflectProfile();
+  } catch(e) {}
+  mmBubble('💾 Profil bâtisseur enregistré ✅');
+  batDashFicheRender();
 }
 
 function batDashDispoToggle(d) {
@@ -13882,6 +13871,78 @@ function syncMapPlacesFromStore(){
   MAP_PLACES.length = 0;
   store.all('lieux').forEach(row => MAP_PLACES.push(_lieuRowToMapPlace(row)));
 }
+
+// Convertit une ligne fiche_batisseur (store) vers l'entrée de carte lue par
+// mapShowBatisseur / mapRenderCommunity / les marqueurs.
+function _batisseurRowToMapEntry(row){
+  const prenom = row.prenom || '';
+  const nom = ((prenom + ' ' + (row.nom || '')).trim()) || 'Bâtisseur';
+  const skills = row.skills || [];
+  const competences = skills.map(id => {
+    const s = (typeof BAT_SKILLS !== 'undefined') ? BAT_SKILLS.find(x => x.id === id) : null;
+    return s ? (s.ic + ' ' + s.label) : id;
+  });
+  const niveau = Math.max(1, Math.min(5, skills.length || 1));
+  const graines = 50 + skills.length * 15;
+  const dispo = (row.dispo || []).join(' · ') || 'Non précisée';
+  return {
+    id: row.id,
+    nom: nom,
+    ville: row.ville || 'France',
+    role: 'Bâtisseur d\'impact',
+    icon: '🌿',
+    niveau: niveau,
+    bio: row.bio || 'Bâtisseur d\'impact engagé dans la transition.',
+    graines: graines, graines_passifs: 0,
+    quetes_realisees: 0, quetes_actives: 0,
+    competences: competences,
+    disponibilite: dispo,
+    lieux_frequentes: [],
+    certifications: [],
+    lat: (row.lat != null ? Number(row.lat) : 46.6),
+    lng: (row.lng != null ? Number(row.lng) : 2.3),
+    fiche: row
+  };
+}
+
+// Reconstruit MAP_BATISSEURS à partir des fiches du store (miroir Supabase).
+function syncMapBatisseursFromStore(){
+  if (!window.store || typeof MAP_BATISSEURS === 'undefined') return;
+  MAP_BATISSEURS.length = 0;
+  store.all('batisseurs').forEach(row => {
+    // On n'affiche que les fiches localisables et nommées.
+    if (row && (row.prenom || row.nom)) MAP_BATISSEURS.push(_batisseurRowToMapEntry(row));
+  });
+}
+
+// Fiches Bâtisseur reçues de Supabase : on repeuple la carte et on re-rend.
+window.addEventListener('evad:batisseurs-ready', function(){
+  try {
+    syncMapBatisseursFromStore();
+    // Restaure MA fiche dans le tableau de bord après un rechargement : on
+    // retrouve ma ligne via l'id stable du bâtisseur (localStorage).
+    try {
+      const myBid = localStorage.getItem('evad:batisseur-id');
+      if (myBid && (typeof batFicheData === 'undefined' || !batFicheData || !batFicheData.id)) {
+        const mine = store.get('batisseurs', myBid);
+        if (mine) {
+          batFicheData = Object.assign(_BAT_FICHE_EMPTY(), mine);
+          if (typeof batReflectProfile === 'function') batReflectProfile();
+          const fp = document.getElementById('bat-panel-fiche');
+          if (fp && fp.classList.contains('active') && typeof batDashFicheRender === 'function') batDashFicheRender();
+        }
+      }
+    } catch(e){}
+    _mapCommunityRendered = false;
+    const carteScreen = document.getElementById('screen-carte');
+    if (carteScreen && carteScreen.classList.contains('active')) {
+      if (typeof mapRenderCommunity === 'function') mapRenderCommunity();
+      if (evadMap) { try { evadMap.remove(); } catch (e) {} }
+      evadMap = null;
+      if (typeof initRealMap === 'function') initRealMap();
+    }
+  } catch(e){}
+});
 
 // Rejoue le rendu (sidebar + marqueurs) une fois les lieux reçus de Supabase.
 window.addEventListener('evad:supabase-ready', function(){
