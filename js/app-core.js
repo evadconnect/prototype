@@ -8094,7 +8094,8 @@ function batBuildQuetesFromProfile() {
     const equipe = cands.map((c, i) => ({
       i: ((c.batisseur_nom || 'B').trim().charAt(0) || 'B').toUpperCase(),
       c: _BAT_EQ_COLS[i % _BAT_EQ_COLS.length],
-      nom: c.batisseur_nom || 'Bâtisseur'
+      nom: c.batisseur_nom || 'Bâtisseur',
+      bid: c.batisseur_id || null
     }));
     const joined = !!(myBid && cands.some(c => c.batisseur_id === myBid));
     const nbMax = parseInt(q.nb, 10) || 6;
@@ -8346,10 +8347,32 @@ function qdVoirLieu() {
 function qdQuest() { return _qdQuestOverride || (typeof BAT_QUETES !== 'undefined' ? BAT_QUETES[_qdCurrentId] : null) || null; }
 function qdRerender() { try { renderQueteDetail(); refreshFicheQueteModal(); } catch (e) {} }
 
+// Côté Pilote : ouvre la conversation avec un bâtisseur inscrit, sur la quête.
+function qdContactBatisseur(bid, nom) {
+  const q = qdQuest() || {};
+  if (typeof evadOpenChat !== 'function' || !q.srcId || !bid) return;
+  evadOpenChat(evadChatThreadQuete(q.srcId, bid), {
+    title: '💬 ' + (nom || 'Bâtisseur'),
+    sub: 'À propos de « ' + (q.titre || 'la quête') + ' »',
+    quete_id: q.srcId, lieu_id: q.lieuId || (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.id) || null,
+    dest_id: bid
+  });
+}
+
 function qdContactPilote() {
   const q = qdQuest() || {};
-  if (typeof devaToggleChat === 'function') { try { devaToggleChat(); } catch (e) {} }
-  mmBubble('✉️ Conversation ouverte avec le Pilote' + (q.pilote ? ' (' + String(q.pilote).split('·')[0].trim() + ')' : ''));
+  // Vraie conversation Bâtisseur ↔ Pilote, contextualisée à la quête.
+  if (typeof evadOpenChat === 'function' && q.srcId) {
+    const bid = (typeof _currentBatisseurId === 'function') ? _currentBatisseurId() : 'bat';
+    const pilote = String(q.pilote || q.lieu || 'le Pilote').split('·')[0].trim();
+    evadOpenChat(evadChatThreadQuete(q.srcId, bid), {
+      title: '💬 ' + pilote,
+      sub: 'À propos de « ' + (q.titre || 'la quête') + ' »',
+      quete_id: q.srcId, lieu_id: q.lieuId || null, dest_id: q.lieuId || null
+    });
+    return;
+  }
+  if (typeof mmBubble === 'function') mmBubble('La conversation sera disponible une fois la quête publiée.');
 }
 
 // Métadonnées des types de preuve (partagées fiche quête).
@@ -9093,7 +9116,8 @@ function renderQueteDetail() {
         <div style="font-size:.68rem;font-weight:600;color:var(--ink);margin-bottom:.5rem">👥 Bâtisseurs inscrits (${q.equipe.length})</div>
         ${q.equipe.length ? q.equipe.map(m=>`<div style="display:flex;align-items:center;gap:.6rem;padding:.3rem 0;border-bottom:1px solid rgba(46,102,66,.06)">
           <div style="width:26px;height:26px;border-radius:50%;background:${m.c};color:white;display:flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:700">${m.i}</div>
-          <div style="font-size:.7rem;color:var(--ink)">${m.nom || ('Bâtisseur ' + m.i)}</div>
+          <div style="flex:1;font-size:.7rem;color:var(--ink)">${m.nom || ('Bâtisseur ' + m.i)}</div>
+          ${m.bid ? `<button onclick="qdContactBatisseur('${m.bid}','${String(m.nom||'').replace(/'/g,"\\'")}')" style="flex-shrink:0;background:rgba(46,102,66,.07);color:var(--forest);border:1px solid rgba(46,102,66,.2);border-radius:100px;padding:.22rem .6rem;font-size:.62rem;font-weight:700;cursor:pointer;font-family:inherit">💬 Message</button>` : ''}
         </div>`).join('') : '<div style="font-size:.68rem;color:var(--moss);opacity:.6">Aucun bâtisseur inscrit pour l\'instant. Publie la quête au Réseau pour en mobiliser.</div>'}
       </div>
 

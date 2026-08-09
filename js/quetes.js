@@ -145,7 +145,7 @@ function openPiloteQueteFiche(qid) {
   const _cands = (window.store) ? store.where('quete_candidatures', function (c) { return c.quete_id === pq.id && c.statut === 'inscrit'; }) : [];
   const _eqCols = ['#4a8c5c', '#c8732a', '#7a6ea8', '#3a6e8c', '#b84e35', '#2e6642'];
   const _equipe = _cands.map(function (c, i) {
-    return { i: ((c.batisseur_nom || 'B').trim().charAt(0) || 'B').toUpperCase(), c: _eqCols[i % _eqCols.length], nom: c.batisseur_nom || 'Bâtisseur' };
+    return { i: ((c.batisseur_nom || 'B').trim().charAt(0) || 'B').toUpperCase(), c: _eqCols[i % _eqCols.length], nom: c.batisseur_nom || 'Bâtisseur', bid: c.batisseur_id || null };
   });
   const _nbMax = parseInt(pq.nb, 10) || 6;
   showQueteFiche({
