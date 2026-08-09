@@ -3,7 +3,7 @@
 --  À exécuter dans le projet Supabase de PROD (lmhhrccmgebztioesmik)
 --  → SQL Editor. Idempotent.
 --
---  Miroir de fiche_pilote : le profil d'un Bâtisseur est partagé (visible
+--  Miroir de fiche_pilotes : le profil d'un Bâtisseur est partagé (visible
 --  sur la carte par tous), retrouvé sur tous ses appareils, et éditable
 --  depuis le tableau de bord (onglet « Ma fiche »).
 -- ============================================================
@@ -29,7 +29,7 @@ alter table public.fiche_batisseur enable row level security;
 drop policy if exists "fiche_batisseur_select_public" on public.fiche_batisseur;
 create policy "fiche_batisseur_select_public" on public.fiche_batisseur for select using (true);
 
--- Écriture ouverte (modèle actuel de la bêta, comme fiche_pilote ;
+-- Écriture ouverte (modèle actuel de la bêta, comme fiche_pilotes ;
 -- le verrouillage par propriétaire viendra avec le lot de sécurité).
 drop policy if exists "fiche_batisseur_insert_public" on public.fiche_batisseur;
 create policy "fiche_batisseur_insert_public" on public.fiche_batisseur for insert with check (true);

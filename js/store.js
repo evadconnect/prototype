@@ -7,7 +7,7 @@
   var NS = 'evad';
   var VERSION = 1;
 
-  // Tables synchronisées avec Supabase : lieux (fiche_pilote), quetes
+  // Tables synchronisées avec Supabase : lieux (fiche_pilotes), quetes
   // (lieu_quetes), quete_candidatures, quete_preuves, lieu_solutions et
   // lieu_indicateurs. Le routage se fait dans insert/update ci-dessous.
   var currentUserId = null;
@@ -179,7 +179,7 @@
     var payload = remoteLieuRow(row);
 
     global.evadSupabase
-      .from('fiche_pilote')
+      .from('fiche_pilotes')
       .insert(payload)
       .then(function (result) {
         if (result.error) {
@@ -224,7 +224,7 @@
     var payload = remoteLieuRow(row);
 
     global.evadSupabase
-      .from('fiche_pilote')
+      .from('fiche_pilotes')
       .update({
         nom: payload.nom,
         type: payload.type,
@@ -692,7 +692,7 @@
 
     try {
       var result = await global.evadSupabase
-        .from('fiche_pilote')
+        .from('fiche_pilotes')
         .select('*')
         .order('created_at', {
           ascending: true

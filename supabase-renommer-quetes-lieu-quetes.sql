@@ -22,10 +22,10 @@ end $$;
 alter table public.lieu_quetes add column if not exists lieu_nom text;
 alter table public.lieu_quetes add column if not exists adresse  text;
 
--- 3. Remplissage rétroactif depuis fiche_pilote (via lieu_id).
+-- 3. Remplissage rétroactif depuis fiche_pilotes (via lieu_id).
 update public.lieu_quetes q
    set lieu_nom = coalesce(q.lieu_nom, f.nom),
        adresse  = coalesce(q.adresse,  f.localisation)
-  from public.fiche_pilote f
+  from public.fiche_pilotes f
  where f.id = q.lieu_id
    and (q.lieu_nom is null or q.adresse is null);
