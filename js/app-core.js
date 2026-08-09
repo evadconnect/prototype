@@ -1117,7 +1117,7 @@ function lieuRenderEspaces() {
       </div>
     </div>`;
 
-  const cards = espaces.map(esp => {
+  const cards = espaces.map((esp, espIdx) => {
     const meta = ESPS.find(e => e.id === esp.eid) || {};
     const col  = meta.c  || '#4a8c5c';
     const bg   = meta.bg || 'rgba(74,140,92,0.08)';
@@ -1220,6 +1220,8 @@ function lieuRenderEspaces() {
         </div>` : ''}
 
         ${esp.notes ? `<div style="font-size:.65rem;color:var(--moss);opacity:.7;font-style:italic;padding:.5rem .7rem;background:rgba(46,102,66,.04);border-radius:var(--r);border-left:2px solid ${col}55">${esp.notes}</div>` : ''}
+
+        ${typeof evadEspaceEcoHTML === 'function' ? evadEspaceEcoHTML(esp, espIdx, cData) : ''}
 
       </div>
     </div>`;
@@ -1703,6 +1705,92 @@ SOLS.forEach(s => {
   const c = SOLS_COUTS_DEFAUT[s.nom];
   if (c && s.coutUnitaire == null) { s.coutFixe = c.fixe; s.coutUnitaire = c.unitaire; s.coutDimension = c.dim; }
 });
+
+// Coût total estimé d'une solution pour un espace donné (nombre, ou null si
+// pas de coût structuré ni de dimension exploitable).
+function evadCoutSolEstime(sol, esp) {
+  if (!sol || (!(sol.coutUnitaire > 0) && !(sol.coutFixe > 0))) return null;
+  const parUsager = sol.coutDimension === 'usager';
+  const dimVal = parUsager ? (parseFloat(esp && esp.capacite) || 0) : (parseFloat(esp && esp.surface) || 0);
+  if (!(dimVal > 0)) return (sol.coutFixe > 0) ? sol.coutFixe : null;
+  return (sol.coutFixe || 0) + (sol.coutUnitaire || 0) * dimVal;
+}
+
+/* ── Potentiel économique d'un ESPACE (miroir de la table biblio_espaces_eco) ──
+   revenus/mois ≈ dimension × facteur (unités servies/mois, occupation réaliste
+   incluse) × prix unitaire (fourchette) × coef de la famille du type de lieu.
+   marge = revenus × (1 − charges). Point mort = coût des solutions de
+   l'espace ÷ marge moyenne. Des DÉFAUTS prudents, éditables dans le Table
+   Editor : ce sont des ordres de grandeur, jamais une promesse. */
+const ESPACES_ECO = {
+  cafe:     { dim: 'capacite', facteur: 12.6, unite: 'couverts/mois',  prixMin: 8,   prixMax: 15,  prixUnite: '€/couvert',      charges: 0.55 },
+  cuisine:  { dim: 'capacite', facteur: 8.4,  unite: 'repas/mois',     prixMin: 7,   prixMax: 12,  prixUnite: '€/repas',        charges: 0.55 },
+  bureau:   { dim: 'capacite', facteur: 1,    unite: 'postes',         prixMin: 150, prixMax: 250, prixUnite: '€/poste/mois',   charges: 0.30 },
+  dortoir:  { dim: 'capacite', facteur: 13.5, unite: 'nuitées/mois',   prixMin: 25,  prixMax: 60,  prixUnite: '€/nuitée',       charges: 0.45 },
+  salle:    { dim: 'forfait',  facteur: 8,    unite: 'locations/mois', prixMin: 150, prixMax: 400, prixUnite: '€/jour loué',    charges: 0.30 },
+  fablab:   { dim: 'capacite', facteur: 1,    unite: 'adhérents',      prixMin: 15,  prixMax: 30,  prixUnite: '€/adhésion/mois',charges: 0.35 },
+  atelier:  { dim: 'capacite', facteur: 1.5,  unite: 'participations/mois', prixMin: 25, prixMax: 60, prixUnite: '€/participant', charges: 0.35 },
+  serre:    { dim: 'surface',  facteur: 1 / 12, unite: 'm² cultivés',  prixMin: 4,   prixMax: 9,   prixUnite: '€/m²/an',        charges: 0.40 },
+  jardin:   { dim: 'surface',  facteur: 1 / 12, unite: 'm² cultivés',  prixMin: 3,   prixMax: 8,   prixUnite: '€/m²/an',        charges: 0.40 },
+  boutique: { dim: 'surface',  facteur: 1,    unite: 'm² de vente',    prixMin: 8,   prixMax: 25,  prixUnite: '€/m²/mois',      charges: 0.50 },
+};
+// Fréquentation selon la famille du type de lieu (même clé que les ICI).
+const ESPACES_ECO_COEF_TYPES = { agriculture: 0.8, fabrication: 0.9, social: 1, travail: 1.1 };
+
+// Potentiel économique calculé d'un espace (null si pas de barème/dimension).
+function evadEspaceEco(esp, espIdx, L) {
+  if (!esp) return null;
+  const bar = ESPACES_ECO[esp.eid];
+  if (!bar || bar.actif === false) return null;
+  L = L || (typeof cData !== 'undefined' ? cData : {}) || {};
+  const dimVal = bar.dim === 'forfait' ? 1
+    : parseFloat(bar.dim === 'surface' ? esp.surface : esp.capacite) || 0;
+  if (!(dimVal > 0)) return { manqueDim: bar.dim === 'surface' ? 'surface' : 'capacité' };
+  const fam = (typeof ICI_TYPE_FAMILLE !== 'undefined' && ICI_TYPE_FAMILLE[L.type]) || 'social';
+  const coef = ESPACES_ECO_COEF_TYPES[fam] != null ? ESPACES_ECO_COEF_TYPES[fam] : 1;
+  const unites = dimVal * bar.facteur * coef;
+  const revMin = unites * bar.prixMin;
+  const revMax = unites * bar.prixMax;
+  const margeMin = revMin * (1 - bar.charges);
+  const margeMax = revMax * (1 - bar.charges);
+  // Coût des solutions rattachées à cet espace (point mort).
+  let coutSols = 0;
+  const noms = (espIdx != null && L.solsByEspace && L.solsByEspace[espIdx]) || [];
+  noms.forEach(nom => {
+    const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === nom) : null;
+    const c = evadCoutSolEstime(sol, esp);
+    if (c) coutSols += c;
+  });
+  const margeMoy = (margeMin + margeMax) / 2;
+  const pointMort = (coutSols > 0 && margeMoy > 0) ? Math.ceil(coutSols / margeMoy) : null;
+  return { bar, unites, revMin, revMax, margeMin, margeMax, coutSols, pointMort };
+}
+
+// Bloc HTML « Potentiel économique » d'un espace (fiche lieu · onglet Espaces).
+function evadEspaceEcoHTML(esp, espIdx, L) {
+  const e = evadEspaceEco(esp, espIdx, L);
+  if (!e) return '';
+  const fmtE = n => Math.round(n).toLocaleString('fr-FR');
+  if (e.manqueDim) {
+    return `<div style="margin-top:.55rem;font-size:.6rem;color:var(--moss);opacity:.6;font-style:italic">💶 Renseigne la ${e.manqueDim} de l'espace pour estimer son potentiel économique.</div>`;
+  }
+  const enChantier = esp.phase && esp.phase !== 'operationnel';
+  return `<div style="margin-top:.55rem;padding:.55rem .7rem;background:rgba(200,115,42,.05);border:1px solid rgba(200,115,42,.18);border-radius:10px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
+      <span style="font-size:.62rem;font-weight:800;color:var(--amber)">💶 Potentiel économique</span>
+      <span style="font-size:.56rem;color:var(--moss);opacity:.6">estimation indicative</span>
+    </div>
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.35rem">
+      <div><div style="font-size:.54rem;color:var(--moss);opacity:.65;text-transform:uppercase;letter-spacing:.05em">Revenus/mois</div>
+        <div style="font-size:.76rem;font-weight:800;color:var(--ink)">${fmtE(e.revMin)}–${fmtE(e.revMax)} €</div></div>
+      <div><div style="font-size:.54rem;color:var(--moss);opacity:.65;text-transform:uppercase;letter-spacing:.05em">Marge/mois</div>
+        <div style="font-size:.76rem;font-weight:800;color:var(--fern)">${fmtE(e.margeMin)}–${fmtE(e.margeMax)} €</div></div>
+      ${e.pointMort ? `<div><div style="font-size:.54rem;color:var(--moss);opacity:.65;text-transform:uppercase;letter-spacing:.05em">Solutions amorties en</div>
+        <div style="font-size:.76rem;font-weight:800;color:var(--sky)">≈ ${e.pointMort > 24 ? Math.round(e.pointMort / 12) + ' ans' : e.pointMort + ' mois'}</div></div>` : ''}
+    </div>
+    <div style="font-size:.56rem;color:var(--moss);opacity:.65;margin-top:.3rem;line-height:1.45">Base : ${Math.round(e.unites).toLocaleString('fr-FR')} ${e.bar.unite} × ${e.bar.prixMin}–${e.bar.prixMax} ${e.bar.prixUnite} · charges ~${Math.round(e.bar.charges * 100)} %${e.coutSols ? ' · solutions prévues ≈ ' + fmtE(e.coutSols) + ' €' : ''}. À ajuster selon tes prix et ton territoire.${enChantier ? ' <b>Espace en montée en charge : vise 20-40 % de ce potentiel au début.</b>' : ''}</div>
+  </div>`;
+}
 
 // Bloc « Coût estimé » de la fiche solution : contextualisé à l'espace du
 // lieu qui porte la solution (fiche en cours). Repli : budget texte.
@@ -13006,6 +13094,7 @@ function creerRenderEspaces() {
       ${esp.probleme ? `<div class="flux-row" style="align-items:flex-start"><span class="flux-row-label">🎯</span><span style="font-size:.66rem;color:var(--amber);font-weight:600;line-height:1.4">${String(esp.probleme).replace(/[<>]/g,'')}</span></div>` : ''}
       ${esp.responsable ? `<div class="espace-meta-item" style="font-size:.63rem;opacity:.7">👤 ${esp.responsable}</div>` : ''}
       ${esp.notes ? `<div class="espace-meta-item" style="font-size:.63rem;opacity:.6;font-style:italic">${esp.notes}</div>` : ''}
+      ${typeof evadEspaceEcoHTML === 'function' ? evadEspaceEcoHTML(esp, idx, cData) : ''}
     `;
     list.appendChild(card);
   });
@@ -13306,6 +13395,7 @@ function ficheRenderEspaces() {
       ${esp.probleme ? `<div class="flux-row" style="align-items:flex-start"><span class="flux-row-label">🎯</span><span style="font-size:.66rem;color:var(--amber);font-weight:600;line-height:1.4">${String(esp.probleme).replace(/[<>]/g,'')}</span></div>` : ''}
       ${esp.responsable ? `<div class="espace-meta-item" style="font-size:.63rem;opacity:.7">👤 ${esp.responsable}</div>` : ''}
       ${esp.notes ? `<div class="espace-meta-item" style="font-size:.63rem;opacity:.6;font-style:italic">${esp.notes}</div>` : ''}
+      ${typeof evadEspaceEcoHTML === 'function' ? evadEspaceEcoHTML(esp, idx, (typeof myLieuData !== 'undefined' && myLieuData) || cData) : ''}
     `;
     list.appendChild(card);
   });

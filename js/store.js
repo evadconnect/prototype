@@ -573,6 +573,24 @@
           }
         }
       }
+      // Barème économique des espaces (table facultative : silencieux si absente).
+      try {
+        var re = await global.evadSupabase.from('biblio_espaces_eco').select('*');
+        if (!re.error && Array.isArray(re.data) && re.data.length && typeof ESPACES_ECO !== 'undefined') {
+          re.data.forEach(function (r) {
+            ESPACES_ECO[r.id] = {
+              dim: r.dim || 'capacite',
+              facteur: (r.facteur == null ? 1 : Number(r.facteur)),
+              unite: r.unite || '',
+              prixMin: (r.prix_min == null ? 0 : Number(r.prix_min)),
+              prixMax: (r.prix_max == null ? 0 : Number(r.prix_max)),
+              prixUnite: r.prix_unite || '€',
+              charges: (r.charges_pct == null ? 0.4 : Number(r.charges_pct)),
+              actif: r.actif !== false
+            };
+          });
+        }
+      } catch (e2) {}
       global.dispatchEvent(new CustomEvent('evad:biblio-ready'));
     } catch (e) {}
   }
