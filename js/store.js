@@ -519,12 +519,26 @@
             desc: r.description || '', avantages: r.avantages || [],
             budget: r.budget || '', ind: r.indicateurs_libres || [],
             esrs: r.esrs || [], esrs_detail: r.esrs_detail || '',
-            photo: r.photo || '', lieux: r.lieux || []
+            photo: r.photo || '', lieux: r.lieux || [],
+            // Coûts structurés (estimation par espace) : fixe + unitaire × dimension.
+            coutFixe: (r.cout_fixe == null ? null : Number(r.cout_fixe)),
+            coutUnitaire: (r.cout_unitaire == null ? null : Number(r.cout_unitaire)),
+            coutDimension: r.cout_dimension || null
           };
           if (r.quete_titre) o.quete = { titre: r.quete_titre, duree: r.quete_duree || '-', nb: r.quete_nb || '-', impact_quete: r.quete_impact || '' };
           return o;
         });
-        if (sols.length) { SOLS.length = 0; sols.forEach(function (x) { SOLS.push(x); }); }
+        if (sols.length) {
+          SOLS.length = 0; sols.forEach(function (x) { SOLS.push(x); });
+          // Coûts par défaut (embarqués dans app-core.js) pour les lignes
+          // cloud sans colonnes cout_fixe/cout_unitaire remplies.
+          if (typeof SOLS_COUTS_DEFAUT !== 'undefined') {
+            SOLS.forEach(function (s) {
+              var c = SOLS_COUTS_DEFAUT[s.nom];
+              if (c && s.coutUnitaire == null) { s.coutFixe = c.fixe; s.coutUnitaire = c.unitaire; s.coutDimension = c.dim; }
+            });
+          }
+        }
       }
       var ri = await global.evadSupabase.from('biblio_indicateurs').select('*').order('ordre', { ascending: true });
       if (!ri.error && Array.isArray(ri.data) && ri.data.length && typeof ICI_CATALOG !== 'undefined') {
@@ -535,11 +549,23 @@
             point100: (r.point100 == null ? 100 : Number(r.point100)),
             poids: (r.poids == null ? 1 : Number(r.poids)),
             desc: r.description || '', photo: r.photo || '',
-            solutionIds: r.solution_noms || []
+            solutionIds: r.solution_noms || [],
+            // Normalisation par lieu : point100 effectif = base × dimension × coef.
+            norme: r.norme || null,
+            baseUnitaire: (r.base_unitaire == null ? null : Number(r.base_unitaire)),
+            coefTypes: r.coef_types || null
           };
         });
         if (icis.length) {
           ICI_CATALOG.length = 0; icis.forEach(function (x) { ICI_CATALOG.push(x); });
+          // Normes par défaut (embarquées dans ici.js) pour les lignes cloud
+          // qui n'ont pas encore leurs colonnes norme/base_unitaire remplies.
+          if (typeof ICI_NORMES_DEFAUT !== 'undefined') {
+            ICI_CATALOG.forEach(function (i) {
+              var n = ICI_NORMES_DEFAUT[i.id];
+              if (n && i.norme == null) { i.norme = n.norme; i.baseUnitaire = n.base; i.coefTypes = n.coefs; }
+            });
+          }
           if (typeof ICI_EXPORTS !== 'undefined') {
             ri.data.forEach(function (r) {
               ICI_EXPORTS[r.id] = { odd: r.odd || [], esrs: r.esrs || [], vsme: r.vsme || [] };

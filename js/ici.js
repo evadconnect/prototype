@@ -146,7 +146,10 @@ function iciFicheSolutionHTML(solNom, fallbackInd) {
   if (icis.length) {
     corps = icis.map((ici) => {
       const meta = ICI_LIVRE_META[ici.livre] || { col: '#4a8c5c', ic: '◆', label: ici.livre };
-      const sens = ici.point100 >= ici.point0 ? '↗' : '↘'; // hausse / baisse favorable
+      // Cible adaptée à la taille/type du lieu quand une norme existe.
+      const p100 = (typeof iciPoint100For === 'function') ? iciPoint100For(ici) : ici.point100;
+      const adaptee = p100 !== ici.point100;
+      const sens = p100 >= ici.point0 ? '↗' : '↘'; // hausse / baisse favorable
       return `<div style="background:white;border:1px solid rgba(46,102,66,.12);border-left:3px solid ${meta.col};border-radius:var(--r);padding:.6rem .7rem;margin-bottom:.4rem">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:.4rem;margin-bottom:.5rem">
           <div style="font-size:.7rem;font-weight:700;color:var(--ink);line-height:1.25">${ici.nom}</div>
@@ -162,9 +165,10 @@ function iciFicheSolutionHTML(solNom, fallbackInd) {
           </div>
           <div style="text-align:center;flex-shrink:0">
             <div style="font-size:.5rem;text-transform:uppercase;letter-spacing:.08em;color:${meta.col};opacity:.85;margin-bottom:.1rem">Cible</div>
-            <div style="font-size:.72rem;font-weight:800;color:${meta.col}">${fmt(ici.point100, ici.unite)}</div>
+            <div style="font-size:.72rem;font-weight:800;color:${meta.col}">${fmt(p100, ici.unite)}</div>
           </div>
         </div>
+        ${adaptee ? `<div style="font-size:.55rem;color:${meta.col};opacity:.75;margin-top:.35rem;text-align:right">📐 cible adaptée à la taille et au type de ton lieu</div>` : ''}
       </div>`;
     }).join('');
   } else {
@@ -172,7 +176,11 @@ function iciFicheSolutionHTML(solNom, fallbackInd) {
     corps = `<div style="font-size:.62rem;color:var(--moss);font-style:italic;margin-bottom:.45rem">ICI normalisés en cours de cadrage pour cette solution. Indicateurs suivis aujourd'hui :</div>${list}`;
   }
 
+  // Coût estimé pour l'espace du lieu (défini dans app-core, si disponible).
+  const coutHtml = (typeof evadCoutEstimeHTML === 'function') ? evadCoutEstimeHTML(solNom) : '';
+
   return `
+    ${coutHtml}
     <div style="font-family:'Satoshi', sans-serif;font-size:.82rem;font-weight:600;color:var(--ink);margin-bottom:.4rem;padding-bottom:.35rem;border-bottom:1px solid rgba(46,102,66,.1)">🎯 Indicateurs de Changement d'Impact${typeof evadGlossaryChip==='function'?evadGlossaryChip('ici'):''}</div>
     <div style="font-size:.63rem;color:var(--moss);line-height:1.5;margin-bottom:.55rem">Ce que ton lieu va mesurer avec cette solution : la valeur de départ, puis la cible à atteindre. L'écart entre les deux, c'est l'impact réel.</div>
     ${corps}
@@ -209,6 +217,77 @@ function iciCorrespondancesHTML(s) {
    (sous le plancher) → déclenche l'alerte. ── */
 const ICI_MESURES_DEMO = [];
 
+/* ════════════════ RÉFÉRENCES ADAPTÉES AU LIEU ════════════════
+   On ne touche jamais aux MESURES (les litres restent des litres) : on
+   adapte la référence « excellent » (point100) à la taille et au type du
+   lieu. point100 effectif = base_unitaire × dimension × coef de famille.
+   Sans normalisation renseignée (norme vide ou 'lieu') : point100 du
+   catalogue, comportement inchangé. */
+
+// Famille de chaque type de lieu (les 4 catégories de TYPES_LIEU).
+const ICI_TYPE_FAMILLE = {
+  ferme: 'agriculture', jardin: 'agriculture', ecolieu: 'agriculture',
+  fablab: 'fabrication', repair: 'fabrication', ressourcerie: 'fabrication',
+  tiers: 'social', cafe: 'social', epicerie: 'social', habitat: 'social', ecole: 'social',
+  coworking: 'travail', incubateur: 'travail'
+};
+
+// Normalisation par défaut (miroir des colonnes biblio_indicateurs : si la
+// bibliothèque cloud renseigne norme/base_unitaire, elle écrase ces valeurs
+// à l'hydratation ; sinon on part de ces défauts embarqués).
+const ICI_NORMES_DEFAUT = {
+  eco_renat:          { norme: 'm2',     base: 0.15, coefs: { agriculture: 1.5, fabrication: 0.5, social: 0.8, travail: 0.5 } },
+  eco_co2:            { norme: 'm2',     base: 8,    coefs: { agriculture: 0.8, fabrication: 1.2, social: 1,   travail: 1 } },
+  eco_enr:            { norme: 'm2',     base: 12,   coefs: { agriculture: 0.8, fabrication: 1,   social: 1,   travail: 1.2 } },
+  eco_eau:            { norme: 'usager', base: 400,  coefs: { agriculture: 2,   fabrication: 0.7, social: 1,   travail: 0.7 } },
+  eco_dechets:        { norme: 'usager', base: 20,   coefs: { agriculture: 1,   fabrication: 1.5, social: 1,   travail: 0.7 } },
+  eco_prod_locale:    { norme: 'm2',     base: 3,    coefs: { agriculture: 2,   fabrication: 0.4, social: 0.8, travail: 0.4 } },
+  soc_formation:      { norme: 'usager', base: 4,    coefs: { agriculture: 0.8, fabrication: 1.2, social: 1,   travail: 1.2 } },
+  soc_sensibilisation:{ norme: 'usager', base: 3,    coefs: { agriculture: 1,   fabrication: 1,   social: 1.2, travail: 0.8 } },
+  soc_benevoles:      { norme: 'usager', base: 0.4,  coefs: { agriculture: 1,   fabrication: 1,   social: 1.2, travail: 0.6 } },
+  eco_emplois:        { norme: 'usager', base: 0.05, coefs: { agriculture: 1,   fabrication: 1,   social: 1,   travail: 1.5 } },
+};
+ICI_CATALOG.forEach((i) => {
+  const n = ICI_NORMES_DEFAUT[i.id];
+  if (n && i.norme == null) { i.norme = n.norme; i.baseUnitaire = n.base; i.coefTypes = n.coefs; }
+});
+
+// Dimensions du lieu de l'utilisateur : surface (m²) et capacité (usagers),
+// sommées depuis ses espaces, avec repli sur les champs globaux de la fiche.
+function evadLieuMesuresDims(L) {
+  L = L || (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom ? myLieuData : null)
+        || (typeof cData !== 'undefined' ? cData : {}) || {};
+  let m2 = 0, usagers = 0;
+  (L.espacesData || []).forEach((e) => {
+    m2 += parseFloat(e && e.surface) || 0;
+    usagers += parseFloat(e && e.capacite) || 0;
+  });
+  // Champ global de la fiche (texte libre du type « 10 000 m² ») en repli.
+  if (!m2) {
+    const raw = String(L.surface || '').replace(/\s/g, '');
+    const m = raw.match(/\d+(?:[.,]\d+)?/);
+    m2 = m ? parseFloat(m[0].replace(',', '.')) : 0;
+  }
+  if (!usagers) usagers = parseFloat(L.capacite) || 0;
+  return { m2: m2, usager: usagers, famille: ICI_TYPE_FAMILLE[L.type] || 'social' };
+}
+
+// point100 effectif d'un ICI pour un lieu (repli : point100 du catalogue).
+function iciPoint100For(ici, L) {
+  if (!ici) return 100;
+  // Pendant le selfTest : références du catalogue, résultats déterministes.
+  if (typeof window !== 'undefined' && window._iciSelfTesting) return ici.point100;
+  if (!ici.norme || ici.norme === 'lieu' || !(ici.baseUnitaire > 0)) return ici.point100;
+  const d = evadLieuMesuresDims(L);
+  const dim = ici.norme === 'usager' ? d.usager : d.m2;
+  if (!(dim > 0)) return ici.point100; // fiche sans dimension → référence catalogue
+  const coef = (ici.coefTypes && ici.coefTypes[d.famille] != null) ? Number(ici.coefTypes[d.famille]) : 1;
+  const eff = ici.baseUnitaire * dim * (coef || 1);
+  // Arrondi lisible : 2 chiffres significatifs au-delà de 100.
+  if (eff >= 100) return Math.round(eff / 10) * 10;
+  return eff > 0 ? Math.round(eff * 10) / 10 : ici.point100;
+}
+
 /* ════════════════════ MOTEUR DE CALCUL ════════════════════ */
 
 const iciClamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
@@ -228,7 +307,8 @@ function iciSousScoresLivre(mesures, livre, mode) {
     const ici = iciGetICI(m.iciId);
     if (!ici || ici.livre !== livre) return;
     const valeur = mode === 'vadite' ? m.valeurProuvee : m.valeurProjetee;
-    let ss = iciSousScore(valeur, ici.point0, ici.point100);
+    // Référence adaptée au lieu (taille × type) quand la norme est renseignée.
+    let ss = iciSousScore(valeur, ici.point0, iciPoint100For(ici));
     if (ss == null) return;
     if (mode === 'vadite') {
       const coef = ICI_COEF_PREUVE[m.niveauPreuve] != null ? ICI_COEF_PREUVE[m.niveauPreuve] : 0;
@@ -316,7 +396,13 @@ function iciSelfTest() {
   return fails.length === 0;
 }
 
-try { if (typeof window !== 'undefined') iciSelfTest(); } catch (e) { /* silencieux */ }
+try {
+  if (typeof window !== 'undefined') {
+    window._iciSelfTesting = true;
+    iciSelfTest();
+    window._iciSelfTesting = false;
+  }
+} catch (e) { if (typeof window !== 'undefined') window._iciSelfTesting = false; }
 
 /* ════════════════════ UI · MODULE « MESURE D'IMPACT » ════════════════════ */
 
@@ -438,8 +524,9 @@ function iciRenderSaisie() {
   const rows = icis.map((ici) => {
     const meta = ICI_LIVRE_META[ici.livre];
     const m = iciGetMesure(ici.id, false) || {};
-    const ssVad = iciSousScore(m.valeurProjetee, ici.point0, ici.point100);
-    const ssPrv = iciSousScore(m.valeurProuvee, ici.point0, ici.point100);
+    const _p100 = iciPoint100For(ici); // référence adaptée à la taille/type du lieu
+    const ssVad = iciSousScore(m.valeurProjetee, ici.point0, _p100);
+    const ssPrv = iciSousScore(m.valeurProuvee, ici.point0, _p100);
     const coef = ICI_COEF_PREUVE[m.niveauPreuve] != null ? ICI_COEF_PREUVE[m.niveauPreuve] : 0;
     const ssVit = ssPrv == null ? null : ssPrv * coef;
     const inp = (champ, val, ph) => `<input type="number" inputmode="decimal" value="${val == null ? '' : val}" placeholder="${ph}" oninput="iciSetValeur('${ici.id}','${champ}',this.value)" style="width:74px;box-sizing:border-box;padding:.35rem .5rem;border:1.5px solid rgba(46,102,66,.2);border-radius:8px;font-size:.72rem;outline:none;font-family:inherit;background:#f6faf7">`;

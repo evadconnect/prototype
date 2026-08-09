@@ -1684,6 +1684,63 @@ const SOLS=[
    quete:{titre:'Lancer un point de réemploi',duree:'4 journées',nb:'4–8 pers.',impact_quete:'+12 pts éco locale · réemploi'}},
 ];
 
+/* ── Coûts structurés par défaut (miroir des colonnes biblio_solutions) ──
+   coût estimé = cout_fixe + cout_unitaire × dimension de l'ESPACE porteur
+   (surface m² ou capacité usagers). La bibliothèque cloud, si renseignée,
+   écrase ces défauts à l'hydratation (cf. store.js). Le texte `budget`
+   reste le repli d'affichage quand rien n'est structuré. */
+const SOLS_COUTS_DEFAUT = {
+  'Toiture végétalisée':            { fixe: 1500, unitaire: 120, dim: 'm2' },
+  'Isolation paille':               { fixe: 1000, unitaire: 110, dim: 'm2' },
+  'Désimperméabilisation des sols': { fixe: 500,  unitaire: 80,  dim: 'm2' },
+  'Jardin permaculture':            { fixe: 300,  unitaire: 15,  dim: 'm2' },
+  'Potager en buttes':              { fixe: 100,  unitaire: 10,  dim: 'm2' },
+  'Récupération eau de pluie':      { fixe: 1200, unitaire: 8,   dim: 'm2' },
+  'Phytoépuration':                 { fixe: 3000, unitaire: 100, dim: 'usager' },
+  'Toilettes sèches':               { fixe: 800,  unitaire: 40,  dim: 'usager' },
+};
+SOLS.forEach(s => {
+  const c = SOLS_COUTS_DEFAUT[s.nom];
+  if (c && s.coutUnitaire == null) { s.coutFixe = c.fixe; s.coutUnitaire = c.unitaire; s.coutDimension = c.dim; }
+});
+
+// Bloc « Coût estimé » de la fiche solution : contextualisé à l'espace du
+// lieu qui porte la solution (fiche en cours). Repli : budget texte.
+function evadCoutEstimeHTML(solNom) {
+  const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === solNom) : null;
+  if (!sol) return '';
+  const fmtE = (n) => Math.round(n).toLocaleString('fr-FR');
+  const budgetFallback = sol.budget
+    ? `<div style="display:flex;align-items:center;gap:.5rem;font-size:.72rem;color:var(--ink);margin-bottom:1rem;padding:.55rem .7rem;background:rgba(200,115,42,.06);border:1px solid rgba(200,115,42,.2);border-radius:var(--r)"><span style="font-weight:700;color:var(--amber)">💶 Budget indicatif :</span> ${sol.budget}</div>`
+    : '';
+  if (!(sol.coutUnitaire > 0) && !(sol.coutFixe > 0)) return budgetFallback;
+  // Espace porteur : celui où la solution est rangée dans la fiche en cours,
+  // sinon l'espace actif du wizard.
+  let espIdx = null;
+  const sbe = (typeof cData !== 'undefined' && cData && cData.solsByEspace) || {};
+  Object.keys(sbe).forEach(k => { if (espIdx == null && (sbe[k] || []).includes(solNom)) espIdx = +k; });
+  if (espIdx == null && typeof window !== 'undefined' && window._creerActiveEsp != null) espIdx = window._creerActiveEsp;
+  const esp = (typeof cData !== 'undefined' && cData && (cData.espacesData || [])[espIdx]) || null;
+  const parUsager = sol.coutDimension === 'usager';
+  const dimVal = parUsager ? (parseFloat(esp && esp.capacite) || 0) : (parseFloat(esp && esp.surface) || 0);
+  const dimUnit = parUsager ? 'usagers' : 'm²';
+  if (dimVal > 0) {
+    const total = (sol.coutFixe || 0) + (sol.coutUnitaire || 0) * dimVal;
+    const nomEsp = (esp && (esp.nom || esp.eid)) || 'ton espace';
+    const detail = [(sol.coutFixe > 0 ? fmtE(sol.coutFixe) + ' € de base' : null),
+                    (sol.coutUnitaire > 0 ? fmtE(sol.coutUnitaire) + ' €/' + (parUsager ? 'usager' : 'm²') : null)]
+                   .filter(Boolean).join(' + ');
+    return `<div style="margin-bottom:1rem;padding:.6rem .75rem;background:rgba(200,115,42,.06);border:1px solid rgba(200,115,42,.22);border-radius:var(--r)">
+      <div style="font-size:.74rem;color:var(--ink)"><span style="font-weight:700;color:var(--amber)">💶 Coût estimé pour « ${nomEsp} »</span> (${fmtE(dimVal)} ${dimUnit}) : <b>≈ ${fmtE(total)} €</b></div>
+      <div style="font-size:.6rem;color:var(--moss);opacity:.75;margin-top:.2rem">Base de calcul : ${detail} · à ajuster selon ton terrain (devis, auto-construction, réemploi…)</div>
+    </div>`;
+  }
+  // Coût structuré mais pas de dimension saisie : inviter à renseigner l'espace.
+  return budgetFallback
+    ? budgetFallback.replace('</div>', ` <span style="font-size:.62rem;opacity:.7;font-style:italic">· renseigne la ${parUsager ? 'capacité' : 'surface'} de l'espace pour une estimation précise</span></div>`)
+    : '';
+}
+
 /* ── Dimension régénérative & enjeux de demain, par solution (clé = nom) ──
    Deux angles pour chaque solution :
    - regen  : en quoi elle va au-delà du « moins pire » et restaure activement
@@ -2484,7 +2541,9 @@ function lieuRenderImpact() {
         const col = meta.col;
         const p = preuveDe(ici);
         const p0 = (typeof ici.point0 === 'number') ? ici.point0 : 0;
-        const p100 = (typeof ici.point100 === 'number') ? ici.point100 : 100;
+        // Cible adaptée à la taille/type du lieu (repli : catalogue).
+        const p100 = (typeof iciPoint100For === 'function') ? iciPoint100For(ici)
+                   : ((typeof ici.point100 === 'number') ? ici.point100 : 100);
         const val = p0 + (p100 - p0) * p.pct / 100;
         const statut = p.prouvees > 0
           ? `✓ ${p.pct}% prouvé · ${p.prouvees}/${p.liees} quête${p.liees > 1 ? 's' : ''}`
@@ -6331,7 +6390,7 @@ function mmIciNodes(solNom, sx, sy, solDomId){
     if (svg) svg.appendChild(l);
     const nd = mmAdd('ici-' + safe + '-' + k, meta.ic + ' ' + ici.nom, ix, iy, 'ici', meta.col, meta.col + '22');
     nd.style.fontSize = '.6rem'; nd.style.padding = '.2rem .45rem'; nd.style.fontWeight = '700'; nd.style.borderColor = meta.col + '66'; nd.style.cursor = 'grab';
-    nd.title = (ici.unite || '') + ' · cible ' + ici.point100;
+    nd.title = (ici.unite || '') + ' · cible ' + ((typeof iciPoint100For === 'function') ? iciPoint100For(ici) : ici.point100);
   });
 }
 
