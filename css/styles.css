@@ -2830,23 +2830,40 @@ body {
     max-height: 220px;
   }
 
-  /* ── Créer : empiler formulaire + canvas ── */
+  /* ── Créer un lieu : mind map masqué (peu manipulable au doigt) et
+     formulaire en flux naturel — sinon le formulaire était plafonné à 45vh
+     avec un grand canvas vide empilé en dessous. ── */
   #screen-creer > div:last-of-type {
     flex-direction: column !important;
     height: auto !important;
-    overflow: auto !important;
+    overflow: visible !important;
   }
   #screen-creer [style*="width:320px"],
   #screen-creer [style*="width: 320px"] {
     width: 100% !important;
     border-right: none !important;
-    border-bottom: 1px solid rgba(46,102,66,0.12) !important;
-    max-height: 45vh;
+    max-height: none !important;
+    overflow: visible !important;
   }
+  #screen-creer #creer-step-content { overflow: visible !important; }
+  #screen-creer .mm-stage { display: none !important; }
 
-  /* ── Fiches : hauteur auto ── */
+  /* ── Fiches : hauteur auto + arbre / constellation masqués (même correctif) ── */
   #screen-fiche-bat,
   #screen-fiche-sem { height: auto !important; overflow: visible !important; }
+  #screen-fiche-sem > div:last-of-type {
+    flex-direction: column !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  #screen-fiche-sem [style*="width:340px"],
+  #screen-fiche-sem [style*="width: 340px"] {
+    width: 100% !important;
+    border-right: none !important;
+    overflow: visible !important;
+  }
+  #screen-fiche-sem #sem-fiche-content { overflow: visible !important; }
+  #sem-fiche-stage { display: none !important; }
 
   /* ── Modal lieu : feuillet inférieur ── */
   #lieu-modal { padding: 0 !important; align-items: flex-end !important; }

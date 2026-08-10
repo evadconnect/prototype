@@ -350,6 +350,9 @@
     +     '<button onclick="evadCloseInbox()" aria-label="Fermer" style="flex-shrink:0;background:none;border:none;font-size:1.2rem;color:var(--moss);opacity:.55;cursor:pointer">✕</button>'
     +   '</div>'
     +   '<div id="evad-inbox-list" style="flex:1;min-height:0;overflow-y:auto;padding:.5rem;background:rgba(46,102,66,.03)"></div>'
+    +   '<div style="flex-shrink:0;padding:.7rem .9rem;border-top:1px solid rgba(46,102,66,.1);background:#fff">'
+    +     '<button onclick="evadCloseInbox();if(window.openAmelioration)openAmelioration()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.4rem;background:rgba(200,115,42,.08);border:1px solid rgba(200,115,42,.25);color:var(--amber);border-radius:12px;padding:.6rem;font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit">💡 Proposer une amélioration</button>'
+    +   '</div>'
     + '</div>';
     document.body.appendChild(w);
   }
