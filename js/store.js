@@ -326,11 +326,9 @@
           lat: row.latitude, lng: row.longitude
         });
       });
-      var remoteIds = {};
-      remoteRows.forEach(function (r) { remoteIds[r.id] = true; });
-      var localUnsynced = read('semeurs').filter(function (r) { return r && !remoteIds[r.id]; });
-      localUnsynced.forEach(function (r) { insertSemeurRemote(r); });
-      write('semeurs', remoteRows.concat(localUnsynced));
+      // La base fait foi : reflet exact du distant (les fiches supprimées
+      // dans Supabase disparaissent, ni conservées ni re-poussées).
+      write('semeurs', remoteRows);
       global.dispatchEvent(new CustomEvent('evad:semeurs-ready', { detail: { semeurs: remoteRows } }));
     } catch (error) {
       console.warn('Erreur de récupération des fiches Semeur :', error);
@@ -349,12 +347,9 @@
           skills: (row.donnees && row.donnees.skills) || row.competences || []
         });
       });
-      // La base fait foi ; on conserve les fiches locales pas encore poussées.
-      var remoteIds = {};
-      remoteRows.forEach(function (r) { remoteIds[r.id] = true; });
-      var localUnsynced = read('batisseurs').filter(function (r) { return r && !remoteIds[r.id]; });
-      localUnsynced.forEach(function (r) { insertBatisseurRemote(r); });
-      write('batisseurs', remoteRows.concat(localUnsynced));
+      // La base fait foi : on reflète EXACTEMENT le distant (une fiche
+      // supprimée dans Supabase disparaît, on ne la garde ni ne la re-pousse).
+      write('batisseurs', remoteRows);
       global.dispatchEvent(new CustomEvent('evad:batisseurs-ready', { detail: { batisseurs: remoteRows } }));
     } catch (error) {
       console.warn('Erreur de récupération des fiches Bâtisseur :', error);
@@ -433,23 +428,17 @@
           sourceIc: row.source_ic, statut: row.statut, custom: row.custom === true
         });
       });
-      // Fusion : Supabase fait foi pour les quêtes publiées, mais on conserve
-      // les brouillons locaux (non publiés) qui ne sont pas encore en base,
-      // sinon l'hydratation les effacerait.
+      // Fusion : Supabase fait foi pour les quêtes PUBLIÉES (ouverte/terminée) ;
+      // on ne conserve en local QUE les brouillons non publiés (a_verifier,
+      // en_pause, retiree), qui n'ont jamais vocation à être en base. Une quête
+      // publiée absente du distant = supprimée dans Supabase → elle disparaît
+      // aussi en local (on ne la garde ni ne la re-pousse).
       var remoteIds = {};
       remoteRows.forEach(function (r) { remoteIds[r.id] = true; });
-      var localRows = read('quetes');
-      var localDrafts = localRows.filter(function (r) {
+      var localDrafts = read('quetes').filter(function (r) {
         return r && r.statut !== 'ouverte' && r.statut !== 'terminee' && !remoteIds[r.id];
       });
-      // Quêtes publiées localement mais absentes de la base (push échoué,
-      // hors-ligne...) : on ne les supprime PLUS silencieusement, on les
-      // garde et on retente l'envoi.
-      var localUnsynced = localRows.filter(function (r) {
-        return r && (r.statut === 'ouverte' || r.statut === 'terminee') && !remoteIds[r.id];
-      });
-      localUnsynced.forEach(function (r) { upsertQueteRemote(r); });
-      var merged = remoteRows.concat(localDrafts).concat(localUnsynced);
+      var merged = remoteRows.concat(localDrafts);
       write('quetes', merged);
       global.dispatchEvent(new CustomEvent('evad:quetes-ready', { detail: { quetes: merged } }));
     } catch (error) {
@@ -530,8 +519,9 @@
       });
   }
 
-  // Hydratation générique : la base fait foi, mais les lignes locales pas
-  // encore synchronisées (hors-ligne, push échoué) sont conservées et repoussées.
+  // Hydratation générique : la base fait foi. Reflet EXACT du distant (une
+  // ligne supprimée dans Supabase disparaît en local, elle n'est ni conservée
+  // ni re-poussée). pushFn est conservé pour compat mais n'est plus appelé ici.
   async function _hydrateQueteChildren(table, pushFn, eventName) {
     if (!global.evadSupabase) return;
     try {
@@ -550,13 +540,8 @@
           created_at: row.created_at, updated_at: row.updated_at
         });
       });
-      var remoteIds = {};
-      remoteRows.forEach(function (r) { remoteIds[r.id] = true; });
-      var localUnsynced = read(table).filter(function (r) { return r && !remoteIds[r.id]; });
-      localUnsynced.forEach(function (r) { pushFn(r); });
-      var merged = remoteRows.concat(localUnsynced);
-      write(table, merged);
-      global.dispatchEvent(new CustomEvent(eventName, { detail: { rows: merged } }));
+      write(table, remoteRows);
+      global.dispatchEvent(new CustomEvent(eventName, { detail: { rows: remoteRows } }));
     } catch (error) {
       console.warn('Erreur de récupération ' + table + ' :', error);
     }

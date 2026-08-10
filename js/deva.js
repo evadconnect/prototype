@@ -138,6 +138,62 @@ function devaHideTyping() {
 // Permet à Deva de relier une problématique d'espace aux bonnes solutions.
 function devaBuildAppContext() {
   const parts = [];
+
+  // ── État de l'utilisateur : profil, où il se trouve, son objectif du moment. ──
+  // Permet à Deva d'adapter sa réponse à l'étape réelle plutôt que de rester générique.
+  try {
+    const etat = [];
+    const roleLabel = {
+      pilote:    "Pilote d'impact (porteur d'un lieu)",
+      batisseur: "Bâtisseur d'impact (citoyen qui passe à l'action)",
+      semeur:    "Semeur d'impact (financeur)"
+    };
+    const role = (typeof currentRole !== 'undefined') ? currentRole : null;
+    if (role) etat.push('Profil : ' + (roleLabel[role] || role));
+
+    // Écran courant (+ onglet pour le tableau de bord Pilote).
+    const scrMap = {
+      creer:'création de son lieu', pilote:'tableau de bord Pilote',
+      'fiche-bat':'composition de sa fiche Bâtisseur', 'fiche-sem':'composition de sa fiche Financeur',
+      carte:"carte de l'écosystème", reseau:'réseau EVAD', 'quete-detail':"fiche d'une quête"
+    };
+    const scrKey = (((document.querySelector('.screen.active') || {}).id) || '').replace('screen-', '');
+    if (scrKey) {
+      let loc = scrMap[scrKey] || scrKey;
+      if (scrKey === 'pilote') {
+        const tabKey = (((document.querySelector('.pilote-panel.active') || {}).id) || '').replace('pilote-panel-', '');
+        const tabMap = { apercu:'Aperçu', fiche:'Ma fiche', quetes:'Quêtes', dossiers:"Dossiers d'impact", reseau:'Réseau' };
+        if (tabMap[tabKey]) loc += ' → onglet « ' + tabMap[tabKey] + ' »';
+      }
+      etat.push('Écran actuel : ' + loc);
+    }
+
+    // Impact courant : Vadance (promesse) et Vadité (preuve) — concept de lieu, donc Pilote.
+    if (role === 'pilote' && typeof evadImpactData === 'function') {
+      const imp = evadImpactData();
+      if (imp && ((imp.vadance || 0) || (imp.vadite || 0))) {
+        etat.push('Impact : Vadance ' + Math.round(imp.vadance || 0) + '/100 (promesse), Vadité '
+          + Math.round(imp.vadite || 0) + '/100 (preuve)');
+      }
+    }
+
+    // Prochain cran : l'objectif conseillé du moment (côté Pilote).
+    if (role === 'pilote' && typeof apercuNextCran === 'function') {
+      const cran = apercuNextCran();
+      if (cran && cran.title) etat.push('Prochain cran conseillé : « ' + cran.title + ' » — ' + (cran.why || ''));
+    }
+
+    // Avancement de la fiche Bâtisseur.
+    if (role === 'batisseur' && typeof batFicheStep !== 'undefined'
+        && typeof BAT_FICHE_STEPS !== 'undefined' && BAT_FICHE_STEPS[batFicheStep]) {
+      etat.push('Étape de sa fiche Bâtisseur : ' + (batFicheStep + 1) + '/' + BAT_FICHE_STEPS.length
+        + ' (' + BAT_FICHE_STEPS[batFicheStep].h + ')');
+    }
+
+    if (etat.length) parts.push("ÉTAT DE L'UTILISATEUR (adapte ta réponse à son profil et à son étape) :\n"
+      + etat.map(l => '- ' + l).join('\n'));
+  } catch (e) {}
+
   try {
     const espaces = [];
     if (typeof cData !== 'undefined' && cData && Array.isArray(cData.espacesData)) espaces.push(...cData.espacesData);
@@ -160,7 +216,7 @@ function devaBuildAppContext() {
     }
   } catch (e) {}
   if (!parts.length) return null;
-  return "Contexte live de l'application EVAD. Utilise-le pour relier les problématiques notées dans les espaces du lieu aux solutions de la bibliothèque, et proposer les plus pertinentes :\n\n" + parts.join('\n\n');
+  return "Contexte live de l'application EVAD. Appuie-toi dessus pour adapter ta réponse à la situation réelle de l'utilisateur (son profil, son étape, son objectif du moment) et relier les problématiques de ses espaces aux solutions les plus pertinentes de la bibliothèque :\n\n" + parts.join('\n\n');
 }
 
 async function devaSubmit() {
