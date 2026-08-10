@@ -14018,6 +14018,44 @@ function togFicheSol(espIdx, solNom, col, bg) {
       el.style.fontWeight    = nowSel ? '600' : '400';
     }
   });
+  // Propage le choix de solutions vers la fiche lieu (données + carte + mind map).
+  ficheSolsPersist();
+}
+
+// Propage les solutions choisies dans l'onglet « Ma fiche » du tableau de bord
+// vers le lieu : myLieuData.solsByEspace/solutions, sauvegarde Supabase
+// (debouncée, un clic ≠ un appel réseau) et rafraîchissement de la fiche lieu
+// (mind map + espaces) si elle est ouverte sur ce lieu.
+let _ficheSolsTimer = null;
+function ficheSolsPersist() {
+  if (typeof myLieuData === 'undefined' || !myLieuData) return;
+  // Sélection courante par espace (copie).
+  const byEsp = {};
+  Object.keys(ficheSolsByEspace).forEach(k => { byEsp[k] = (ficheSolsByEspace[k] || []).slice(); });
+  myLieuData.solsByEspace = byEsp;
+  // Liste à plat recalculée DIRECTEMENT depuis solsByEspace (ne pas passer par
+  // evadLieuSols, qui renverrait l'ancien champ `solutions` s'il est non vide).
+  myLieuData.solutions = [...new Set(Object.keys(byEsp).reduce((a, k) => a.concat(byEsp[k] || []), []))];
+
+  // Mise à jour immédiate de la fiche lieu (modal) si ouverte sur ce lieu.
+  try {
+    const modal = document.getElementById('lieu-modal');
+    if (modal && modal.style.display !== 'none' && typeof cData !== 'undefined' && cData && cData.id && cData.id === myLieuData.id) {
+      cData.solsByEspace = myLieuData.solsByEspace;
+      cData.solutions = myLieuData.solutions;
+      if (typeof lieuRenderMindmap === 'function') lieuRenderMindmap();
+      if (typeof lieuRenderEspaces === 'function') lieuRenderEspaces();
+    }
+  } catch (e) {}
+
+  // Écriture Supabase + reconstruction carte, debouncées.
+  clearTimeout(_ficheSolsTimer);
+  _ficheSolsTimer = setTimeout(() => {
+    if (window.store && myLieuData.id) {
+      try { const s = store.upsert('lieux', Object.assign({}, myLieuData)); if (s && s.id) myLieuData.id = s.id; } catch (e) {}
+    }
+    try { if (typeof syncMapPlacesFromStore === 'function') syncMapPlacesFromStore(); } catch (e) {}
+  }, 600);
 }
 
 function ficheMmRender() {
