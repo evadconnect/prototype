@@ -12,7 +12,7 @@
         crossorigin=""
     />
         
-<link rel="stylesheet" href="css/styles.css?v=188">
+<link rel="stylesheet" href="css/styles.css?v=189">
 </head>
 <body>
 
@@ -93,7 +93,7 @@
 </div>
 
 
-<script src="js/splash-onboarding.js?v=188"></script>
+<script src="js/splash-onboarding.js?v=189"></script>
 
 <div class="app">
 
@@ -857,6 +857,27 @@
         <div style="font-size:.72rem;color:var(--moss);opacity:.7;margin-top:.15rem">Ton impact en un coup d'œil, et le prochain cran à franchir.</div>
       </div>
 
+      <!-- PROCHAIN CRAN -->
+      <div style="background:linear-gradient(135deg,#ffffff,#fbf7ee);border:1.5px solid rgba(200,115,42,.3);border-radius:var(--r-lg);padding:1.2rem 1.3rem;margin-bottom:.9rem">
+        <div style="font-size:.6rem;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.6rem">🎯 Ton prochain cran</div>
+        <div style="display:flex;align-items:flex-start;gap:.85rem">
+          <div id="apercu-cran-icon" style="font-size:1.9rem;line-height:1.1;flex-shrink:0">✅</div>
+          <div style="flex:1;min-width:0">
+            <div id="apercu-cran-title" style="font-family:'Satoshi', sans-serif;font-size:1.05rem;font-weight:800;color:var(--ink);line-height:1.2">-</div>
+            <div id="apercu-cran-why" style="font-size:.72rem;color:var(--moss);opacity:.82;line-height:1.45;margin-top:.3rem">-</div>
+          </div>
+        </div>
+        <div style="margin:.95rem 0 .2rem">
+          <div style="display:flex;justify-content:space-between;font-size:.6rem;color:var(--moss);opacity:.7;margin-bottom:.3rem">
+            <span id="apercu-cran-from">-</span><span id="apercu-cran-to">-</span>
+          </div>
+          <div style="height:8px;border-radius:100px;background:rgba(200,115,42,.12);overflow:hidden">
+            <div id="apercu-cran-bar" style="height:100%;width:0%;border-radius:100px;background:linear-gradient(90deg,var(--amber),#e8a55a);transition:width .8s cubic-bezier(.4,0,.2,1)"></div>
+          </div>
+        </div>
+        <button id="apercu-cran-cta" onclick="" style="margin-top:.75rem;background:var(--forest);border:none;border-radius:100px;padding:.55rem 1.3rem;font-size:.72rem;font-weight:700;color:white;cursor:pointer">-</button>
+      </div>
+
       <!-- ÉTAT DU LIEU -->
       <div id="apercu-etat-card" style="background:white;border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:1.4rem 1.5rem;margin-bottom:.9rem">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.1rem">
@@ -897,27 +918,6 @@
         </div>
         <div id="apercu-triptyque"></div>
         <div id="apercu-plancher-alert" style="display:none;background:rgba(200,115,42,.08);border:1px solid rgba(200,115,42,.3);border-radius:var(--r);padding:.7rem .85rem;font-size:.68rem;color:#9a4a1a;line-height:1.5;margin-top:.5rem"></div>
-      </div>
-
-      <!-- PROCHAIN CRAN -->
-      <div style="background:linear-gradient(135deg,#ffffff,#fbf7ee);border:1.5px solid rgba(200,115,42,.3);border-radius:var(--r-lg);padding:1.2rem 1.3rem;margin-bottom:.9rem">
-        <div style="font-size:.6rem;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.6rem">🎯 Ton prochain cran</div>
-        <div style="display:flex;align-items:flex-start;gap:.85rem">
-          <div id="apercu-cran-icon" style="font-size:1.9rem;line-height:1.1;flex-shrink:0">✅</div>
-          <div style="flex:1;min-width:0">
-            <div id="apercu-cran-title" style="font-family:'Satoshi', sans-serif;font-size:1.05rem;font-weight:800;color:var(--ink);line-height:1.2">-</div>
-            <div id="apercu-cran-why" style="font-size:.72rem;color:var(--moss);opacity:.82;line-height:1.45;margin-top:.3rem">-</div>
-          </div>
-        </div>
-        <div style="margin:.95rem 0 .2rem">
-          <div style="display:flex;justify-content:space-between;font-size:.6rem;color:var(--moss);opacity:.7;margin-bottom:.3rem">
-            <span id="apercu-cran-from">-</span><span id="apercu-cran-to">-</span>
-          </div>
-          <div style="height:8px;border-radius:100px;background:rgba(200,115,42,.12);overflow:hidden">
-            <div id="apercu-cran-bar" style="height:100%;width:0%;border-radius:100px;background:linear-gradient(90deg,var(--amber),#e8a55a);transition:width .8s cubic-bezier(.4,0,.2,1)"></div>
-          </div>
-        </div>
-        <button id="apercu-cran-cta" onclick="" style="margin-top:.75rem;background:var(--forest);border:none;border-radius:100px;padding:.55rem 1.3rem;font-size:.72rem;font-weight:700;color:white;cursor:pointer">-</button>
       </div>
 
       <!-- BOUCLE VADE -->
@@ -1256,12 +1256,6 @@
         <div class="lq-stat" style="border-top:3px solid var(--lavender)"><div class="lq-stat-val" style="color:var(--lavender)">-</div><div class="lq-stat-lbl">graines distribués</div><div class="lq-stat-trend">aucun pour l'instant</div></div>
       </div>
 
-      <!-- Conseil de Deva sur l'état des quêtes (rempli par renderPiloteQuetes) -->
-      <div style="display:flex;align-items:flex-start;gap:0.55rem;background:rgba(120,110,168,0.06);border:1px solid rgba(120,110,168,0.18);border-radius:12px;padding:0.6rem 0.8rem;margin-bottom:0.9rem">
-        <span style="font-size:1rem;flex-shrink:0">🧚</span>
-        <div id="deva-quetes-msg" style="font-size:0.72rem;color:var(--ink);line-height:1.5"></div>
-      </div>
-
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.9rem">
         <div style="display:flex;gap:0.4rem">
           <button class="pmkt-filter-btn active" onclick="lqPiloteFilter('toutes',this)">Toutes</button>
@@ -1535,9 +1529,9 @@
   </div>
 </div>
 
-<script src="js/data-reseau.js?v=188"></script>
+<script src="js/data-reseau.js?v=189"></script>
 
-<script src="js/regen-loop.js?v=188"></script>
+<script src="js/regen-loop.js?v=189"></script>
 
 <!-- Modale ajout/édition offre Pilote -->
 <div id="pmkt-modal" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(14,26,18,0.75);backdrop-filter:blur(6px);align-items:center;justify-content:center">
@@ -2198,7 +2192,7 @@
     </div>
   </div>
 
-  <div class="bat-fiche-split" style="display:flex;height:calc(100vh - 57px);overflow:hidden;">
+  <div class="bat-fiche-split" style="display:flex;height:calc(100vh - 57px);overflow:hidden;position:relative;">
 
     <!-- Colonne formulaire -->
     <div class="bat-fiche-formcol" style="width:340px;flex-shrink:0;border-right:1px solid rgba(46,102,66,0.12);background:#fff;display:flex;flex-direction:column;height:100%;overflow:hidden;">
@@ -2230,6 +2224,14 @@
       <div id="bat-canvas" style="position:absolute;inset:0;z-index:2;will-change:transform;">
         <svg id="bat-tree-svg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;"></svg>
         <div id="bat-tree-nodes" style="position:absolute;inset:0;z-index:3;"></div>
+      </div>
+    </div>
+
+    <!-- Détail quête : panneau latéral (glisse au-dessus de l'arbre, la liste reste visible) -->
+    <div id="bat-quete-ov" onclick="closeFicheQueteModal()"
+      style="display:none;position:absolute;left:340px;right:0;top:0;bottom:0;z-index:50;overflow:hidden;">
+      <div id="bat-quete-ov-box" onclick="event.stopPropagation()"
+        style="position:absolute;inset:0;background:#fff;border-left:1px solid rgba(46,102,66,.12);padding:1.2rem 1.3rem 2rem;overflow-y:auto;transform:translateX(100%);transition:transform .3s cubic-bezier(.22,1,.36,1);box-shadow:-8px 0 28px rgba(14,26,18,.12)">
       </div>
     </div>
 
@@ -2546,9 +2548,9 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-config.js?v=188"></script>
-<script src="js/store.js?v=188"></script>
-<script src="js/app-core.js?v=188"></script>
+<script src="js/supabase-config.js?v=189"></script>
+<script src="js/store.js?v=189"></script>
+<script src="js/app-core.js?v=189"></script>
 
 <script
   src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -2607,9 +2609,9 @@
   </div>
 </div>
 
-<script src="js/deva.js?v=188"></script>
+<script src="js/deva.js?v=189"></script>
 
-<script src="js/nav-mobile.js?v=188"></script>
+<script src="js/nav-mobile.js?v=189"></script>
 
 <!-- ── Modal : Choisir ton profil ── -->
 <div id="auth-profil-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(14,26,18,.6);backdrop-filter:blur(6px);align-items:center;justify-content:center">
@@ -2654,7 +2656,7 @@
 </div>
 
 
-<script src="js/auth.js?v=188"></script>
+<script src="js/auth.js?v=189"></script>
 
 <!-- Espace modal, placé au niveau body pour rester accessible depuis tous les contextes -->
 <div id="espace-modal">
@@ -2743,17 +2745,17 @@
     </div>
   </div>
 </div>
-<script src="js/espace-modal.js?v=188"></script>
+<script src="js/espace-modal.js?v=189"></script>
 
 <!-- ═══════════════════════════════════════════════════════
      COUCHE DE CONVERGENCE, PERMA-COMPTABILITÉ EVAD
      Saisie unique → traduction multi-cadres institutionnels
      ═══════════════════════════════════════════════════════ -->
-<script src="js/quetes.js?v=188"></script>
-<script src="js/ici.js?v=188"></script>
+<script src="js/quetes.js?v=189"></script>
+<script src="js/ici.js?v=189"></script>
 
-<script src="js/contribution.js?v=188"></script>
-<script src="js/messages.js?v=188"></script>
+<script src="js/contribution.js?v=189"></script>
+<script src="js/messages.js?v=189"></script>
 
 <!-- Modal détail solution (créer lieu step 4) -->
 <div id="creer-sol-detail-modal" style="display:none;position:fixed;inset:0;z-index:10010;background:rgba(13,43,34,.6);backdrop-filter:blur(6px);align-items:flex-end;justify-content:center;" onclick="if(event.target===this)creerCloseSolDetail()">
@@ -2766,7 +2768,7 @@
   </div>
 </div>
 
-<script src="js/fil-rouge-feedback.js?v=188"></script>
+<script src="js/fil-rouge-feedback.js?v=189"></script>
 
 </body>
 </html>

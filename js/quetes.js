@@ -665,16 +665,6 @@ function renderPiloteQuetes() {
     } else if (!nbPreuvesAttente && dot) dot.remove();
   }
 
-  // Message Deva : les preuves en attente passent devant tout le reste.
-  const msg = document.getElementById('deva-quetes-msg');
-  if (msg) {
-    if (nbPreuvesAttente) msg.textContent = `📥 ${nbPreuvesAttente} preuve${nbPreuvesAttente>1?'s':''} attend${nbPreuvesAttente>1?'ent':''} ta validation : ouvre le détail de la quête concernée. Chaque preuve validée nourrit ta Vadité.`;
-    else if (aVerifier.length) msg.textContent = `${aVerifier.length} quête${aVerifier.length>1?'s':''} à vérifier : ouvre le détail, puis publie celles qui te conviennent. Seules les quêtes publiées sont visibles par les bâtisseurs.`;
-    else if (nbInscritsNotif && enLigneActives.length) msg.textContent = `👥 ${nbInscritsNotif} bâtisseur${nbInscritsNotif>1?'s':''} inscrit${nbInscritsNotif>1?'s':''} sur tes quêtes. Pense à déposer la preuve T0 (état initial) avant le début du chantier.`;
-    else if (enLigne.length) msg.textContent = `Tes ${enLigne.length} quête${enLigne.length>1?'s':''} sont en ligne. Valide une preuve depuis le détail pour la propager dans tes dossiers CSRD/FSE+.`;
-    else msg.textContent = 'Crée ta première quête avec « + Nouvelle quête » : une action concrète que les bâtisseurs pourront rejoindre une fois publiée.';
-  }
-
   // Répercute sur l'aperçu (Vadance + wallet graines)
   if (typeof updateApercuFromQuetes === 'function') updateApercuFromQuetes();
 }

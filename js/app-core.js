@@ -8273,11 +8273,12 @@ function openQueteModalFromFiche(id) {
   _qdCurrentId = id;
   _qdFrom = 'fiche-bat';
   renderQueteDetail(); // remplit l'écran (caché) qd-main / qd-panel / qd-topbar-*
-  // Affichage INLINE dans le panneau latéral (colonne de gauche), à la suite
-  // de la liste de matching — comme les fiches solution du wizard lieu, plus
-  // en modal. « ← Retour » restaure la liste.
-  const host = document.getElementById('bat-fiche-content');
-  if (!host) { showScreen('quete-detail'); return; }
+  // Affichage dans un panneau latéral dédié qui glisse au-dessus de l'arbre :
+  // la liste de matching reste visible dans la colonne de gauche. « ← Retour »
+  // referme le panneau.
+  const ov  = document.getElementById('bat-quete-ov');
+  const host = document.getElementById('bat-quete-ov-box');
+  if (!ov || !host) { showScreen('quete-detail'); return; }
   host.scrollTop = 0;
   host.innerHTML = `
     <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:1rem">
@@ -8291,6 +8292,8 @@ function openQueteModalFromFiche(id) {
     <div id="qm-panel" style="display:flex;flex-direction:column;gap:.9rem"></div>
   `;
   window._batQueteInline = true;
+  ov.style.display = 'block';
+  requestAnimationFrame(() => { host.style.transform = 'translateX(0)'; });
   refreshFicheQueteModal();
 }
 
@@ -8313,10 +8316,14 @@ function refreshFicheQueteModal() {
 function closeFicheQueteModal() {
   const modal = document.getElementById('bat-quete-modal');
   if (modal) modal.style.display = 'none';
-  // Vue inline : « ← Retour » restaure la liste de matching dans le panneau.
+  // Panneau latéral : « ← Retour » le referme (glissement puis masquage). La
+  // liste de matching, jamais détruite, reste affichée dans la colonne de gauche.
   if (window._batQueteInline) {
     window._batQueteInline = false;
-    if (typeof batFicheRenderStep === 'function') batFicheRenderStep();
+    const ov  = document.getElementById('bat-quete-ov');
+    const box = document.getElementById('bat-quete-ov-box');
+    if (box) box.style.transform = 'translateX(100%)';
+    if (ov)  setTimeout(() => { ov.style.display = 'none'; }, 300);
   }
 }
 
