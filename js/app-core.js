@@ -9718,7 +9718,21 @@ function piloteFicheSave() {
   }
   // Reflète le lieu mis à jour dans l'en-tête du tableau de bord et sur la carte.
   if (typeof evadReflectLieuInDashboard === 'function') { try { evadReflectLieuInDashboard(); } catch (e) {} }
-  if (typeof syncMapPlacesFromStore === 'function') { try { syncMapPlacesFromStore(); } catch (e) {} }
+  // Carte : reconstruit les données ET force le re-rendu complet (marqueurs +
+  // cartes communauté + panneau du lieu) pour que la fiche carte reflète l'édition.
+  try {
+    if (typeof syncMapPlacesFromStore === 'function') syncMapPlacesFromStore();
+    _mapCommunityRendered = false;
+    if (typeof evadMap !== 'undefined' && evadMap) { try { evadMap.remove(); } catch (e) {} evadMap = null; }
+    const _carte = document.getElementById('screen-carte');
+    if (_carte && _carte.classList.contains('active') && typeof initRealMap === 'function') initRealMap();
+    // Si le panneau d'un lieu est ouvert sur CE lieu, on le rafraîchit.
+    const _panel = document.getElementById('map-acteur-panel');
+    if (_panel && _panel.style.display !== 'none' && typeof mapShowLieu === 'function') {
+      const _idx = MAP_PLACES.findIndex(p => p.fiche && p.fiche.id === myLieuData.id);
+      if (_idx >= 0) mapShowLieu(_idx);
+    }
+  } catch (e) {}
   if (typeof mmBubble === 'function') mmBubble('💾 Fiche enregistrée · modifications publiées ✅');
 }
 
