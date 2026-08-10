@@ -12,7 +12,7 @@
         crossorigin=""
     />
         
-<link rel="stylesheet" href="css/styles.css?v=200">
+<link rel="stylesheet" href="css/styles.css?v=214">
 </head>
 <body>
 
@@ -93,7 +93,7 @@
 </div>
 
 
-<script src="js/splash-onboarding.js?v=200"></script>
+<script src="js/splash-onboarding.js?v=214"></script>
 
 <div class="app">
 
@@ -158,6 +158,10 @@
   <div class="nav-stepper" id="nav-stepper" aria-hidden="true"></div>
 
   <div class="nav-bottom">
+    <button class="ob-intro-btn" id="evad-messages-btn" onclick="evadOpenInbox()" title="Mes messages" style="position:relative">
+      <span class="oib-ico">💬</span><span class="oib-txt"> Messages</span>
+      <span id="evad-msg-unread-badge" style="display:none;position:absolute;top:50%;right:.7rem;transform:translateY(-50%);min-width:18px;height:18px;padding:0 5px;border-radius:100px;background:#f07030;color:#fff;font-size:.62rem;font-weight:800;align-items:center;justify-content:center;line-height:1;box-shadow:0 2px 6px rgba(240,112,48,.5)">0</span>
+    </button>
     <button class="ob-intro-btn" id="evad-feedback-btn" onclick="openAmelioration()" title="Proposer une amélioration">
       <span class="oib-ico">💡</span><span class="oib-txt"> Proposer une amélioration</span>
     </button>
@@ -1488,9 +1492,9 @@
   </div>
 </div>
 
-<script src="js/data-reseau.js?v=200"></script>
+<script src="js/data-reseau.js?v=214"></script>
 
-<script src="js/regen-loop.js?v=200"></script>
+<script src="js/regen-loop.js?v=214"></script>
 
 <!-- Modale ajout/édition offre Pilote -->
 <div id="pmkt-modal" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(14,26,18,0.75);backdrop-filter:blur(6px);align-items:center;justify-content:center">
@@ -2186,11 +2190,12 @@
       </div>
     </div>
 
-    <!-- Détail quête : panneau latéral (glisse au-dessus de l'arbre, la liste reste visible) -->
+    <!-- Détail quête : panneau réduit en HAUT de la zone (le mind map reste
+         visible en dessous). Clic hors panneau = fermeture. -->
     <div id="bat-quete-ov" onclick="closeFicheQueteModal()"
-      style="display:none;position:absolute;left:340px;right:0;top:0;bottom:0;z-index:50;overflow:hidden;">
+      style="display:none;position:absolute;left:340px;right:0;top:0;height:58%;z-index:50;overflow:hidden;">
       <div id="bat-quete-ov-box" onclick="event.stopPropagation()"
-        style="position:absolute;inset:0;background:#fff;border-left:1px solid rgba(46,102,66,.12);padding:1.2rem 1.3rem 2rem;overflow-y:auto;transform:translateX(100%);transition:transform .3s cubic-bezier(.22,1,.36,1);box-shadow:-8px 0 28px rgba(14,26,18,.12)">
+        style="position:absolute;inset:0;background:#fff;border-left:1px solid rgba(46,102,66,.12);border-bottom:1px solid rgba(46,102,66,.12);border-radius:0 0 var(--r-lg,14px) 0;padding:1.1rem 1.3rem 1.4rem;overflow-y:auto;transform:translateY(-100%);transition:transform .3s cubic-bezier(.22,1,.36,1);box-shadow:0 12px 28px rgba(14,26,18,.14)">
       </div>
     </div>
 
@@ -2507,9 +2512,9 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-config.js?v=200"></script>
-<script src="js/store.js?v=202"></script>
-<script src="js/app-core.js?v=212"></script>
+<script src="js/supabase-config.js?v=214"></script>
+<script src="js/store.js?v=214"></script>
+<script src="js/app-core.js?v=214"></script>
 
 <script
   src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -2568,9 +2573,9 @@
   </div>
 </div>
 
-<script src="js/deva.js?v=200"></script>
+<script src="js/deva.js?v=214"></script>
 
-<script src="js/nav-mobile.js?v=200"></script>
+<script src="js/nav-mobile.js?v=214"></script>
 
 <!-- ── Modal : Choisir ton profil ── -->
 <div id="auth-profil-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(14,26,18,.6);backdrop-filter:blur(6px);align-items:center;justify-content:center">
@@ -2615,7 +2620,7 @@
 </div>
 
 
-<script src="js/auth.js?v=200"></script>
+<script src="js/auth.js?v=214"></script>
 
 <!-- Espace modal, placé au niveau body pour rester accessible depuis tous les contextes -->
 <div id="espace-modal">
@@ -2704,17 +2709,17 @@
     </div>
   </div>
 </div>
-<script src="js/espace-modal.js?v=200"></script>
+<script src="js/espace-modal.js?v=214"></script>
 
 <!-- ═══════════════════════════════════════════════════════
      COUCHE DE CONVERGENCE, PERMA-COMPTABILITÉ EVAD
      Saisie unique → traduction multi-cadres institutionnels
      ═══════════════════════════════════════════════════════ -->
-<script src="js/quetes.js?v=200"></script>
-<script src="js/ici.js?v=200"></script>
+<script src="js/quetes.js?v=214"></script>
+<script src="js/ici.js?v=214"></script>
 
-<script src="js/contribution.js?v=200"></script>
-<script src="js/messages.js?v=200"></script>
+<script src="js/contribution.js?v=214"></script>
+<script src="js/messages.js?v=214"></script>
 
 <!-- Modal détail solution (créer lieu step 4) -->
 <div id="creer-sol-detail-modal" style="display:none;position:fixed;inset:0;z-index:10010;background:rgba(13,43,34,.6);backdrop-filter:blur(6px);align-items:flex-end;justify-content:center;" onclick="if(event.target===this)creerCloseSolDetail()">
@@ -2727,7 +2732,7 @@
   </div>
 </div>
 
-<script src="js/fil-rouge-feedback.js?v=200"></script>
+<script src="js/fil-rouge-feedback.js?v=214"></script>
 
 </body>
 </html>

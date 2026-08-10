@@ -2940,7 +2940,7 @@ function mapShowBatisseur(idx) {
         ${b.certifications.map(cert => `<span class="acteur-skill-tag" style="background:rgba(240,200,74,0.1);color:#9a7a00;border:1px solid rgba(240,200,74,0.3)">✓ ${cert}</span>`).join('')}
       </div>` : ''}
 
-      <button class="acteur-cta" style="background:var(--amber);color:white" onclick="mmBubble('✉️ Message envoyé à ${b.nom}, réponse sous 48h')">
+      <button class="acteur-cta" style="background:var(--amber);color:white" onclick="evadStartChat({id:'bat:${(b.nom||'').replace(/'/g,"\\'")}',nom:'${(b.nom||'').replace(/'/g,"\\'")}',role:'batisseur'})">
         Contacter ce bâtisseur →
       </button>
     </div>
@@ -7646,7 +7646,7 @@ function mapShowNewBatisseur() {
         ${cherche.map(c=>`<span class="acteur-skill-tag" style="background:rgba(58,110,140,.08);color:var(--sky);border:1px solid rgba(58,110,140,.2)">${c}</span>`).join('')}
       </div>` : ''}
 
-      <button class="acteur-cta" style="background:var(--amber);color:white" onclick="mmBubble('✉️ Message envoyé à ${prenom}, réponse sous 48h')">
+      <button class="acteur-cta" style="background:var(--amber);color:white" onclick="evadStartChat({id:'bat:${(prenom||'').replace(/'/g,"\\'")}',nom:'${(prenom||'').replace(/'/g,"\\'")}',role:'batisseur'})">
         Contacter ce bâtisseur →
       </button>
     </div>`;
@@ -8403,7 +8403,7 @@ function openQueteModalFromFiche(id) {
   `;
   window._batQueteInline = true;
   ov.style.display = 'block';
-  requestAnimationFrame(() => { host.style.transform = 'translateX(0)'; });
+  requestAnimationFrame(() => { host.style.transform = 'translateY(0)'; });
   refreshFicheQueteModal();
 }
 
@@ -8432,7 +8432,7 @@ function closeFicheQueteModal() {
     window._batQueteInline = false;
     const ov  = document.getElementById('bat-quete-ov');
     const box = document.getElementById('bat-quete-ov-box');
-    if (box) box.style.transform = 'translateX(100%)';
+    if (box) box.style.transform = 'translateY(-100%)';
     if (ov)  setTimeout(() => { ov.style.display = 'none'; }, 300);
   }
 }
@@ -11806,21 +11806,19 @@ function batFicheRenderStep() {
 
     c.innerHTML = `
       ${chipsHtml}
-      <div style="display:flex;flex-direction:column;gap:.5rem">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
         ${list.map(q => {
           const col = colFor(q.score);
+          const colBg = col === 'var(--fern)' ? 'rgba(74,140,92,.1)' : col === 'var(--amber)' ? 'rgba(200,115,42,.1)' : 'rgba(58,110,140,.1)';
           const typeIc = q.type.split(' ')[0];
-          return `<div onclick="openQueteModalFromFiche(${q.id})" style="background:white;border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:.7rem .85rem;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:.7rem" onmouseover="this.style.borderColor='rgba(74,140,92,.35)';this.style.boxShadow='0 3px 12px rgba(74,140,92,.09)'" onmouseout="this.style.borderColor='rgba(46,102,66,.12)';this.style.boxShadow='none'">
-            <div style="width:36px;height:36px;border-radius:9px;background:rgba(74,140,92,.1);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0">${typeIc}</div>
-            <div style="flex:1;min-width:0">
-              <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.2rem">
-                <div style="font-size:.75rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">${q.titre}</div>
-                <span style="font-size:.6rem;font-weight:800;color:${col};background:${col === 'var(--fern)' ? 'rgba(74,140,92,.1)' : col === 'var(--amber)' ? 'rgba(200,115,42,.1)' : 'rgba(58,110,140,.1)'};padding:.1rem .4rem;border-radius:100px;flex-shrink:0">${q.score}%</span>
-              </div>
-              <div style="font-size:.62rem;color:var(--moss);opacity:.75;display:flex;gap:.5rem;flex-wrap:wrap">
-                <span>📍 ${q.lieu}</span><span>⏱ ${q.duree}</span><span style="color:var(--amber);font-weight:600">🪙 +${q.tokens}</span>
-              </div>
+          return `<div onclick="openQueteModalFromFiche(${q.id})" style="background:white;border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:.6rem .65rem;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;gap:.35rem;min-width:0" onmouseover="this.style.borderColor='rgba(74,140,92,.35)';this.style.boxShadow='0 3px 12px rgba(74,140,92,.09)'" onmouseout="this.style.borderColor='rgba(46,102,66,.12)';this.style.boxShadow='none'">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:.4rem">
+              <div style="width:30px;height:30px;border-radius:8px;background:rgba(74,140,92,.1);display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0">${typeIc}</div>
+              <span style="font-size:.58rem;font-weight:800;color:${col};background:${colBg};padding:.1rem .4rem;border-radius:100px;flex-shrink:0">${q.score}%</span>
             </div>
+            <div style="font-size:.72rem;font-weight:600;color:var(--ink);line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${q.titre}</div>
+            <div style="font-size:.58rem;color:var(--moss);opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📍 ${q.lieu}</div>
+            <div style="font-size:.58rem;color:var(--amber);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🪙 +${q.tokens} · ⏱ ${q.duree}</div>
           </div>`;
         }).join('')}
       </div>
