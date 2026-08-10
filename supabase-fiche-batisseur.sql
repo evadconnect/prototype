@@ -23,6 +23,21 @@ create table if not exists public.fiche_batisseur (
   updated_at  timestamptz default now()
 );
 
+-- Rattrapage : si la table existait déjà avec un schéma incomplet (ancienne
+-- version / renommage), on garantit la présence de TOUTES les colonnes.
+-- (create table if not exists n'ajoute pas les colonnes manquantes.)
+alter table public.fiche_batisseur add column if not exists user_id     uuid;
+alter table public.fiche_batisseur add column if not exists prenom      text;
+alter table public.fiche_batisseur add column if not exists nom         text;
+alter table public.fiche_batisseur add column if not exists ville       text;
+alter table public.fiche_batisseur add column if not exists latitude    double precision;
+alter table public.fiche_batisseur add column if not exists longitude   double precision;
+alter table public.fiche_batisseur add column if not exists bio         text;
+alter table public.fiche_batisseur add column if not exists competences jsonb;
+alter table public.fiche_batisseur add column if not exists donnees     jsonb;
+alter table public.fiche_batisseur add column if not exists created_at  timestamptz default now();
+alter table public.fiche_batisseur add column if not exists updated_at  timestamptz default now();
+
 alter table public.fiche_batisseur enable row level security;
 
 -- Lecture publique (les fiches apparaissent sur la carte communauté).
@@ -39,6 +54,10 @@ create policy "fiche_batisseur_update_public" on public.fiche_batisseur for upda
 
 drop policy if exists "fiche_batisseur_delete_public" on public.fiche_batisseur;
 create policy "fiche_batisseur_delete_public" on public.fiche_batisseur for delete using (true);
+
+-- Force PostgREST à recharger le schéma (sinon l'API renvoie encore
+-- « Could not find the 'bio' column ... in the schema cache »).
+notify pgrst, 'reload schema';
 
 -- ============================================================
 --  Après ça : publier une fiche Bâtisseur l'enregistre en base, elle
