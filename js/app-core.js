@@ -975,11 +975,17 @@ function lieuRenderPresentation() {
       ${cData.horaires ? `<div style="font-size:.72rem;color:var(--moss)">🕒 ${cData.horaires}</div>` : ''}
     </div>` : '';
 
-  box.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 300px;gap:1.5rem;align-items:start">
+  // Besoins du lieu, affichés sous « À propos » (colonne unique).
+  const besoinsBlock = `
+    <div>
+      <div class="acteur-section-title" style="margin-bottom:.5rem">🔍 Besoins du lieu</div>
+      ${(cData.besoins||[]).length
+        ? `<div style="display:flex;flex-wrap:wrap;gap:.3rem">${(cData.besoins||[]).map(b=>`<span style="padding:.2rem .5rem;border-radius:100px;background:rgba(200,115,42,.1);border:1px solid rgba(200,115,42,.3);font-size:.65rem;color:var(--amber);font-weight:600">${b}</span>`).join('')}</div>`
+        : `<div style="font-size:.72rem;color:var(--moss);opacity:.5">Aucun besoin renseigné</div>`}
+    </div>`;
 
-      <!-- Colonne gauche -->
-      <div style="display:flex;flex-direction:column;gap:1.2rem">
+  box.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:1.2rem;max-width:640px">
 
         <!-- À propos -->
         <div>
@@ -994,6 +1000,8 @@ function lieuRenderPresentation() {
             <div style="display:flex;flex-wrap:wrap;gap:.3rem">${labelChips}</div>
           </div>` : ''}
         </div>
+
+        ${besoinsBlock}
 
         ${contactSection}
 
@@ -1014,28 +1022,6 @@ function lieuRenderPresentation() {
           <div style="padding:1rem;text-align:center;font-size:.72rem;color:var(--moss);opacity:.5">Aucun semeur partenaire</div>
         </div>
 
-      </div>
-
-      <!-- Sidebar droite -->
-      <div style="display:flex;flex-direction:column;gap:.85rem">
-
-        <!-- Besoins -->
-        <div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-xl);overflow:hidden">
-          <div style="padding:.75rem 1rem;border-bottom:1px solid rgba(46,102,66,.08);font-size:.78rem;font-weight:700;color:var(--ink)">🔍 Besoins du lieu</div>
-          ${(cData.besoins||[]).length
-            ? `<div style="padding:.65rem .85rem;display:flex;flex-wrap:wrap;gap:.3rem">${(cData.besoins||[]).map(b=>`<span style="padding:.2rem .5rem;border-radius:100px;background:rgba(200,115,42,.1);border:1px solid rgba(200,115,42,.3);font-size:.65rem;color:var(--amber);font-weight:600">${b}</span>`).join('')}</div>`
-            : `<div style="padding:.75rem .85rem;text-align:center;font-size:.7rem;color:var(--moss);opacity:.5">Aucun besoin renseigné</div>`
-          }
-        </div>
-
-        <button class="acteur-cta" style="background:var(--forest);color:white" onclick="lieuTab('quetes',document.getElementById('ltab-quetes'))">
-          Voir les quêtes →
-        </button>
-        <button class="acteur-cta" style="background:transparent;color:var(--moss);border:1px solid rgba(46,102,66,.25)" onclick="mmBubble('📋 Demande de financement envoyée au pilote')">
-          Proposer un financement
-        </button>
-
-      </div>
     </div>
   `;
 }
