@@ -12,7 +12,7 @@
         crossorigin=""
     />
         
-<link rel="stylesheet" href="css/styles.css?v=193">
+<link rel="stylesheet" href="css/styles.css?v=194">
 </head>
 <body>
 
@@ -93,7 +93,7 @@
 </div>
 
 
-<script src="js/splash-onboarding.js?v=193"></script>
+<script src="js/splash-onboarding.js?v=194"></script>
 
 <div class="app">
 
@@ -1023,17 +1023,6 @@
                 </div>
               </div>
 
-              <!-- Image de couverture -->
-              <div class="fiche-field">
-                <div class="fiche-label">Image de couverture</div>
-                <div id="fiche-cover-preview" style="width:100%;height:120px;border-radius:var(--r);border:1.5px dashed rgba(46,102,66,.25);background:rgba(46,102,66,.04);display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:var(--moss);overflow:hidden;margin-bottom:.5rem">🖼️</div>
-                <label style="display:inline-flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.68rem;font-weight:600;color:var(--forest);padding:.3rem .7rem;border:1px solid rgba(46,102,66,.3);border-radius:100px;background:rgba(46,102,66,.06)">
-                  📁 Choisir un fichier
-                  <input type="file" accept="image/*" style="display:none" onchange="ficheCover(this)">
-                </label>
-                <div style="font-size:.6rem;color:var(--moss);opacity:.55;margin-top:.3rem">JPG ou PNG · recommandé 1200×400 px</div>
-              </div>
-
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem">
                 <div class="fiche-field"><div class="fiche-label">Nom du lieu</div><input class="fiche-input" id="fiche-f-nom" value="" placeholder="Nom de ton lieu"></div>
                 <div class="fiche-field"><div class="fiche-label">Type</div>
@@ -1068,9 +1057,14 @@
                   </select>
                 </div>
               </div>
-              <div style="display:grid;grid-template-columns:2fr 1fr;gap:0.75rem;margin-bottom:0.75rem">
-                <div class="fiche-field"><div class="fiche-label">Adresse</div><input class="fiche-input" id="fiche-f-adresse" value="" placeholder="Adresse de ton lieu"></div>
-                <div class="fiche-field"><div class="fiche-label">Code postal</div><input class="fiche-input" id="fiche-f-cp" value="" placeholder="Code postal"></div>
+              <div style="margin-bottom:0.75rem">
+                <div class="fiche-field" id="fiche-loc-wrap" style="position:relative">
+                  <div class="fiche-label">Adresse</div>
+                  <input class="fiche-input" id="fiche-f-adresse" value="" placeholder="Tape une adresse ou une ville…" autocomplete="off"
+                    oninput="ficheGeoAutoInput(this.value)"
+                    onfocus="if(this.value.length>2) ficheGeoAutoInput(this.value)"
+                    onblur="setTimeout(()=>{const d=document.getElementById('fiche-loc-drop');if(d)d.remove();},200)">
+                </div>
               </div>
 
               <!-- Phase + Année + Surface + Statut -->
@@ -1179,41 +1173,6 @@
                 <div style="display:flex;gap:.5rem">
                   <input class="fiche-input" id="fiche-besoin-custom" placeholder="Décris un besoin spécifique…" style="flex:1">
                   <button class="btn btn-ghost" style="font-size:.65rem;padding:.3rem .7rem;white-space:nowrap" onclick="ficheAddBesoin()">+ Ajouter</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Labels & Réseaux -->
-          <div class="fiche-section">
-            <div class="fiche-section-head"><span class="fiche-section-title">🏅 Labels & réseaux</span></div>
-            <div class="fiche-section-body">
-              <div class="fiche-field">
-                <div class="fiche-label">Certifications & labels</div>
-                <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.35rem">
-                  <button class="esp-tag" onclick="this.classList.toggle('sel')">🌾 Agriculture bio</button>
-                  <button class="esp-tag" onclick="this.classList.toggle('sel')">🌱 Bienvenu·e</button>
-                  <button class="esp-tag" onclick="this.classList.toggle('sel')">♻️ Ressourcerie</button>
-                  <button class="esp-tag" onclick="this.classList.toggle('sel')">🔄 Zéro déchet</button>
-                  <button class="esp-tag" onclick="this.classList.toggle('sel')">🍃 Écolabel EU</button>
-                  <button class="esp-tag" onclick="this.classList.toggle('sel')">✊ Commerce équitable</button>
-                </div>
-              </div>
-              <div class="fiche-field" style="margin-top:.75rem">
-                <div class="fiche-label">Réseaux d'appartenance</div>
-                <div id="fiche-reseaux-tags" style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.35rem">
-                  <button class="esp-tag" onclick="this.classList.toggle('sel')">Terre de Liens</button>
-                  <button class="esp-tag" onclick="this.classList.toggle('sel')">RTES</button>
-                  <button class="esp-tag" onclick="this.classList.toggle('sel')">Enercoop</button>
-                  <button class="esp-tag" onclick="this.classList.toggle('sel')">La Nef</button>
-                  <button class="esp-tag" onclick="this.classList.toggle('sel')">Réseau CIVAM</button>
-                  <button class="esp-tag" onclick="this.classList.toggle('sel')">FNAB</button>
-                  <button class="esp-tag" onclick="this.classList.toggle('sel')">Alternatiba</button>
-                  <button class="esp-tag" onclick="this.classList.toggle('sel')">Les Cols Verts</button>
-                </div>
-                <div style="display:flex;gap:.5rem;margin-top:.5rem">
-                  <input class="fiche-input" id="fiche-reseau-custom" placeholder="+ Autre réseau…" style="flex:1">
-                  <button class="btn btn-ghost" style="font-size:.65rem;padding:.3rem .7rem;white-space:nowrap" onclick="(()=>{const v=document.getElementById('fiche-reseau-custom').value.trim();if(v){const btn=document.createElement('button');btn.className='esp-tag sel';btn.textContent=v;btn.onclick=function(){this.classList.toggle('sel')};document.getElementById('fiche-reseaux-tags').appendChild(btn);document.getElementById('fiche-reseau-custom').value=''}})()">+ Ajouter</button>
                 </div>
               </div>
             </div>
@@ -1529,9 +1488,9 @@
   </div>
 </div>
 
-<script src="js/data-reseau.js?v=193"></script>
+<script src="js/data-reseau.js?v=194"></script>
 
-<script src="js/regen-loop.js?v=193"></script>
+<script src="js/regen-loop.js?v=194"></script>
 
 <!-- Modale ajout/édition offre Pilote -->
 <div id="pmkt-modal" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(14,26,18,0.75);backdrop-filter:blur(6px);align-items:center;justify-content:center">
@@ -2548,9 +2507,9 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-config.js?v=193"></script>
-<script src="js/store.js?v=193"></script>
-<script src="js/app-core.js?v=193"></script>
+<script src="js/supabase-config.js?v=194"></script>
+<script src="js/store.js?v=194"></script>
+<script src="js/app-core.js?v=194"></script>
 
 <script
   src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -2609,9 +2568,9 @@
   </div>
 </div>
 
-<script src="js/deva.js?v=193"></script>
+<script src="js/deva.js?v=194"></script>
 
-<script src="js/nav-mobile.js?v=193"></script>
+<script src="js/nav-mobile.js?v=194"></script>
 
 <!-- ── Modal : Choisir ton profil ── -->
 <div id="auth-profil-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(14,26,18,.6);backdrop-filter:blur(6px);align-items:center;justify-content:center">
@@ -2656,7 +2615,7 @@
 </div>
 
 
-<script src="js/auth.js?v=193"></script>
+<script src="js/auth.js?v=194"></script>
 
 <!-- Espace modal, placé au niveau body pour rester accessible depuis tous les contextes -->
 <div id="espace-modal">
@@ -2745,17 +2704,17 @@
     </div>
   </div>
 </div>
-<script src="js/espace-modal.js?v=193"></script>
+<script src="js/espace-modal.js?v=194"></script>
 
 <!-- ═══════════════════════════════════════════════════════
      COUCHE DE CONVERGENCE, PERMA-COMPTABILITÉ EVAD
      Saisie unique → traduction multi-cadres institutionnels
      ═══════════════════════════════════════════════════════ -->
-<script src="js/quetes.js?v=193"></script>
-<script src="js/ici.js?v=193"></script>
+<script src="js/quetes.js?v=194"></script>
+<script src="js/ici.js?v=194"></script>
 
-<script src="js/contribution.js?v=193"></script>
-<script src="js/messages.js?v=193"></script>
+<script src="js/contribution.js?v=194"></script>
+<script src="js/messages.js?v=194"></script>
 
 <!-- Modal détail solution (créer lieu step 4) -->
 <div id="creer-sol-detail-modal" style="display:none;position:fixed;inset:0;z-index:10010;background:rgba(13,43,34,.6);backdrop-filter:blur(6px);align-items:flex-end;justify-content:center;" onclick="if(event.target===this)creerCloseSolDetail()">
@@ -2768,7 +2727,7 @@
   </div>
 </div>
 
-<script src="js/fil-rouge-feedback.js?v=193"></script>
+<script src="js/fil-rouge-feedback.js?v=194"></script>
 
 </body>
 </html>

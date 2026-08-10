@@ -956,11 +956,22 @@ function lieuRenderPresentation() {
     ['Statut', cData.statut ? STATUTS_MAP[cData.statut]||cData.statut : '-'],
   ];
 
+  const _cLink = 'display:inline-flex;align-items:center;gap:.3rem;padding:.28rem .65rem;border-radius:100px;background:rgba(46,102,66,.08);border:1px solid rgba(46,102,66,.2);font-size:.68rem;color:var(--forest);text-decoration:none;font-weight:600';
   const contactLinks = [
-    cData.email ? `<a href="mailto:${cData.email}" style="display:inline-flex;align-items:center;gap:.3rem;padding:.28rem .65rem;border-radius:100px;background:rgba(46,102,66,.08);border:1px solid rgba(46,102,66,.2);font-size:.68rem;color:var(--forest);text-decoration:none;font-weight:600">📧 ${cData.email}</a>` : '',
-    cData.tel   ? `<a href="tel:${cData.tel}" style="display:inline-flex;align-items:center;gap:.3rem;padding:.28rem .65rem;border-radius:100px;background:rgba(46,102,66,.08);border:1px solid rgba(46,102,66,.2);font-size:.68rem;color:var(--forest);text-decoration:none;font-weight:600">📞 ${cData.tel}</a>` : '',
-    cData.web   ? `<a href="${cData.web}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:.3rem;padding:.28rem .65rem;border-radius:100px;background:rgba(46,102,66,.08);border:1px solid rgba(46,102,66,.2);font-size:.68rem;color:var(--forest);text-decoration:none;font-weight:600">🌐 Site web ↗</a>` : '',
+    cData.email ? `<a href="mailto:${cData.email}" style="${_cLink}">📧 ${cData.email}</a>` : '',
+    cData.tel   ? `<a href="tel:${cData.tel}" style="${_cLink}">📞 ${cData.tel}</a>` : '',
+    cData.web   ? `<a href="${(String(cData.web).match(/^https?:/) ? cData.web : 'https://' + cData.web)}" target="_blank" rel="noopener" style="${_cLink}">🌐 Site web ↗</a>` : '',
   ].filter(Boolean).join('');
+  // Section Contact & accès dédiée (miroir de la section du tableau de bord).
+  const _acces = cData.acces ? (ACCES_MAP[cData.acces] || cData.acces) : '';
+  const contactSection = (contactLinks || _acces || cData.horaires || cData.responsable) ? `
+    <div>
+      <div class="acteur-section-title" style="margin-bottom:.5rem">📬 Contact & accès</div>
+      ${cData.responsable ? `<div style="font-size:.72rem;color:var(--ink);margin-bottom:.4rem">👤 ${cData.responsable}</div>` : ''}
+      ${contactLinks ? `<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.5rem">${contactLinks}</div>` : ''}
+      ${_acces ? `<div style="font-size:.72rem;color:var(--moss);margin-bottom:.2rem">${_acces}</div>` : ''}
+      ${cData.horaires ? `<div style="font-size:.72rem;color:var(--moss)">🕒 ${cData.horaires}</div>` : ''}
+    </div>` : '';
 
   box.innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 300px;gap:1.5rem;align-items:start">
@@ -976,13 +987,13 @@ function lieuRenderPresentation() {
             ${infos.map(([k,v])=>`<div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r);padding:.65rem .85rem"><div style="font-size:.58rem;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.2rem">${k}</div><div style="font-size:.78rem;font-weight:700;color:var(--ink)">${v}</div></div>`).join('')}
           </div>
 
-          ${contactLinks ? `<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.6rem">${contactLinks}</div>` : ''}
-
           ${labelChips ? `<div>
             <div style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.55;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.4rem">Labels</div>
             <div style="display:flex;flex-wrap:wrap;gap:.3rem">${labelChips}</div>
           </div>` : ''}
         </div>
+
+        ${contactSection}
 
         ${reseauChips ? `<div>
           <div class="acteur-section-title" style="margin-bottom:.4rem">🌐 Réseaux d'appartenance</div>
@@ -4204,6 +4215,61 @@ function geoSelect(label,lat,lng){
     if(!ok){ok=document.createElement('div');ok.className='geo-ok';ok.style.cssText='font-size:.6rem;color:var(--fern);margin-top:.2rem;padding-left:.1rem';wrap.appendChild(ok);}
     ok.textContent='📍 Position vérifiée';
   }
+}
+
+// ── Géolocalisation du champ Adresse du tableau de bord Pilote (onglet Fiche lieu) ──
+let _ficheGeoTimer;
+function ficheGeoAutoInput(q){
+  const drop=document.getElementById('fiche-loc-drop');
+  if(drop) drop.remove();
+  if(!q || q.length<3) return;
+  clearTimeout(_ficheGeoTimer);
+  _ficheGeoTimer=setTimeout(async()=>{
+    try{
+      const r=await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=5`);
+      const d=await r.json();
+      ficheGeoShowDrop(d.features||[]);
+    }catch(e){}
+  },320);
+}
+function ficheGeoShowDrop(features){
+  const wrap=document.getElementById('fiche-loc-wrap');
+  if(!wrap||!features.length) return;
+  const old=document.getElementById('fiche-loc-drop'); if(old) old.remove();
+  const ul=document.createElement('div');
+  ul.id='fiche-loc-drop';
+  ul.style.cssText='position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #d4deca;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.12);z-index:9999;overflow:hidden;margin-top:2px';
+  features.forEach((f,i)=>{
+    const label=f.properties.label, lat=f.geometry.coordinates[1], lng=f.geometry.coordinates[0];
+    const row=document.createElement('div');
+    row.style.cssText=`padding:.55rem .75rem;font-size:.72rem;cursor:pointer;border-bottom:${i<features.length-1?'1px solid #eef2ea':'none'};display:flex;align-items:center;gap:.5rem`;
+    row.innerHTML=`<span style="font-size:.85rem">📍</span><span>${label}</span>`;
+    row.onmousedown=()=>ficheGeoSelect(label,lat,lng);
+    row.onmouseover=()=>row.style.background='#f0f5ee';
+    row.onmouseout=()=>row.style.background='';
+    ul.appendChild(row);
+  });
+  wrap.appendChild(ul);
+}
+function ficheGeoSelect(label,lat,lng){
+  const inp=document.getElementById('fiche-f-adresse');
+  if(inp) inp.value=label;
+  const drop=document.getElementById('fiche-loc-drop'); if(drop) drop.remove();
+  // Capture réelle de la position sur le lieu + persistance (le bouton global
+  // « Enregistrer » de cet onglet n'enregistre pas encore).
+  try{
+    if(typeof myLieuData!=='undefined' && myLieuData){
+      myLieuData.localisation=label; myLieuData.lat=lat; myLieuData.lng=lng;
+      if(window.store && myLieuData.id){ store.update('lieux', myLieuData.id, { localisation:label, lat:lat, lng:lng }); }
+    }
+  }catch(e){}
+  const wrap=document.getElementById('fiche-loc-wrap');
+  if(wrap){
+    let ok=wrap.querySelector('.geo-ok');
+    if(!ok){ ok=document.createElement('div'); ok.className='geo-ok'; ok.style.cssText='font-size:.6rem;color:var(--fern);margin-top:.2rem;padding-left:.1rem'; wrap.appendChild(ok); }
+    ok.textContent='📍 Position vérifiée';
+  }
+  if(typeof mmBubble==='function') mmBubble('📍 Adresse localisée · position enregistrée');
 }
 
 let _semGeoTimer;
@@ -9587,12 +9653,8 @@ function ficheFillFromMyLieu() {
   // Type : id interne -> libellé du select
   const typeLbl = (typeof TYPES_LIEU !== 'undefined') ? (TYPES_LIEU.find(t => t.id === d.type) || {}).l : null;
   if (typeLbl) { const s = document.getElementById('fiche-f-type'); if (s) s.value = typeLbl; }
-  // Adresse + code postal (extrait de la localisation si présent)
-  if (d.localisation) {
-    set('fiche-f-adresse', d.localisation);
-    const cp = (String(d.localisation).match(/\b\d{5}\b/) || [])[0];
-    if (cp) set('fiche-f-cp', cp);
-  }
+  // Adresse (le code postal est inclus dans la localisation)
+  if (d.localisation) set('fiche-f-adresse', d.localisation);
   set('fiche-f-annee', d.annee);
   set('fiche-f-surface', d.surface);
   // Statut : id -> libellé
@@ -9605,14 +9667,12 @@ function ficheFillFromMyLieu() {
     const lbl = PH[d.phase];
     root.querySelectorAll('.fiche-tag').forEach(b => b.classList.toggle('active', !!lbl && b.textContent.indexOf(lbl) !== -1));
   }
-  // Logo / couverture
+  // Logo
   const logo = document.getElementById('fiche-logo-preview');
   if (logo) {
     if (d.logo) logo.innerHTML = '<img src="' + d.logo + '" style="width:100%;height:100%;object-fit:cover" alt="">';
     else if (d.icon) logo.textContent = d.icon;
   }
-  const cover = document.getElementById('fiche-cover-preview');
-  if (cover && d.cover) cover.innerHTML = '<img src="' + d.cover + '" style="width:100%;height:100%;object-fit:cover" alt="">';
 }
 
 // Reflète le lieu créé (myLieuData) dans l'en-tête du tableau de bord.
