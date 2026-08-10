@@ -964,9 +964,11 @@ function lieuRenderPresentation() {
   ].filter(Boolean).join('');
   // Section Contact & accès dédiée (miroir de la section du tableau de bord).
   const _acces = cData.acces ? (ACCES_MAP[cData.acces] || cData.acces) : '';
-  const contactSection = (contactLinks || _acces || cData.horaires || cData.responsable) ? `
+  const _adresse = cData.localisation || '';
+  const contactSection = (contactLinks || _acces || cData.horaires || cData.responsable || _adresse) ? `
     <div>
       <div class="acteur-section-title" style="margin-bottom:.5rem">📬 Contact & accès</div>
+      ${_adresse ? `<div style="font-size:.72rem;color:var(--ink);margin-bottom:.4rem">📍 ${_adresse}</div>` : ''}
       ${cData.responsable ? `<div style="font-size:.72rem;color:var(--ink);margin-bottom:.4rem">👤 ${cData.responsable}</div>` : ''}
       ${contactLinks ? `<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.5rem">${contactLinks}</div>` : ''}
       ${_acces ? `<div style="font-size:.72rem;color:var(--moss);margin-bottom:.2rem">${_acces}</div>` : ''}
