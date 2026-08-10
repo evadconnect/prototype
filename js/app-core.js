@@ -1005,6 +1005,8 @@ function lieuRenderPresentation() {
 
         ${contactSection}
 
+        ${(window.evadMsgBtn && !(typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom && myLieuData.nom === cData.nom)) ? window.evadMsgBtn({ id: 'lieu:' + (cData.nom || ''), nom: cData.nom || 'Ce lieu', role: 'pilote', lieu_id: cData.nom || '' }, { mt: '0' }) : ''}
+
         ${reseauChips ? `<div>
           <div class="acteur-section-title" style="margin-bottom:.4rem">🌐 Réseaux d'appartenance</div>
           <div style="display:flex;flex-wrap:wrap;gap:.3rem">${reseauChips}</div>
@@ -2940,9 +2942,7 @@ function mapShowBatisseur(idx) {
         ${b.certifications.map(cert => `<span class="acteur-skill-tag" style="background:rgba(240,200,74,0.1);color:#9a7a00;border:1px solid rgba(240,200,74,0.3)">✓ ${cert}</span>`).join('')}
       </div>` : ''}
 
-      <button class="acteur-cta" style="background:var(--amber);color:white" onclick="evadStartChat({id:'bat:${(b.nom||'').replace(/'/g,"\\'")}',nom:'${(b.nom||'').replace(/'/g,"\\'")}',role:'batisseur'})">
-        Contacter ce bâtisseur →
-      </button>
+      ${window.evadMsgBtn ? window.evadMsgBtn({ id: 'bat:' + b.nom, nom: b.nom, role: 'batisseur' }, { bg: 'var(--amber)', mt: '0' }) : ''}
     </div>
   `;
 
@@ -3030,7 +3030,8 @@ function mapShowSemeur(idx) {
       <!-- Contact -->
       <div style="font-size:.65rem;color:var(--moss);opacity:.7;text-align:center;margin-bottom:.5rem">👤 ${s.contact}</div>
 
-      <button class="acteur-cta" style="background:var(--sky);color:white" onclick="mmBubble('📋 Demande de partenariat envoyée à ${s.nom}')">
+      ${window.evadMsgBtn ? window.evadMsgBtn({ id: 'sem:' + s.nom, nom: s.nom, role: 'semeur' }, { mt: '0' }) : ''}
+      <button class="acteur-cta" style="background:var(--sky);color:white;margin-top:.4rem" onclick="mmBubble('📋 Demande de partenariat envoyée à ${s.nom}')">
         Demander un partenariat →
       </button>
     </div>
@@ -3151,6 +3152,7 @@ function mapShowLieu(idx) {
       <button class="acteur-cta" style="background:var(--forest);color:white;margin-top:.6rem" onclick="openLieuModalFromPlace(${idx})">
         Voir la fiche complète →
       </button>
+      ${(window.evadMsgBtn && !_estMonLieu) ? window.evadMsgBtn({ id: 'lieu:' + place.nom, nom: place.nom, role: 'pilote', lieu_id: place.nom }, { mt: '.4rem' }) : ''}
       <button class="acteur-cta" style="background:transparent;color:var(--moss);border:1px solid rgba(46,102,66,.25);margin-top:.4rem" onclick="showScreen('quete')">
         Rejoindre une quête
       </button>
@@ -7646,9 +7648,7 @@ function mapShowNewBatisseur() {
         ${cherche.map(c=>`<span class="acteur-skill-tag" style="background:rgba(58,110,140,.08);color:var(--sky);border:1px solid rgba(58,110,140,.2)">${c}</span>`).join('')}
       </div>` : ''}
 
-      <button class="acteur-cta" style="background:var(--amber);color:white" onclick="evadStartChat({id:'bat:${(prenom||'').replace(/'/g,"\\'")}',nom:'${(prenom||'').replace(/'/g,"\\'")}',role:'batisseur'})">
-        Contacter ce bâtisseur →
-      </button>
+      ${window.evadMsgBtn ? window.evadMsgBtn({ id: 'bat:' + prenom, nom: prenom, role: 'batisseur' }, { bg: 'var(--amber)', mt: '0' }) : ''}
     </div>`;
 
   mainPanel.style.display = 'none';
@@ -7722,7 +7722,8 @@ function mapShowNewSemeur() {
         ${kpis.map(k=>`<span class="acteur-skill-tag" style="background:rgba(58,110,140,.08);color:var(--sky);border:1px solid rgba(58,110,140,.2)">${k}</span>`).join('')}
       </div>` : ''}
 
-      <button class="acteur-cta" style="background:var(--sky);color:white" onclick="mmBubble('📋 Demande de partenariat envoyée à ${nom}')">
+      ${window.evadMsgBtn ? window.evadMsgBtn({ id: 'sem:' + nom, nom: nom, role: 'semeur' }, { mt: '0' }) : ''}
+      <button class="acteur-cta" style="background:var(--sky);color:white;margin-top:.4rem" onclick="mmBubble('📋 Demande de partenariat envoyée à ${nom}')">
         Demander un partenariat →
       </button>
     </div>`;
@@ -7846,6 +7847,7 @@ function mapShowNewLieu() {
       <button class="acteur-cta" style="background:var(--forest);color:white;margin-top:.2rem" onclick="mapCloseActeur();openLieuModal()">
         Voir la fiche complète →
       </button>
+      ${window.evadMsgBtn ? window.evadMsgBtn({ id: 'lieu:' + nom, nom: nom, role: 'pilote', lieu_id: nom }, { mt: '.4rem' }) : ''}
     </div>`;
 
   mainPanel.style.display = 'none';
@@ -9480,8 +9482,12 @@ function evadCancelTx(txId) {
   const tx = store.get('mkt_transactions', txId);
   if (!tx || tx.statut !== 'en_attente') return;
   store.update('mkt_transactions', txId, { statut: 'annulee' });
-  const src = (typeof pmktOffers !== 'undefined') ? pmktOffers.find(x => String(x.id) === String(tx.offer_id)) : null;
-  if (src) { src.stock = (src.stock || 0) + 1; if (src.status === 'full') src.status = 'active'; }
+  // Rend le stock réservé à l'offre (dans le store partagé).
+  const _srow = window.store ? store.get('offres_mkt', tx.offer_id) : null;
+  if (_srow) {
+    store.update('offres_mkt', tx.offer_id, { stock: (+_srow.stock || 0) + 1, status: _srow.status === 'full' ? 'active' : _srow.status });
+    if (typeof evadSyncPmktFromStore === 'function') evadSyncPmktFromStore();
+  }
   if (typeof mmBubble === 'function') mmBubble('Échange annulé · graines débloquées');
   try { window.dispatchEvent(new CustomEvent('evad:graines-changed')); } catch (e) {}
   if (typeof evadWalletRender === 'function') evadWalletRender();
@@ -9722,6 +9728,37 @@ let pmktOffers = PMKT_OFFERS_INIT.map(o => ({...o}));
 let pmktFilter = 'toutes';
 let pmktEditingId = null;
 
+// Ligne store `offres_mkt` → format d'offre utilisé par l'UI.
+function _offreRowToPmkt(r) {
+  return {
+    id: r.id, emoji: r.emoji || '🌿', bg: r.bg || 'rgba(74,140,92,.1)',
+    titre: r.titre || '', cat: r.cat || 'service', prix: +r.prix || 0,
+    stock: +r.stock || 0, stockMax: +r.stockMax || +r.stock_max || 0,
+    desc: r.desc || r.description || '', status: r.status || r.statut || 'active',
+    vues: +r.vues || 0, echanges: +r.echanges || 0,
+    lieu_id: r.lieu_id || null, lieu_nom: r.lieu_nom || null
+  };
+}
+// Reconstruit pmktOffers (les offres de MON lieu) depuis le store.
+function evadSyncPmktFromStore() {
+  if (!window.store) return;
+  const myId = (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.id) || null;
+  const rows = store.all('offres_mkt') || [];
+  pmktOffers = rows.filter(r => myId ? r.lieu_id === myId : true).map(_offreRowToPmkt);
+}
+// Enregistre une offre dans le store (→ Supabase). Estampille le lieu vendeur.
+function evadPersistOffre(o) {
+  if (!window.store || !o) return;
+  const lieuId = o.lieu_id || (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.id) || null;
+  const lieuNom = o.lieu_nom || (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom) || 'Mon lieu';
+  store.upsert('offres_mkt', {
+    id: o.id, lieu_id: lieuId, lieu_nom: lieuNom,
+    titre: o.titre, cat: o.cat, prix: o.prix, stock: o.stock, stockMax: o.stockMax,
+    emoji: o.emoji, desc: o.desc, status: o.status, vues: o.vues, echanges: o.echanges
+  });
+  o.lieu_id = lieuId; o.lieu_nom = lieuNom;
+}
+
 function pmktFilterOffers(f, btn) {
   pmktFilter = f;
   document.querySelectorAll('.pmkt-filter-btn').forEach(b => b.classList.remove('active'));
@@ -9732,6 +9769,8 @@ function pmktFilterOffers(f, btn) {
 function pmktRenderOffers() {
   const list = document.getElementById('pmkt-offers-list');
   if (!list) return;
+  // Reflète l'état partagé (store/Supabase) : offres de MON lieu.
+  if (typeof evadSyncPmktFromStore === 'function') evadSyncPmktFromStore();
   let offers = [...pmktOffers];
   if (pmktFilter === 'actives') offers = offers.filter(o => o.status === 'active');
   if (pmktFilter === 'pausees') offers = offers.filter(o => o.status === 'paused' || o.status === 'full');
@@ -9780,9 +9819,9 @@ function pmktRenderOffers() {
       <div style="display:flex;align-items:center;gap:.6rem;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
         <span class="pmkt-status-pill ${statusCls[o.status]}">${statusLabel[o.status]}</span>
         <div class="pmkt-actions">
-          <button class="pmkt-btn pmkt-btn-edit" onclick="piloteMktOpenEdit(${o.id})">✏️ Modifier</button>
-          <button class="pmkt-btn pmkt-btn-toggle" onclick="piloteMktToggle(${o.id})">${o.status === 'paused' ? '▶ Activer' : '⏸ Pause'}</button>
-          <button class="pmkt-btn pmkt-btn-delete" onclick="piloteMktDelete(${o.id})">🗑</button>
+          <button class="pmkt-btn pmkt-btn-edit" onclick="piloteMktOpenEdit('${o.id}')">✏️ Modifier</button>
+          <button class="pmkt-btn pmkt-btn-toggle" onclick="piloteMktToggle('${o.id}')">${o.status === 'paused' ? '▶ Activer' : '⏸ Pause'}</button>
+          <button class="pmkt-btn pmkt-btn-delete" onclick="piloteMktDelete('${o.id}')">🗑</button>
         </div>
       </div>
     </div>`).join(''));
@@ -9798,6 +9837,7 @@ function piloteMktToggle(id) {
   if (!o) return;
   if (o.status === 'full') return;
   o.status = o.status === 'active' ? 'paused' : 'active';
+  evadPersistOffre(o);
   pmktRenderOffers();
   mmBubble(`Offre "${o.titre.substring(0,28)}…" ${o.status === 'active' ? 'réactivée ✅' : 'mise en pause ⏸'}`);
 }
@@ -9807,6 +9847,7 @@ function piloteMktDelete(id) {
   if (!o) return;
   if (!confirm(`Supprimer l'offre « ${o.titre} » ?\nCette action est définitive.`)) return;
   pmktOffers = pmktOffers.filter(o => o.id !== id);
+  if (window.store) { try { store.remove('offres_mkt', id); } catch (e) {} }
   pmktRenderOffers();
   mmBubble(`Offre "${o.titre.substring(0,28)}…" supprimée.`);
 }
@@ -9880,12 +9921,15 @@ function pmktSaveOffer() {
 
   if (pmktEditingId !== null) {
     const o = pmktOffers.find(o => o.id === pmktEditingId);
-    if (o) { o.titre=titre; o.cat=cat; o.emoji=emoji; o.prix=prix; o.stock=stock; o.stockMax=stock; o.desc=desc; if(stock>0 && o.status==='full') o.status='active'; }
+    if (o) { o.titre=titre; o.cat=cat; o.emoji=emoji; o.prix=prix; o.stock=stock; o.stockMax=stock; o.desc=desc; if(stock>0 && o.status==='full') o.status='active'; evadPersistOffre(o); }
     mmBubble(`Offre "${titre.substring(0,28)}…" mise à jour ✅`);
   } else {
-    const newId = Date.now();
-    pmktOffers.push({ id:newId, emoji, bg:'rgba(74,140,92,.1)', titre, cat, prix, stock, stockMax:stock, desc, status:'active', vues:0, echanges:0 });
-    mmBubble(`Nouvelle offre "${titre.substring(0,28)}…" publiée dans le Marketplace 🎉`);
+    // id chaîne stable (uuid) pour Supabase.
+    const newId = (window.store && store.uuid) ? store.uuid() : String(Date.now());
+    const o = { id:newId, emoji, bg:'rgba(74,140,92,.1)', titre, cat, prix, stock, stockMax:stock, desc, status:'active', vues:0, echanges:0 };
+    pmktOffers.push(o);
+    evadPersistOffre(o);
+    mmBubble(`Nouvelle offre "${titre.substring(0,28)}…" publiée dans le Marché 🎉`);
   }
   document.getElementById('pmkt-modal').style.display = 'none';
   pmktRenderOffers();
@@ -9914,8 +9958,9 @@ function mktSort(sort, btn) {
 
 // Convertit une offre du tableau de bord Pilote vers le format Marketplace.
 function pmktToMkt(o) {
-  const lieu = (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom) ? myLieuData.nom : (typeof EVAD !== 'undefined' ? EVAD.activeLieu.nom : 'Mon lieu');
-  const ville = (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.localisation) ? myLieuData.localisation : 'Bordeaux';
+  // Nom du lieu vendeur : celui porté par l'offre (autre lieu) sinon le mien.
+  const lieu = o.lieu_nom || (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom ? myLieuData.nom : (typeof EVAD !== 'undefined' ? EVAD.activeLieu.nom : 'Mon lieu'));
+  const ville = o.ville || (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.localisation ? myLieuData.localisation : 'Bordeaux');
   // Vendeur = le lieu du Pilote courant (les offres de « ma Marketplace » lui
   // appartiennent) ; sert à créditer le bon lieu lors d'une vente.
   const sellerId = o.lieu_id || (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.id) || null;
@@ -9929,10 +9974,19 @@ function pmktToMkt(o) {
     stock: o.stock, impact: o.impact || "Soutient l'économie locale et circulaire du lieu."
   };
 }
-// Offres affichées dans le Marketplace = catalogue + offres publiées au tableau de bord.
+// Offres affichées dans le Marché = TOUTES les offres publiées (tous lieux),
+// lues depuis le store (partagées via Supabase), disponibles (actives + stock).
 function mktAllOffres() {
-  const extra = (typeof pmktOffers !== 'undefined') ? pmktOffers.filter(o => o.status !== 'full' && o.stock > 0).map(pmktToMkt) : [];
-  return [...MKT_OFFRES, ...extra];
+  let offres = [];
+  if (window.store) {
+    offres = (store.all('offres_mkt') || [])
+      .map(_offreRowToPmkt)
+      .filter(o => o.status !== 'full' && o.status !== 'paused' && o.stock > 0)
+      .map(pmktToMkt);
+  } else if (typeof pmktOffers !== 'undefined') {
+    offres = pmktOffers.filter(o => o.status !== 'full' && o.stock > 0).map(pmktToMkt);
+  }
+  return [...MKT_OFFRES, ...offres];
 }
 
 function mktRender() {
@@ -9953,7 +10007,7 @@ function mktRender() {
     const canAfford = mktBalance >= o.prix;
     const badgeHtml = o.badge ? `<div class="mkt-card-badge mkt-badge-${o.badge}">${o.badge==='new'?'Nouveau':o.badge==='promo'?'Promo':'Premium'}</div>` : '';
     const stockHtml = o.stock <= 3 ? `<div style="font-size:.6rem;color:var(--terracotta);font-weight:600;margin-top:.2rem">⚠ Plus que ${o.stock} disponibles</div>` : '';
-    return `<div class="mkt-card" onclick="mktOpenModal(${o.id})">
+    return `<div class="mkt-card" onclick="mktOpenModal('${o.id}')">
       <div class="mkt-card-img" style="background:${o.bg}">
         <span>${o.emoji}</span>
         ${badgeHtml}
@@ -9970,7 +10024,7 @@ function mktRender() {
           <div class="mkt-price">${o.prix > 0 ? '🪙 '+o.prix : '🎁 Gratuit'}</div>
           <div class="mkt-price-sub">${o.prix > 0 ? o.unite : 'accès libre'}</div>
         </div>
-        <button class="mkt-btn-buy ${canAfford?'can-afford':'cant-afford'}" onclick="event.stopPropagation();mktOpenModal(${o.id})">
+        <button class="mkt-btn-buy ${canAfford?'can-afford':'cant-afford'}" onclick="event.stopPropagation();mktOpenModal('${o.id}')">
           ${canAfford ? (o.prix===0 ? 'Réserver →' : 'Échanger →') : 'Insuffisant'}
         </button>
       </div>
@@ -10010,7 +10064,7 @@ function mktOpenModal(id) {
     </div>
     <div style="display:flex;gap:.6rem">
       ${canAfford
-        ? `<button class="btn btn-primary" style="flex:1;padding:.75rem" onclick="mktConfirmBuy(${o.id})">${o.prix===0?'🎟 Réserver gratuitement':'🔒 Réserver (−'+o.prix+' graines bloquées)'}</button>`
+        ? `<button class="btn btn-primary" style="flex:1;padding:.75rem" onclick="mktConfirmBuy('${o.id}')">${o.prix===0?'🎟 Réserver gratuitement':'🔒 Réserver (−'+o.prix+' graines bloquées)'}</button>`
         : `<button class="btn" style="flex:1;padding:.75rem;background:rgba(46,102,66,.08);color:var(--moss);cursor:default" disabled>🔒 graines insuffisantes (manque ${o.prix - mktBalance})</button>`
       }
       <button class="btn btn-ghost" onclick="document.getElementById('mkt-modal').style.display='none'">Fermer</button>
@@ -10045,10 +10099,13 @@ function mktConfirmBuy(id) {
     seller_type: seller.type, seller_id: seller.id, seller_nom: seller.nom,
     code: code, statut: prix > 0 ? 'en_attente' : 'confirmee'
   });
-  // Réserve le stock (rendu si annulation).
-  const src = (typeof pmktOffers !== 'undefined') ? pmktOffers.find(x => x.id === id) : null;
-  if (src) { src.stock = Math.max(0, (src.stock || 0) - 1); src.echanges = (src.echanges || 0) + 1; if (src.stock === 0) src.status = 'full'; }
-  else { const m = MKT_OFFRES.find(x => x.id === id); if (m && m.stock != null) m.stock = Math.max(0, m.stock - 1); }
+  // Réserve le stock dans le store (offre partagée) — rendu si annulation.
+  const _srow = window.store ? store.get('offres_mkt', id) : null;
+  if (_srow) {
+    const ns = Math.max(0, (+_srow.stock || 0) - 1);
+    store.update('offres_mkt', id, { stock: ns, echanges: (+_srow.echanges || 0) + 1, status: ns === 0 ? 'full' : _srow.status });
+    if (typeof evadSyncPmktFromStore === 'function') evadSyncPmktFromStore();
+  } else { const m = MKT_OFFRES.find(x => x.id === id); if (m && m.stock != null) m.stock = Math.max(0, m.stock - 1); }
   document.getElementById('mkt-modal').style.display = 'none';
   mktRender();
   try { window.dispatchEvent(new CustomEvent('evad:graines-changed')); } catch (e) {}
@@ -14892,6 +14949,19 @@ window.addEventListener('evad:quetes-ready', function(){
       evadRefreshCarteCompteurs();
     } catch(e){}
   });
+});
+
+// Offres du Marché hydratées / mises à jour : re-render des vues concernées.
+window.addEventListener('evad:offres-ready', function () {
+  try {
+    if (typeof evadSyncPmktFromStore === 'function') evadSyncPmktFromStore();
+    const mk = document.getElementById('screen-marketplace');
+    if (mk && mk.classList.contains('active') && typeof mktRender === 'function') mktRender();
+    const pp = document.getElementById('pilote-panel-marketplace');
+    if (pp && pp.classList.contains('active') && typeof pmktRenderOffers === 'function') pmktRenderOffers();
+    const bg = document.getElementById('bat-panel-graines');
+    if (bg && bg.classList.contains('active') && typeof bmktRender === 'function') bmktRender();
+  } catch (e) {}
 });
 
 // Graines / transactions : soldes et portefeuille rafraîchis en direct (une
