@@ -1238,11 +1238,11 @@
 
       <!-- KPIs graines -->
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.2rem">
-        <div style="background:linear-gradient(135deg,#1a2a18,#0e1f14);border:1px solid rgba(200,115,42,.2);border-radius:var(--r-lg);padding:.8rem 1rem;position:relative;overflow:hidden">
+        <div onclick="if(typeof evadOpenWallet==='function')evadOpenWallet()" title="Voir mon portefeuille de graines" style="background:linear-gradient(135deg,#1a2a18,#0e1f14);border:1px solid rgba(200,115,42,.2);border-radius:var(--r-lg);padding:.8rem 1rem;position:relative;overflow:hidden;cursor:pointer">
           <div style="position:absolute;top:-10px;right:-10px;width:50px;height:50px;background:radial-gradient(circle,rgba(200,115,42,.2),transparent);border-radius:50%"></div>
-          <div style="font-size:.58rem;color:var(--sage);text-transform:uppercase;letter-spacing:.12em;opacity:.7;margin-bottom:.3rem">graines reçus (mois)</div>
-          <div style="font-family:'Satoshi', sans-serif;font-size:1.6rem;font-weight:900;color:var(--amber-soft);line-height:1">-</div>
-          <div style="font-size:.62rem;color:rgba(255,255,255,.3);margin-top:.2rem">à compléter</div>
+          <div style="font-size:.58rem;color:var(--sage);text-transform:uppercase;letter-spacing:.12em;opacity:.7;margin-bottom:.3rem">🌱 mes graines</div>
+          <div id="pmkt-graines-solde" style="font-family:'Satoshi', sans-serif;font-size:1.6rem;font-weight:900;color:var(--amber-soft);line-height:1">-</div>
+          <div style="font-size:.62rem;color:rgba(255,255,255,.4);margin-top:.2rem">solde · voir l'historique →</div>
         </div>
         <div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-lg);padding:.8rem 1rem">
           <div style="font-size:.58rem;color:var(--moss);text-transform:uppercase;letter-spacing:.12em;opacity:.7;margin-bottom:.3rem">Offres actives</div>
@@ -2509,7 +2509,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-config.js?v=200"></script>
 <script src="js/store.js?v=202"></script>
-<script src="js/app-core.js?v=211"></script>
+<script src="js/app-core.js?v=212"></script>
 
 <script
   src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"

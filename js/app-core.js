@@ -9748,12 +9748,15 @@ function pmktRenderOffers() {
     + '<div style="display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;margin-bottom:1.1rem">' + exemples.map(e => '<span style="font-size:.66rem;color:var(--ink);background:rgba(46,102,66,.06);border:1px solid rgba(46,102,66,.12);border-radius:100px;padding:.25rem .6rem">' + e + '</span>').join('') + '</div>'
     + '<button class="btn btn-primary" style="font-size:.78rem;padding:.6rem 1.4rem" onclick="piloteMktOpenAdd()">+ Créer ma première offre</button>'
     + '</div>';
-  // En-tête : accès portefeuille + échanges à confirmer (escrow).
+  // En-tête : échanges à confirmer (escrow). Le solde vit dans la carte KPI
+  // « mes graines » (en haut), pas dans un bouton séparé.
   const _wp2 = (typeof evadGrainesParty === 'function') ? evadGrainesParty('pilote') : null;
   if (_wp2 && typeof evadGrainesEnsureWelcome === 'function') evadGrainesEnsureWelcome(_wp2);
   const _sales = (typeof evadPendingSales === 'function') ? evadPendingSales() : [];
   const _dispo = (typeof evadGrainesDispo === 'function') ? evadGrainesDispo() : 0;
-  const _walletBtn = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem"><button class="btn btn-ghost" style="font-size:.72rem;padding:.4rem .9rem" onclick="evadOpenWallet()">🌱 Mes graines · ${_dispo}</button></div>`;
+  const _soldeEl = document.getElementById('pmkt-graines-solde');
+  if (_soldeEl) _soldeEl.textContent = _dispo;
+  const _walletBtn = '';
   const _salesBanner = _sales.length
     ? `<div style="display:flex;align-items:center;justify-content:space-between;gap:.7rem;background:rgba(74,140,92,.08);border:1px solid rgba(74,140,92,.28);border-radius:var(--r-lg,14px);padding:.7rem .9rem;margin-bottom:.8rem">
          <div style="font-size:.74rem;color:var(--forest)">🤝 <b>${_sales.length} échange${_sales.length > 1 ? 's' : ''}</b> en attente de ta confirmation (remise du produit).</div>
