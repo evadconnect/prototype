@@ -13,9 +13,41 @@
     return el ? el.id.replace('screen-', '') : 'carte';
   }
 
+  // Écrans à assistant par étapes : la barre du bas montre la progression.
+  var WIZARD_SCREENS = { 'creer': 1, 'fiche-bat': 1, 'fiche-sem': 1 };
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  function renderWizardBar(w) {
+    return '<div class="mob-wizard">' + w.steps.map(function (label, i) {
+      var state = i < w.currentIdx ? 'done' : (i === w.currentIdx ? 'active' : 'upcoming');
+      var icon = state === 'done' ? '✓' : (i + 1);
+      var onclick = (i < w.currentIdx) ? ' onclick="navWizardJump(' + i + ')"' : '';
+      return '<button class="mob-wstep ' + state + '"' + onclick
+        + ' aria-label="Étape ' + (i + 1) + ' : ' + esc(label) + '"'
+        + (i === w.currentIdx ? ' aria-current="step"' : '') + '>'
+        + '<span class="mob-wcircle">' + icon + '</span>'
+        + '<span class="mob-wlabel">' + esc(label) + '</span>'
+        + '</button>';
+    }).join('') + '</div>';
+  }
+
   function renderMobNav() {
     var nav = document.getElementById('mob-nav');
     if (!nav) return;
+    var active = getActiveScreen();
+    // En mode assistant (création de lieu, fiche), la barre affiche les étapes
+    // à la place des onglets — comme le stepper de la sidebar sur desktop.
+    if (WIZARD_SCREENS[active] && window._navWizard && window._navWizard.steps && window._navWizard.steps.length) {
+      nav.classList.add('mob-nav-wizard');
+      nav.innerHTML = renderWizardBar(window._navWizard);
+      return;
+    }
+    nav.classList.remove('mob-nav-wizard');
     var role = (typeof currentRole !== 'undefined' ? currentRole : null) || 'pilote';
     var rs = ROLE_SCREENS[role] || ROLE_SCREENS.pilote;
     var active = getActiveScreen();
@@ -36,6 +68,8 @@
         + '<span class="mob-btn-icon">' + item.icon + '</span>' + item.label + '</button>';
     }).join('');
   }
+
+  window.renderMobNav = renderMobNav;   // appelée aussi par navWizardSet (app-core)
 
   document.addEventListener('DOMContentLoaded', function() {
     var nav = document.createElement('div');

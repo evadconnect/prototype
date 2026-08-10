@@ -2532,6 +2532,15 @@ function navWizardSet(steps, currentIdx, onJump) {
       }
     });
   }
+  // Mémorise l'état pour la barre mobile (qui affiche les étapes à la place des onglets).
+  window._navWizard = { steps: steps.slice(), currentIdx: currentIdx, onJump: onJump };
+  if (typeof window.renderMobNav === 'function') window.renderMobNav();
+}
+
+// Saut vers une étape déjà franchie depuis la barre wizard mobile.
+function navWizardJump(idx) {
+  const w = window._navWizard;
+  if (w && typeof w.onJump === 'function' && idx < w.currentIdx) w.onJump(idx);
 }
 
 function navWizardClear() {
@@ -2542,6 +2551,8 @@ function navWizardClear() {
     container.innerHTML = '';
     container.setAttribute('aria-hidden', 'true');
   }
+  window._navWizard = null;
+  if (typeof window.renderMobNav === 'function') window.renderMobNav();
 }
 
 function costFor(s){ return s.cplx==='facile'?'€':(s.cplx==='moyen'?'€€':'€€€'); }
