@@ -38,7 +38,7 @@ drop policy if exists "indicateurs_insert_public" on public.lieu_indicateurs;
 drop policy if exists "indicateurs_update_public" on public.lieu_indicateurs;
 drop policy if exists "indicateurs_delete_public" on public.lieu_indicateurs;
 
--- Lecture publique (comme fiche_pilotes / quetes).
+-- Lecture publique (comme fiche_pilote / quetes).
 drop policy if exists "lieu_indicateurs_select_public" on public.lieu_indicateurs;
 create policy "lieu_indicateurs_select_public" on public.lieu_indicateurs for select using (true);
 

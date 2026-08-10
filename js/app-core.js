@@ -2386,7 +2386,7 @@ async function switchRole(role){
       const { data: sess } = await window.evadSupabase.auth.getSession();
       const uid = sess && sess.session && sess.session.user && sess.session.user.id;
       if (uid) {
-        const { data } = await window.evadSupabase.from('fiche_pilotes').select('id').eq('user_id', uid).limit(1);
+        const { data } = await window.evadSupabase.from('fiche_pilote').select('id').eq('user_id', uid).limit(1);
         if (data && data.length) { done = true; if (typeof evadMarkFicheDone === 'function') evadMarkFicheDone('pilote'); }
       }
     } catch (e) {}

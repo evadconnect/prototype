@@ -3,7 +3,7 @@
 --  À exécuter dans le projet Supabase de PROD (lmhhrccmgebztioesmik)
 --  → SQL Editor. Idempotent.
 --
---  Miroir de fiche_pilotes / fiche_batisseur : le profil d'un Semeur est
+--  Miroir de fiche_pilote / fiche_batisseur : le profil d'un Semeur est
 --  partagé (visible sur la carte par tous), retrouvé sur tous ses appareils,
 --  et ré-éditable via l'écran « Ma fiche financeur » (republication).
 -- ============================================================
@@ -28,7 +28,7 @@ alter table public.fiche_semeur enable row level security;
 drop policy if exists "fiche_semeur_select_public" on public.fiche_semeur;
 create policy "fiche_semeur_select_public" on public.fiche_semeur for select using (true);
 
--- Écriture ouverte (modèle actuel de la bêta, comme fiche_pilotes ;
+-- Écriture ouverte (modèle actuel de la bêta, comme fiche_pilote ;
 -- le verrouillage par propriétaire viendra avec le lot de sécurité).
 drop policy if exists "fiche_semeur_insert_public" on public.fiche_semeur;
 create policy "fiche_semeur_insert_public" on public.fiche_semeur for insert with check (true);

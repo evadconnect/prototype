@@ -37,7 +37,7 @@ drop policy if exists "solutions_insert_public" on public.lieu_solutions;
 drop policy if exists "solutions_update_public" on public.lieu_solutions;
 drop policy if exists "solutions_delete_public" on public.lieu_solutions;
 
--- Lecture publique (comme fiche_pilotes / quetes).
+-- Lecture publique (comme fiche_pilote / quetes).
 drop policy if exists "lieu_solutions_select_public" on public.lieu_solutions;
 create policy "lieu_solutions_select_public" on public.lieu_solutions for select using (true);
 

@@ -141,7 +141,7 @@ async function evadEnterRole(role){
       const { data: sess } = await client.auth.getSession();
       const uid = sess && sess.session && sess.session.user && sess.session.user.id;
       if (uid) {
-        const { data } = await client.from('fiche_pilotes').select('id').eq('user_id', uid).limit(1);
+        const { data } = await client.from('fiche_pilote').select('id').eq('user_id', uid).limit(1);
         if (data && data.length) { done = true; evadMarkFicheDone('pilote'); }
       }
     } catch (e) {}

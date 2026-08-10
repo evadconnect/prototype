@@ -32,7 +32,7 @@ alter table public.quetes enable row level security;
 drop policy if exists "quetes_select_public" on public.quetes;
 create policy "quetes_select_public" on public.quetes for select using (true);
 
--- Écriture ouverte (modèle actuel de la bêta, comme fiche_pilotes ;
+-- Écriture ouverte (modèle actuel de la bêta, comme fiche_pilote ;
 -- le verrouillage par propriétaire viendra avec le lot de sécurité).
 drop policy if exists "quetes_insert_public" on public.quetes;
 create policy "quetes_insert_public" on public.quetes for insert with check (true);
