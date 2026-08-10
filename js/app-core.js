@@ -4074,7 +4074,7 @@ function solFicheHTML(s, opts){
 
     <!-- ⑧ CTA -->
     ${showCTAs ? `<div style="margin:1.2rem 1.4rem 0;display:flex;gap:.6rem">
-      <button class="btn btn-primary" style="flex:1;padding:.7rem" onclick="showScreen('creer')">+ Ajouter à mon lieu</button>
+      <button class="btn btn-primary" style="flex:1;padding:.7rem" onclick="ajouterSolutionAuLieu('${String(s.nom).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">+ Ajouter à mon lieu</button>
     </div>` : ''}
 
     </div><!-- fin bdd-tab-solution -->
@@ -9905,10 +9905,16 @@ function piloteTab(tab, btn) {
     // Reflète le lieu créé : identité + espaces + carte mentale
     if (typeof myLieuData !== 'undefined' && myLieuData) {
       ficheEspaces = (myLieuData.espacesData || []).map(e => Object.assign({}, e));
+      // Recharge les solutions déjà choisies (persistées) au lieu de repartir de
+      // zéro : sinon le mind map réappliquait les défauts et perdait les choix.
       ficheSolsByEspace = {};
+      if (myLieuData.solsByEspace) {
+        Object.keys(myLieuData.solsByEspace).forEach(k => { ficheSolsByEspace[k] = (myLieuData.solsByEspace[k] || []).slice(); });
+      }
     }
     ficheFillFromMyLieu();
     ficheRenderEspaces();
+    if (typeof ficheRenderEspacePicker === 'function') ficheRenderEspacePicker();
     setTimeout(ficheMmRender, 80);
   }
   if (tab === 'apercu') setTimeout(() => {
@@ -14058,6 +14064,82 @@ function ficheSolsPersist() {
   }, 600);
 }
 
+// ─── Ajout d'une solution de la Bibliothèque à un espace du lieu ───
+// Depuis la fiche solution (« + Ajouter à mon lieu »), on amène le Pilote sur
+// son tableau de bord, onglet « Ma fiche », section Espaces, avec un sélecteur
+// « à quel espace ? ». Le choix ajoute la solution à l'espace (mind map + base).
+let _pendingSolToAdd = null;
+function ajouterSolutionAuLieu(solNom) {
+  _pendingSolToAdd = solNom;
+  currentRole = 'pilote';
+  if (typeof showScreen === 'function') showScreen('pilote');
+  // showScreen('pilote') ouvre l'onglet Aperçu : on bascule sur « Ma fiche ».
+  setTimeout(function () {
+    if (typeof piloteTab === 'function') { try { piloteTab('fiche', document.getElementById('ptab-fiche')); } catch (e) {} }
+    if (typeof ficheRenderEspacePicker === 'function') ficheRenderEspacePicker();
+    _ficheScrollMainTo(document.getElementById('fiche-espaces-section'));
+  }, 120);
+}
+
+// Scroll vers un élément de l'onglet fiche. scrollIntoView vise automatiquement
+// le bon conteneur défilant (« .main » en usage normal). rAF pour laisser le
+// panneau se mettre en page avant de scroller.
+function _ficheScrollMainTo(el) {
+  if (!el || !el.scrollIntoView) return;
+  requestAnimationFrame(function () {
+    try { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { el.scrollIntoView(); }
+  });
+}
+
+// Affiche (ou masque) la bannière « à quel espace ajouter la solution ? » en
+// tête de la liste des espaces, selon _pendingSolToAdd.
+function ficheRenderEspacePicker() {
+  const host = document.getElementById('espace-list');
+  if (!host) return;
+  const old = document.getElementById('fiche-sol-picker');
+  if (old) old.remove();
+  if (!_pendingSolToAdd) return;
+  const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === _pendingSolToAdd) : null;
+  const label = sol ? ((sol.img || '🌱') + ' ' + sol.nom) : _pendingSolToAdd;
+  const box = document.createElement('div');
+  box.id = 'fiche-sol-picker';
+  box.style.cssText = 'background:rgba(74,140,92,.08);border:1px solid rgba(74,140,92,.3);border-radius:var(--r);padding:.7rem .85rem;margin-bottom:.6rem';
+  const cancel = `<button onclick="ficheCancelSolPicker()" style="margin-top:.5rem;background:none;border:none;color:var(--moss);font-size:.66rem;cursor:pointer;text-decoration:underline;font-family:inherit">Annuler</button>`;
+  if (!ficheEspaces.length) {
+    box.innerHTML = `<div style="font-size:.72rem;color:var(--ink);line-height:1.5">🌱 Pour ajouter <b>${label}</b>, crée d'abord un espace ci-dessous (« + Ajouter »), puis reclique sur « Ajouter à mon lieu ».</div>${cancel}`;
+  } else {
+    const btns = ficheEspaces.map((e, i) => {
+      const already = (ficheSolsByEspace[i] || []).includes(_pendingSolToAdd);
+      const nom = e.nom || ('Espace ' + (i + 1));
+      return `<button onclick="ficheAddPendingSolToEspace(${i})" ${already ? 'disabled' : ''} style="font-family:inherit;font-size:.68rem;font-weight:600;padding:.35rem .7rem;border-radius:100px;border:1px solid ${already ? 'rgba(130,130,130,.3)' : 'rgba(74,140,92,.45)'};background:${already ? 'rgba(130,130,130,.08)' : 'white'};color:${already ? 'var(--moss)' : 'var(--forest)'};cursor:${already ? 'default' : 'pointer'}">${nom}${already ? ' ✓' : ''}</button>`;
+    }).join('');
+    box.innerHTML = `<div style="font-size:.72rem;color:var(--ink);font-weight:600;margin-bottom:.5rem">🌱 À quel espace ajouter <b>${label}</b> ?</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.4rem">${btns}</div>${cancel}`;
+  }
+  host.parentNode.insertBefore(box, host);
+}
+
+function ficheCancelSolPicker() {
+  _pendingSolToAdd = null;
+  const el = document.getElementById('fiche-sol-picker');
+  if (el) el.remove();
+}
+
+function ficheAddPendingSolToEspace(idx) {
+  if (!_pendingSolToAdd) return;
+  const arr = ficheSolsByEspace[idx] || (ficheSolsByEspace[idx] = []);
+  if (!arr.includes(_pendingSolToAdd)) arr.push(_pendingSolToAdd);
+  const nom = _pendingSolToAdd;
+  const espNom = (ficheEspaces[idx] && ficheEspaces[idx].nom) || ('Espace ' + (idx + 1));
+  ficheSolsPersist();
+  if (typeof ficheMmRender === 'function') ficheMmRender();
+  _pendingSolToAdd = null;
+  const el = document.getElementById('fiche-sol-picker');
+  if (el) el.remove();
+  if (typeof mmBubble === 'function') mmBubble('🌱 « ' + nom + ' » ajoutée à l\'espace ' + espNom);
+  _ficheScrollMainTo(document.getElementById('fiche-mm-wrap'));
+}
+
 function ficheMmRender() {
   const nodesEl = document.getElementById('fiche-mm-nodes');
   const svgEl   = document.getElementById('fiche-mm-svg');
@@ -14113,8 +14195,12 @@ function ficheMmRender() {
     const re  = Math.min(W, H) * .25;
     const ex  = cx + re * Math.cos(a), ey = cy + re * Math.sin(a);
     const meta = ESPS.find(e => e.id === eid);
-    const allSols = meta ? (meta.sols || []).map(n => SOLS.find(s => s.nom === n)).filter(Boolean) : [];
     const selArr  = ficheSolsByEspace[i] || [];
+    // Solutions du catalogue de l'espace PLUS celles déjà choisies hors
+    // catalogue (ajoutées depuis la Bibliothèque) : elles doivent apparaître.
+    const _catalog = meta ? (meta.sols || []) : [];
+    const _names   = [...new Set(_catalog.concat(selArr))];
+    const allSols  = _names.map(n => SOLS.find(s => s.nom === n)).filter(Boolean);
     setTimeout(() => {
       ficheMmLine(cx, cy, ex, ey, col + '99');
       ficheMmAdd('e-' + i, ic + ' ' + esp.nom, ex, ey, 'espace', col, bg);
