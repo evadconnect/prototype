@@ -12,7 +12,7 @@
         crossorigin=""
     />
         
-<link rel="stylesheet" href="css/styles.css?v=215">
+<link rel="stylesheet" href="css/styles.css?v=217">
 </head>
 <body>
 
@@ -93,7 +93,7 @@
 </div>
 
 
-<script src="js/splash-onboarding.js?v=215"></script>
+<script src="js/splash-onboarding.js?v=217"></script>
 
 <div class="app">
 
@@ -161,12 +161,6 @@
     <button class="ob-intro-btn" id="evad-messages-btn" onclick="evadOpenInbox()" title="Mes messages" style="position:relative">
       <span class="oib-ico">💬</span><span class="oib-txt"> Messages</span>
       <span id="evad-msg-unread-badge" style="display:none;position:absolute;top:50%;right:.7rem;transform:translateY(-50%);min-width:18px;height:18px;padding:0 5px;border-radius:100px;background:#f07030;color:#fff;font-size:.62rem;font-weight:800;align-items:center;justify-content:center;line-height:1;box-shadow:0 2px 6px rgba(240,112,48,.5)">0</span>
-    </button>
-    <button class="ob-intro-btn" id="evad-feedback-btn" onclick="openAmelioration()" title="Proposer une amélioration">
-      <span class="oib-ico">💡</span><span class="oib-txt"> Proposer une amélioration</span>
-    </button>
-    <button class="ob-intro-btn" id="evad-tour-btn" onclick="devaTourStart()" title="Revoir la visite guidée avec Deva">
-      <span class="oib-ico">🧭</span><span class="oib-txt"> Visite guidée</span>
     </button>
     <button class="ob-intro-btn" onclick="goBackToLinktree()" title="Se déconnecter">
       ⏻ Déconnexion
@@ -1288,6 +1282,15 @@
         <div id="pmkt-offers-list"></div>
       </div>
 
+      <!-- Historique des transactions de graines -->
+      <div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-xl);overflow:hidden;margin-bottom:1rem">
+        <div style="padding:.9rem 1.2rem;border-bottom:1px solid rgba(46,102,66,.08);display:flex;align-items:center;gap:.75rem">
+          <div style="font-size:.8rem;font-weight:600;color:var(--ink);flex:1">🌱 Historique des graines</div>
+          <div id="pmkt-tx-solde" style="font-size:.72rem;color:var(--moss)"></div>
+        </div>
+        <div id="pmkt-tx-history"></div>
+      </div>
+
 
     </div>
   </div>
@@ -1492,9 +1495,9 @@
   </div>
 </div>
 
-<script src="js/data-reseau.js?v=215"></script>
+<script src="js/data-reseau.js?v=217"></script>
 
-<script src="js/regen-loop.js?v=215"></script>
+<script src="js/regen-loop.js?v=217"></script>
 
 <!-- Modale ajout/édition offre Pilote -->
 <div id="pmkt-modal" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(14,26,18,0.75);backdrop-filter:blur(6px);align-items:center;justify-content:center">
@@ -2512,9 +2515,9 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-config.js?v=215"></script>
-<script src="js/store.js?v=216"></script>
-<script src="js/app-core.js?v=216"></script>
+<script src="js/supabase-config.js?v=217"></script>
+<script src="js/store.js?v=217"></script>
+<script src="js/app-core.js?v=217"></script>
 
 <script
   src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -2534,6 +2537,7 @@
       <div class="deva-chat-name">Deva</div>
       <div class="deva-chat-desc">IA frugale · Écosystème EVAD</div>
     </div>
+    <button onclick="devaTourStart()" title="Revoir la visite guidée avec Deva" style="flex-shrink:0;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:100px;padding:.32rem .7rem;font-size:.68rem;font-weight:700;cursor:pointer;white-space:nowrap;font-family:'Satoshi',sans-serif">🧭 Visite guidée</button>
     <button class="deva-chat-close" onclick="devaToggleChat()">✕</button>
   </div>
 
@@ -2573,9 +2577,9 @@
   </div>
 </div>
 
-<script src="js/deva.js?v=215"></script>
+<script src="js/deva.js?v=217"></script>
 
-<script src="js/nav-mobile.js?v=215"></script>
+<script src="js/nav-mobile.js?v=217"></script>
 
 <!-- ── Modal : Choisir ton profil ── -->
 <div id="auth-profil-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(14,26,18,.6);backdrop-filter:blur(6px);align-items:center;justify-content:center">
@@ -2620,7 +2624,7 @@
 </div>
 
 
-<script src="js/auth.js?v=215"></script>
+<script src="js/auth.js?v=217"></script>
 
 <!-- Espace modal, placé au niveau body pour rester accessible depuis tous les contextes -->
 <div id="espace-modal">
@@ -2709,17 +2713,17 @@
     </div>
   </div>
 </div>
-<script src="js/espace-modal.js?v=215"></script>
+<script src="js/espace-modal.js?v=217"></script>
 
 <!-- ═══════════════════════════════════════════════════════
      COUCHE DE CONVERGENCE, PERMA-COMPTABILITÉ EVAD
      Saisie unique → traduction multi-cadres institutionnels
      ═══════════════════════════════════════════════════════ -->
-<script src="js/quetes.js?v=215"></script>
-<script src="js/ici.js?v=215"></script>
+<script src="js/quetes.js?v=217"></script>
+<script src="js/ici.js?v=217"></script>
 
-<script src="js/contribution.js?v=215"></script>
-<script src="js/messages.js?v=215"></script>
+<script src="js/contribution.js?v=217"></script>
+<script src="js/messages.js?v=217"></script>
 
 <!-- Modal détail solution (créer lieu step 4) -->
 <div id="creer-sol-detail-modal" style="display:none;position:fixed;inset:0;z-index:10010;background:rgba(13,43,34,.6);backdrop-filter:blur(6px);align-items:flex-end;justify-content:center;" onclick="if(event.target===this)creerCloseSolDetail()">
@@ -2732,7 +2736,7 @@
   </div>
 </div>
 
-<script src="js/fil-rouge-feedback.js?v=215"></script>
+<script src="js/fil-rouge-feedback.js?v=217"></script>
 
 </body>
 </html>

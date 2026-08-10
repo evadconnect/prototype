@@ -3152,10 +3152,7 @@ function mapShowLieu(idx) {
       <button class="acteur-cta" style="background:var(--forest);color:white;margin-top:.6rem" onclick="openLieuModalFromPlace(${idx})">
         Voir la fiche complète →
       </button>
-      ${(window.evadMsgBtn && !_estMonLieu) ? window.evadMsgBtn({ id: 'lieu:' + place.nom, nom: place.nom, role: 'pilote', lieu_id: place.nom }, { mt: '.4rem' }) : ''}
-      <button class="acteur-cta" style="background:transparent;color:var(--moss);border:1px solid rgba(46,102,66,.25);margin-top:.4rem" onclick="showScreen('quete')">
-        Rejoindre une quête
-      </button>
+      ${window.evadMsgBtn ? window.evadMsgBtn({ id: 'lieu:' + place.nom, nom: place.nom, role: 'pilote', lieu_id: place.nom }, { mt: '.4rem' }) : ''}
     </div>
   `;
 
@@ -9830,6 +9827,43 @@ function pmktRenderOffers() {
   const activeCount = pmktOffers.filter(o => o.status === 'active').length;
   const el = document.getElementById('pmkt-count-active');
   if (el) el.textContent = activeCount;
+
+  // Historique des graines juste en dessous des offres.
+  if (typeof pmktRenderHistory === 'function') pmktRenderHistory();
+}
+
+// Historique des mouvements de graines du lieu (crédits/débits + achats en
+// attente), affiché dans l'onglet « Marché » du tableau de bord.
+function pmktRenderHistory() {
+  const box = document.getElementById('pmkt-tx-history');
+  if (!box) return;
+  const soldeEl = document.getElementById('pmkt-tx-solde');
+  const p = (typeof evadGrainesParty === 'function') ? evadGrainesParty('pilote') : null;
+  if (!p) {
+    box.innerHTML = '<div style="padding:1rem 1.2rem;font-size:.72rem;color:var(--moss);opacity:.6">Publie ta fiche lieu pour activer ton portefeuille de graines.</div>';
+    if (soldeEl) soldeEl.textContent = '';
+    return;
+  }
+  if (typeof evadGrainesEnsureWelcome === 'function') evadGrainesEnsureWelcome(p);
+  if (soldeEl) soldeEl.textContent = 'Solde : 🌱 ' + evadGrainesDispo(p.type, p.id);
+  const hist = (typeof evadGrainesHistory === 'function') ? evadGrainesHistory(p.type, p.id) : [];
+  if (!hist.length) {
+    box.innerHTML = '<div style="padding:1rem 1.2rem;font-size:.72rem;color:var(--moss);opacity:.6">Aucun mouvement pour l\'instant. Tes ventes et financements reçus apparaîtront ici.</div>';
+    return;
+  }
+  box.innerHTML = hist.slice(0, 50).map(h => {
+    const pos = h.delta >= 0;
+    const ic = (typeof EVAD_TX_ICON !== 'undefined' && EVAD_TX_ICON[h.type]) || '•';
+    const dt = (typeof _evadTxDate === 'function') ? _evadTxDate(h.ts) : '';
+    return `<div style="display:flex;align-items:center;gap:.6rem;padding:.55rem 1.2rem;border-top:1px solid rgba(46,102,66,.06)">
+      <div style="width:26px;height:26px;border-radius:7px;background:rgba(46,102,66,.07);display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0">${ic}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.72rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h.label || h.type}${h.pending ? ' <span style="font-size:.58rem;color:var(--amber);font-weight:700">· bloqué</span>' : ''}</div>
+        <div style="font-size:.58rem;color:var(--moss);opacity:.6">${dt}</div>
+      </div>
+      <div style="font-weight:800;font-size:.8rem;color:${pos ? 'var(--fern)' : 'var(--terracotta)'};white-space:nowrap">${pos ? '+' : ''}${h.delta}</div>
+    </div>`;
+  }).join('');
 }
 
 function piloteMktToggle(id) {
