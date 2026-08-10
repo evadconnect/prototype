@@ -270,6 +270,18 @@
     return r === 'pilote' ? 'Pilote' : r === 'semeur' ? 'Semeur' : r === 'batisseur' ? 'Bâtisseur' : (r || 'Membre');
   }
 
+  // Bouton « Envoyer un message » réutilisable sur toutes les fiches.
+  // target : { id, nom, role, lieu_id }. La cible est passée en JSON via un
+  // attribut data- (robuste aux apostrophes/guillemets dans les noms).
+  function evadMsgBtn(target, opts) {
+    opts = opts || {};
+    var attr = JSON.stringify(target || {}).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    var style = 'background:' + (opts.bg || 'var(--forest)') + ';color:#fff;margin-top:' + (opts.mt || '.5rem');
+    return '<button class="acteur-cta" style="' + style + '" data-evadmsg="' + attr + '" '
+      + 'onclick="evadStartChat(JSON.parse(this.getAttribute(\'data-evadmsg\')))">✉️ '
+      + (opts.label || 'Envoyer un message') + '</button>';
+  }
+
   // ── Tous les messages où je suis impliqué (auteur OU destinataire). ──
   async function _myMessages() {
     var me = evadChatMe();
@@ -467,4 +479,5 @@
   global.evadInboxOpen = evadInboxOpen;
   global.evadStartChat = evadStartChat;
   global.evadRefreshUnread = evadRefreshUnread;
+  global.evadMsgBtn = evadMsgBtn;
 })(window);
