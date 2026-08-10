@@ -985,7 +985,7 @@ function lieuRenderPresentation() {
     </div>`;
 
   box.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:1.2rem;max-width:640px">
+    <div style="display:flex;flex-direction:column;gap:1.2rem;width:100%">
 
         <!-- À propos -->
         <div>
