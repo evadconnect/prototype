@@ -8004,9 +8004,8 @@ async function publishBatProfil() {
       batFicheData.id = row.id;
       store.clearDraft('batisseur');
       if (typeof evadMarkFicheDone === 'function') evadMarkFicheDone('batisseur');
-      // Transaction graines : gain (bonus de bienvenue lié au profil).
-      const bonus = (typeof batProfileGraines === 'function') ? batProfileGraines() : 0;
-      _grainesTx(row.id, 'gain', bonus, 'Bonus de bienvenue', 'batisseurs', row.id);
+      // Don de bienvenue (une seule fois) via le grand livre des graines.
+      evadGrainesEnsureWelcome({ type: 'batisseur', id: row.id, nom: ((batFicheData.prenom || '') + ' ' + (batFicheData.nom || '')).trim() || 'Bâtisseur' });
     } catch(e) {}
   }
 
@@ -8099,11 +8098,13 @@ function batReflectProfile() {
     ? fd.bio
     : 'Rejoins des quêtes pour commencer à contribuer et gagner des graines';
 
-  // Graines liées au profil (bonus de bienvenue + compétences déclarées)
-  const graines = batProfileGraines();
+  // Solde RÉEL de graines (grand livre : bienvenue + quêtes réalisées − achats).
+  const _bp = (typeof evadGrainesParty === 'function') ? evadGrainesParty('batisseur') : null;
+  if (_bp && typeof evadGrainesEnsureWelcome === 'function') evadGrainesEnsureWelcome(_bp);
+  const graines = _bp ? evadGrainesDispo(_bp.type, _bp.id) : (typeof batProfileGraines === 'function' ? batProfileGraines() : 0);
   const nbComp = (fd.skills || []).length;
   const ag = document.getElementById('bat-apercu-graines');
-  if (ag) ag.textContent = graines;
+  if (ag) { ag.textContent = graines; ag.style.cursor = 'pointer'; ag.title = 'Voir mes graines'; ag.onclick = evadOpenWallet; }
   const ags = document.getElementById('bat-apercu-graines-sub');
   if (ags) ags.textContent = has ? 'bonus profil' : '-';
   const kg = document.getElementById('bat-kpi-graines');
@@ -8676,7 +8677,19 @@ function qdValiderPreuveBat(pvId) {
       if (pe) pe.statut = 'terminee';
     }
     q.validated = true;
-    mmBubble('🌳 Preuves validées · quête terminée ! Graines distribuées, impact propagé dans tes dossiers 🌱');
+    // Récompense regen : chaque bâtisseur inscrit à la quête reçoit ses graines
+    // (une seule fois par quête → garde-fou via ref_id du grand livre).
+    try {
+      const qGraines = (typeof q.tokens === 'number') ? q.tokens : (parseInt(q.tokens, 10) || 50);
+      const dejaCredite = store.where('graines_tx', t => t.type === 'quete' && t.ref_id === String(qid));
+      const cands = store.where('quete_candidatures', c => c.quete_id === qid && c.statut === 'inscrit');
+      cands.forEach(c => {
+        if (!c.batisseur_id) return;
+        if (dejaCredite.some(t => t.party_id === c.batisseur_id)) return;
+        evadGrainesMove({ type: 'batisseur', id: c.batisseur_id }, qGraines, 'quete', 'Quête réalisée · ' + (q.titre || ''), 'quetes', qid);
+      });
+    } catch (e) {}
+    mmBubble('🌳 Preuves validées · quête terminée ! Graines distribuées aux bâtisseurs, impact propagé 🌱');
     if (typeof renderPiloteQuetes === 'function') renderPiloteQuetes();
   } else {
     mmBubble('✅ ' + phMeta.label + ' validée' + (p.phase === 't0' ? ' · en attente de la preuve T1 (état final)' : ''));
@@ -9348,9 +9361,247 @@ function _persistQuete(q) {
   if (!q) return null;
   return q.srcId || null;
 }
+// ═══════════════════════════════════════════════════════════════
+//  ÉCONOMIE DES GRAINES (monnaie EVAD) — grand livre + escrow
+//  Boucle regen : le Bâtisseur gagne en réalisant des quêtes (preuve
+//  validée), le Pilote gagne quand on achète dans sa Marketplace, le
+//  Semeur injecte des graines en finançant. Soldes/historique réels et
+//  partagés via Supabase (tables graines_tx + mkt_transactions).
+// ═══════════════════════════════════════════════════════════════
+
+// Profil courant en tant que « partie » d'un mouvement de graines.
+function evadGrainesParty(role) {
+  role = role || (typeof currentRole !== 'undefined' ? currentRole : null);
+  if (role === 'batisseur') {
+    const id = (typeof _currentBatisseurId === 'function') ? _currentBatisseurId() : ((typeof batFicheData !== 'undefined' && batFicheData) ? batFicheData.id : null);
+    const nom = ((typeof batFicheData !== 'undefined' && batFicheData) ? ((batFicheData.prenom || '') + ' ' + (batFicheData.nom || '')).trim() : '') || 'Bâtisseur';
+    return id ? { type: 'batisseur', id: id, nom: nom } : null;
+  }
+  if (role === 'semeur') {
+    const id = (typeof _currentSemeurId === 'function') ? _currentSemeurId() : ((typeof semFicheData !== 'undefined' && semFicheData) ? semFicheData.id : null);
+    const nom = ((typeof semFicheData !== 'undefined' && semFicheData && semFicheData.nom) || 'Financeur');
+    return id ? { type: 'semeur', id: id, nom: nom } : null;
+  }
+  const id = (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.id) || null;
+  const nom = (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom) || 'Mon lieu';
+  return id ? { type: 'pilote', id: id, nom: nom } : null;
+}
+
+// Solde brut (grand livre) : somme des mouvements signés du profil.
+function evadGrainesLedger(type, id) {
+  if (!window.store || !type || !id) return 0;
+  return store.where('graines_tx', t => t.party_type === type && t.party_id === id).reduce((s, t) => s + (+t.delta || 0), 0);
+}
+// Graines bloquées : achats en attente de confirmation du vendeur.
+function evadGrainesBlocked(type, id) {
+  if (!window.store || !type || !id) return 0;
+  return store.where('mkt_transactions', t => t.buyer_type === type && t.buyer_id === id && t.statut === 'en_attente').reduce((s, t) => s + (+t.prix || 0), 0);
+}
+// Solde disponible = grand livre − bloqué.
+function evadGrainesDispo(type, id) {
+  const p = (type && id) ? { type: type, id: id } : evadGrainesParty();
+  if (!p) return 0;
+  return Math.max(0, evadGrainesLedger(p.type, p.id) - evadGrainesBlocked(p.type, p.id));
+}
+// Écrit un mouvement de graines (delta signé) et notifie l'UI.
+function evadGrainesMove(party, delta, txType, label, refTable, refId) {
+  if (!window.store || !party || !party.id || !delta) return null;
+  const row = store.insert('graines_tx', {
+    party_type: party.type, party_id: party.id, delta: delta,
+    type: txType || 'ajustement', label: label || '',
+    ref_table: refTable || null, ref_id: refId != null ? String(refId) : null
+  });
+  try { window.dispatchEvent(new CustomEvent('evad:graines-changed')); } catch (e) {}
+  return row;
+}
+function _evadWelcomeAmount(party) {
+  if (party.type === 'batisseur') return 50 + (((typeof batFicheData !== 'undefined' && batFicheData && batFicheData.skills) || []).length * 15);
+  if (party.type === 'semeur') return 500;
+  if (party.type === 'pilote') return 100;
+  return 0;
+}
+// Don de bienvenue (une seule fois par profil) : amorce l'économie regen.
+function evadGrainesEnsureWelcome(party) {
+  party = party || evadGrainesParty();
+  if (!window.store || !party || !party.id) return;
+  const has = store.where('graines_tx', t => t.party_type === party.type && t.party_id === party.id && t.type === 'welcome').length;
+  if (has) return;
+  const amt = _evadWelcomeAmount(party);
+  if (amt > 0) evadGrainesMove(party, amt, 'welcome', 'Graines de bienvenue');
+}
+// Historique (récent d'abord), réservations d'achat en attente incluses.
+function evadGrainesHistory(type, id) {
+  const p = (type && id) ? { type: type, id: id } : evadGrainesParty();
+  if (!p || !window.store) return [];
+  const led = store.where('graines_tx', t => t.party_type === p.type && t.party_id === p.id)
+    .map(t => ({ ts: t.created_at || '', delta: +t.delta || 0, type: t.type, label: t.label || '', pending: false }));
+  const pend = store.where('mkt_transactions', t => t.buyer_type === p.type && t.buyer_id === p.id && t.statut === 'en_attente')
+    .map(t => ({ ts: t.created_at || '', delta: -(+t.prix || 0), type: 'reservation', label: 'Réservation · ' + (t.offer_titre || 'offre'), pending: true }));
+  return led.concat(pend).sort((a, b) => (b.ts || '').localeCompare(a.ts || ''));
+}
+
+// Vendeur d'une offre = le lieu qui l'a publiée (id null = offre catalogue de
+// démo sans vendeur réel → achat direct sans escrow).
+function evadOfferSeller(o) {
+  const src = (typeof pmktOffers !== 'undefined') ? pmktOffers.find(x => x.id === o.id) : null;
+  const id = (src && src.lieu_id) || o.seller_id || null;
+  const nom = (src && src.lieu_nom) || o.seller_nom || o.lieu || 'Lieu';
+  return { type: 'pilote', id: id, nom: nom };
+}
+function _mktCode() { return String(Math.floor(1000 + Math.random() * 9000)); }
+
+// Ventes / achats en attente pour le profil courant.
+function evadPendingSales() {
+  const p = evadGrainesParty(); if (!p || !window.store) return [];
+  return store.where('mkt_transactions', t => t.seller_type === p.type && t.seller_id === p.id && t.statut === 'en_attente')
+    .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+}
+function evadPendingPurchases() {
+  const p = evadGrainesParty(); if (!p || !window.store) return [];
+  return store.where('mkt_transactions', t => t.buyer_type === p.type && t.buyer_id === p.id && t.statut === 'en_attente')
+    .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+}
+// Le vendeur confirme la remise → transfert des graines (débit acheteur, crédit vendeur).
+function evadConfirmSale(txId) {
+  const tx = store.get('mkt_transactions', txId);
+  if (!tx || tx.statut !== 'en_attente') return;
+  store.update('mkt_transactions', txId, { statut: 'confirmee', confirmed_at: store.now() });
+  const prix = +tx.prix || 0;
+  if (prix > 0) {
+    evadGrainesMove({ type: tx.buyer_type, id: tx.buyer_id }, -prix, 'achat', 'Achat · ' + (tx.offer_titre || 'offre'), 'mkt_transactions', txId);
+    evadGrainesMove({ type: tx.seller_type, id: tx.seller_id }, prix, 'vente', 'Vente · ' + (tx.offer_titre || 'offre') + ' à ' + (tx.buyer_nom || ''), 'mkt_transactions', txId);
+  }
+  if (typeof mmBubble === 'function') mmBubble('✅ Remise confirmée · ' + (prix > 0 ? '+' + prix + ' graines reçues de ' + (tx.buyer_nom || 'l\'acheteur') : 'offre gratuite remise'));
+  try { window.dispatchEvent(new CustomEvent('evad:graines-changed')); } catch (e) {}
+  if (typeof evadWalletRender === 'function') evadWalletRender();
+}
+// Annulation tant que non confirmée : graines débloquées, stock rendu.
+function evadCancelTx(txId) {
+  const tx = store.get('mkt_transactions', txId);
+  if (!tx || tx.statut !== 'en_attente') return;
+  store.update('mkt_transactions', txId, { statut: 'annulee' });
+  const src = (typeof pmktOffers !== 'undefined') ? pmktOffers.find(x => String(x.id) === String(tx.offer_id)) : null;
+  if (src) { src.stock = (src.stock || 0) + 1; if (src.status === 'full') src.status = 'active'; }
+  if (typeof mmBubble === 'function') mmBubble('Échange annulé · graines débloquées');
+  try { window.dispatchEvent(new CustomEvent('evad:graines-changed')); } catch (e) {}
+  if (typeof evadWalletRender === 'function') evadWalletRender();
+}
+
+// Compat : ancien helper, redirigé vers le grand livre.
 function _grainesTx(userId, type, montant, label, refTable, refId) {
   if (!window.store || !montant) return;
-  store.insert('graines_tx', { user_id: userId || null, type: type, montant: montant, label: label || '', ref_table: refTable || null, ref_id: (refId != null ? refId : null) });
+  const party = evadGrainesParty();
+  if (!party) return;
+  const delta = (type === 'depense' || type === 'achat') ? -Math.abs(montant) : Math.abs(montant);
+  evadGrainesMove(party, delta, type, label, refTable, refId);
+}
+
+// ─── Portefeuille de graines : solde, bloqué, échanges à valider, historique ───
+const EVAD_TX_ICON = { welcome: '🎁', quete: '🌾', vente: '🛒', achat: '🛍', reservation: '🔒', financement: '💧', injection: '🌱', ajustement: '⚙️' };
+function _evadTxDate(ts) {
+  if (!ts) return '';
+  try { return new Date(ts).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }); } catch (e) { return ''; }
+}
+function evadOpenWallet() {
+  let m = document.getElementById('evad-wallet-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'evad-wallet-modal';
+    m.style.cssText = 'position:fixed;inset:0;z-index:9000;display:none;align-items:center;justify-content:center;background:rgba(20,40,30,.45);padding:1rem';
+    m.innerHTML = '<div id="evad-wallet-box" style="background:white;border-radius:var(--r-xl,20px);max-width:520px;width:100%;max-height:86vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)"></div>';
+    m.addEventListener('click', e => { if (e.target === m) evadCloseWallet(); });
+    document.body.appendChild(m);
+  }
+  m.style.display = 'flex';
+  evadWalletRender();
+}
+function evadCloseWallet() { const m = document.getElementById('evad-wallet-modal'); if (m) m.style.display = 'none'; }
+function evadWalletRender() {
+  const box = document.getElementById('evad-wallet-box');
+  if (!box) return;
+  const p = evadGrainesParty();
+  if (!p) {
+    box.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--moss)">Crée ton profil pour activer ton portefeuille de graines.<div style="margin-top:1rem"><button class="btn btn-ghost" onclick="evadCloseWallet()">Fermer</button></div></div>';
+    return;
+  }
+  evadGrainesEnsureWelcome(p);
+  const dispo = evadGrainesDispo(p.type, p.id);
+  const bloque = evadGrainesBlocked(p.type, p.id);
+  const ventes = evadPendingSales();
+  const achats = evadPendingPurchases();
+  const hist = evadGrainesHistory(p.type, p.id);
+  const roleLbl = { pilote: 'Pilote · ' + p.nom, batisseur: 'Bâtisseur', semeur: 'Financeur' }[p.type] || p.type;
+
+  const venteHtml = !ventes.length ? '' : `
+    <div style="padding:0 1.2rem 0.2rem">
+      <div style="font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--forest);margin:.9rem 0 .5rem">🤝 Échanges à confirmer (${ventes.length})</div>
+      ${ventes.map(t => `
+        <div style="border:1px solid rgba(74,140,92,.25);border-radius:var(--r-lg,14px);padding:.7rem .85rem;margin-bottom:.5rem;background:rgba(74,140,92,.04)">
+          <div style="display:flex;justify-content:space-between;gap:.5rem;align-items:start">
+            <div style="min-width:0">
+              <div style="font-size:.78rem;font-weight:700;color:var(--ink)">${t.offer_titre || 'Offre'}</div>
+              <div style="font-size:.66rem;color:var(--moss);margin-top:.15rem">Acheteur : <b>${t.buyer_nom || '—'}</b> · code <b style="letter-spacing:.15em">${t.code || '----'}</b></div>
+            </div>
+            <div style="font-weight:800;color:var(--amber);white-space:nowrap">🌱 ${t.prix}</div>
+          </div>
+          <div style="display:flex;gap:.4rem;margin-top:.6rem">
+            <button class="btn btn-primary" style="flex:1;padding:.4rem;font-size:.7rem" onclick="evadConfirmSale('${t.id}')">✅ Confirmer la remise</button>
+            <button class="btn btn-ghost" style="padding:.4rem .7rem;font-size:.7rem" onclick="evadCancelTx('${t.id}')">Refuser</button>
+          </div>
+        </div>`).join('')}
+    </div>`;
+
+  const achatHtml = !achats.length ? '' : `
+    <div style="padding:0 1.2rem 0.2rem">
+      <div style="font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--amber);margin:.9rem 0 .5rem">🔒 Mes achats en attente (${achats.length})</div>
+      ${achats.map(t => `
+        <div style="border:1px solid rgba(200,115,42,.28);border-radius:var(--r-lg,14px);padding:.7rem .85rem;margin-bottom:.5rem;background:rgba(200,115,42,.04)">
+          <div style="display:flex;justify-content:space-between;gap:.5rem;align-items:start">
+            <div style="min-width:0">
+              <div style="font-size:.78rem;font-weight:700;color:var(--ink)">${t.offer_titre || 'Offre'}</div>
+              <div style="font-size:.66rem;color:var(--moss);margin-top:.15rem">Chez <b>${t.seller_nom || '—'}</b> · montre le code <b style="letter-spacing:.15em">${t.code || '----'}</b></div>
+            </div>
+            <div style="font-weight:800;color:var(--amber);white-space:nowrap">−${t.prix}</div>
+          </div>
+          <div style="margin-top:.5rem"><button class="btn btn-ghost" style="padding:.35rem .7rem;font-size:.68rem" onclick="evadCancelTx('${t.id}')">Annuler la réservation</button></div>
+        </div>`).join('')}
+    </div>`;
+
+  const histHtml = !hist.length
+    ? '<div style="padding:1rem 1.2rem;font-size:.72rem;color:var(--moss);opacity:.6">Aucun mouvement pour l\'instant.</div>'
+    : hist.slice(0, 40).map(h => {
+        const pos = h.delta >= 0;
+        return `<div style="display:flex;align-items:center;gap:.6rem;padding:.5rem 1.2rem;border-top:1px solid rgba(46,102,66,.06)">
+          <div style="width:26px;height:26px;border-radius:7px;background:rgba(46,102,66,.07);display:flex;align-items:center;justify-content:center;font-size:.85rem">${EVAD_TX_ICON[h.type] || '•'}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.72rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h.label || h.type}${h.pending ? ' <span style="font-size:.58rem;color:var(--amber);font-weight:700">· bloqué</span>' : ''}</div>
+            <div style="font-size:.58rem;color:var(--moss);opacity:.6">${_evadTxDate(h.ts)}</div>
+          </div>
+          <div style="font-weight:800;font-size:.8rem;color:${pos ? 'var(--fern)' : 'var(--terracotta)'};white-space:nowrap">${pos ? '+' : ''}${h.delta}</div>
+        </div>`;
+      }).join('');
+
+  box.innerHTML = `
+    <div style="padding:1.2rem 1.2rem .5rem;position:sticky;top:0;background:white;z-index:1">
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div>
+          <div style="font-family:'Satoshi',sans-serif;font-size:1.1rem;font-weight:900;color:var(--ink)">🌱 Mes graines</div>
+          <div style="font-size:.64rem;color:var(--moss);opacity:.7">${roleLbl}</div>
+        </div>
+        <button onclick="evadCloseWallet()" style="background:rgba(46,102,66,.08);border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:.85rem;color:var(--moss)">✕</button>
+      </div>
+      <div style="margin-top:.8rem;background:linear-gradient(135deg,#1a3a2e,#0e2820);border-radius:var(--r-lg,14px);padding:1rem 1.2rem;color:white">
+        <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.6)">Solde disponible</div>
+        <div style="font-family:'Satoshi',sans-serif;font-size:2rem;font-weight:900;line-height:1.1">🌱 ${dispo}</div>
+        ${bloque > 0 ? `<div style="font-size:.64rem;color:rgba(255,255,255,.7);margin-top:.15rem">dont 🔒 ${bloque} bloquées (achats en attente)</div>` : ''}
+      </div>
+    </div>
+    ${venteHtml}
+    ${achatHtml}
+    <div style="padding:.2rem 0 1rem">
+      <div style="font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--moss);opacity:.7;margin:.9rem 1.2rem .3rem">Historique</div>
+      ${histHtml}
+    </div>`;
 }
 
 function qdJoindre() {
@@ -9395,6 +9646,19 @@ function qdFinancer() {
     try {
       const sid = _currentSemeurId(), qid = _persistQuete(q);
       store.upsert('financements', { id: 'fin-' + sid + '-' + qid, semeur_id: sid, quete_id: qid, montant: q.financement.objectif });
+      // Injection regen : le Semeur verse des graines (montant de la quête) au
+      // lieu → ce sont elles qui alimentent la récompense du bâtisseur.
+      const qrow = qid ? store.get('quetes', qid) : null;
+      const lieuId = qrow && qrow.lieu_id;
+      const sp = (typeof evadGrainesParty === 'function') ? evadGrainesParty('semeur') : null;
+      const inject = (typeof q.tokens === 'number') ? q.tokens : (parseInt(q.tokens, 10) || 50);
+      if (sp && lieuId) {
+        const dejaInj = store.where('graines_tx', t => t.type === 'financement' && t.ref_id === String(qid) && t.party_id === sp.id).length;
+        if (!dejaInj && evadGrainesDispo(sp.type, sp.id) >= inject) {
+          evadGrainesMove(sp, -inject, 'financement', 'Financement quête · ' + (q.titre || ''), 'quetes', qid);
+          evadGrainesMove({ type: 'pilote', id: lieuId }, inject, 'injection', 'Financement reçu · ' + (q.titre || ''), 'quetes', qid);
+        }
+      }
     } catch (e) {}
   }
   mmBubble('💰 Quête financée par ' + semNom + ' · preuve auditable certifiée EVAD');
@@ -9484,7 +9748,19 @@ function pmktRenderOffers() {
     + '<div style="display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;margin-bottom:1.1rem">' + exemples.map(e => '<span style="font-size:.66rem;color:var(--ink);background:rgba(46,102,66,.06);border:1px solid rgba(46,102,66,.12);border-radius:100px;padding:.25rem .6rem">' + e + '</span>').join('') + '</div>'
     + '<button class="btn btn-primary" style="font-size:.78rem;padding:.6rem 1.4rem" onclick="piloteMktOpenAdd()">+ Créer ma première offre</button>'
     + '</div>';
-  list.innerHTML = offers.length === 0
+  // En-tête : accès portefeuille + échanges à confirmer (escrow).
+  const _wp2 = (typeof evadGrainesParty === 'function') ? evadGrainesParty('pilote') : null;
+  if (_wp2 && typeof evadGrainesEnsureWelcome === 'function') evadGrainesEnsureWelcome(_wp2);
+  const _sales = (typeof evadPendingSales === 'function') ? evadPendingSales() : [];
+  const _dispo = (typeof evadGrainesDispo === 'function') ? evadGrainesDispo() : 0;
+  const _walletBtn = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem"><button class="btn btn-ghost" style="font-size:.72rem;padding:.4rem .9rem" onclick="evadOpenWallet()">🌱 Mes graines · ${_dispo}</button></div>`;
+  const _salesBanner = _sales.length
+    ? `<div style="display:flex;align-items:center;justify-content:space-between;gap:.7rem;background:rgba(74,140,92,.08);border:1px solid rgba(74,140,92,.28);border-radius:var(--r-lg,14px);padding:.7rem .9rem;margin-bottom:.8rem">
+         <div style="font-size:.74rem;color:var(--forest)">🤝 <b>${_sales.length} échange${_sales.length > 1 ? 's' : ''}</b> en attente de ta confirmation (remise du produit).</div>
+         <button class="btn btn-primary" style="font-size:.72rem;padding:.4rem 1rem;white-space:nowrap" onclick="evadOpenWallet()">Confirmer →</button>
+       </div>`
+    : '';
+  list.innerHTML = _walletBtn + _salesBanner + (offers.length === 0
     ? (noOffersAtAll ? inviteHtml : `<div style="padding:2rem;text-align:center;font-size:.78rem;color:var(--moss);opacity:.6">Aucune offre dans cette catégorie.</div>`)
     : offers.map(o => `
     <div class="pmkt-offer-row">
@@ -9506,7 +9782,7 @@ function pmktRenderOffers() {
           <button class="pmkt-btn pmkt-btn-delete" onclick="piloteMktDelete(${o.id})">🗑</button>
         </div>
       </div>
-    </div>`).join('');
+    </div>`).join(''));
 
   // update active count badge
   const activeCount = pmktOffers.filter(o => o.status === 'active').length;
@@ -9637,10 +9913,14 @@ function mktSort(sort, btn) {
 function pmktToMkt(o) {
   const lieu = (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom) ? myLieuData.nom : (typeof EVAD !== 'undefined' ? EVAD.activeLieu.nom : 'Mon lieu');
   const ville = (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.localisation) ? myLieuData.localisation : 'Bordeaux';
+  // Vendeur = le lieu du Pilote courant (les offres de « ma Marketplace » lui
+  // appartiennent) ; sert à créditer le bon lieu lors d'une vente.
+  const sellerId = o.lieu_id || (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.id) || null;
   return {
     id: o.id, cat: o.cat, titre: o.titre,
     desc: o.desc || ('Offre proposée par ' + lieu + '.'),
     lieu: lieu, ville: ville, prix: o.prix,
+    seller_id: sellerId, seller_nom: (o.lieu_nom || lieu),
     unite: o.unite || (o.prix > 0 ? 'à échanger en graines' : 'accès libre'),
     emoji: o.emoji, bg: o.bg || 'rgba(74,140,92,.1)', badge: o.badge || 'new',
     stock: o.stock, impact: o.impact || "Soutient l'économie locale et circulaire du lieu."
@@ -9655,9 +9935,11 @@ function mktAllOffres() {
 function mktRender() {
   const grid = document.getElementById('mkt-grid');
   if (!grid) return;
-  // Solde de démo : graines du bâtisseur, sinon un solde par défaut
-  if (!mktBalance) mktBalance = (typeof batProfileGraines === 'function' ? batProfileGraines() : 0) || 200;
-  const _bal = document.getElementById('mkt-balance'); if (_bal) _bal.textContent = mktBalance;
+  // Solde RÉEL du profil courant (grand livre − graines bloquées), plus de
+  // valeur de démo. Amorce le don de bienvenue au premier affichage.
+  const _wp = evadGrainesParty(); if (_wp) evadGrainesEnsureWelcome(_wp);
+  mktBalance = evadGrainesDispo();
+  const _bal = document.getElementById('mkt-balance'); if (_bal) { _bal.textContent = mktBalance; _bal.style.cursor = 'pointer'; _bal.title = 'Voir mes graines'; _bal.onclick = evadOpenWallet; }
   let offres = mktAllOffres();
   if (mktCurrentCat !== 'tous') offres = offres.filter(o => o.cat === mktCurrentCat);
   if (mktCurrentSort === 'prix_asc') offres.sort((a,b) => a.prix - b.prix);
@@ -9696,6 +9978,7 @@ function mktRender() {
 function mktOpenModal(id) {
   const o = mktAllOffres().find(x => x.id === id) || MKT_OFFRES[id];
   if (!o) return;
+  mktBalance = evadGrainesDispo();
   const canAfford = mktBalance >= o.prix;
   const modal = document.getElementById('mkt-modal');
   const content = document.getElementById('mkt-modal-content');
@@ -9724,28 +10007,50 @@ function mktOpenModal(id) {
     </div>
     <div style="display:flex;gap:.6rem">
       ${canAfford
-        ? `<button class="btn btn-primary" style="flex:1;padding:.75rem" onclick="mktConfirmBuy(${o.id})">${o.prix===0?'🎟 Réserver gratuitement':'🪙 Confirmer l\'échange (−'+o.prix+' tokens)'}</button>`
-        : `<button class="btn" style="flex:1;padding:.75rem;background:rgba(46,102,66,.08);color:var(--moss);cursor:default" disabled>🔒 graines insuffisants (manque ${o.prix - mktBalance})</button>`
+        ? `<button class="btn btn-primary" style="flex:1;padding:.75rem" onclick="mktConfirmBuy(${o.id})">${o.prix===0?'🎟 Réserver gratuitement':'🔒 Réserver (−'+o.prix+' graines bloquées)'}</button>`
+        : `<button class="btn" style="flex:1;padding:.75rem;background:rgba(46,102,66,.08);color:var(--moss);cursor:default" disabled>🔒 graines insuffisantes (manque ${o.prix - mktBalance})</button>`
       }
       <button class="btn btn-ghost" onclick="document.getElementById('mkt-modal').style.display='none'">Fermer</button>
     </div>`;
   modal.style.display = 'flex';
 }
 
+// Escrow (double validation) : l'acheteur RÉSERVE (ses graines sont bloquées) ;
+// le vendeur confirme la remise dans son portefeuille → transfert effectif.
 function mktConfirmBuy(id) {
   const o = mktAllOffres().find(x => x.id === id) || MKT_OFFRES[id];
-  if (!o || mktBalance < o.prix) return;
-  mktBalance -= o.prix;
-  // Transaction graines : dépense (mouvement du portefeuille).
-  if (o.prix > 0) _grainesTx(_currentBatisseurId(), 'depense', o.prix, o.titre || '', 'offres_mkt', id);
-  const _b = document.getElementById('mkt-balance'); if (_b) _b.textContent = mktBalance;
-  // Décrémente le stock à la source (offre du tableau de bord ou catalogue)
+  if (!o) return;
+  const buyer = evadGrainesParty();
+  if (!buyer) { mmBubble('Crée ton profil pour échanger des graines'); return; }
+  const prix = +o.prix || 0;
+  const seller = evadOfferSeller(o);
+  if (seller.id && buyer.type === seller.type && buyer.id === seller.id) { mmBubble('C\'est ta propre offre 🙂'); return; }
+  if (prix > 0 && evadGrainesDispo(buyer.type, buyer.id) < prix) { mmBubble('🔒 Graines insuffisantes'); return; }
+  // Offre catalogue de démo (aucun vendeur réel) : achat direct, sans escrow.
+  if (prix > 0 && !seller.id) {
+    evadGrainesMove(buyer, -prix, 'achat', 'Achat · ' + o.titre, 'offres_mkt', id);
+    const _m = MKT_OFFRES.find(x => x.id === id); if (_m && _m.stock != null) _m.stock = Math.max(0, _m.stock - 1);
+    document.getElementById('mkt-modal').style.display = 'none';
+    mktRender();
+    mmBubble(`✅ Échangé ! « ${o.titre} », −${prix} graines`);
+    return;
+  }
+  const code = _mktCode();
+  store.insert('mkt_transactions', {
+    offer_id: id, offer_titre: o.titre, prix: prix,
+    buyer_type: buyer.type, buyer_id: buyer.id, buyer_nom: buyer.nom,
+    seller_type: seller.type, seller_id: seller.id, seller_nom: seller.nom,
+    code: code, statut: prix > 0 ? 'en_attente' : 'confirmee'
+  });
+  // Réserve le stock (rendu si annulation).
   const src = (typeof pmktOffers !== 'undefined') ? pmktOffers.find(x => x.id === id) : null;
   if (src) { src.stock = Math.max(0, (src.stock || 0) - 1); src.echanges = (src.echanges || 0) + 1; if (src.stock === 0) src.status = 'full'; }
   else { const m = MKT_OFFRES.find(x => x.id === id); if (m && m.stock != null) m.stock = Math.max(0, m.stock - 1); }
   document.getElementById('mkt-modal').style.display = 'none';
   mktRender();
-  mmBubble(`✅ Échangé ! "${o.titre}" chez ${o.lieu}, ${o.prix>0?'−'+o.prix+' graines':'gratuit'}`);
+  try { window.dispatchEvent(new CustomEvent('evad:graines-changed')); } catch (e) {}
+  if (prix > 0) mmBubble(`🔒 Réservé ! Montre le code ${code} à ${seller.nom}. ${prix} graines bloquées jusqu'à sa confirmation.`);
+  else mmBubble(`🎟 Réservé gratuitement chez ${seller.nom} · présente-toi sur place`);
 }
 
 /* ─── PILOTE TABS JS ─── */
@@ -10896,11 +11201,14 @@ const SMKT_OFFRES = ((typeof MKT_OFFRES !== 'undefined') ? MKT_OFFRES : []).map(
 function smktRender() {
   const grid = document.getElementById('smkt-grid');
   if (!grid) return;
-  if (!smktBalance) smktBalance = 500;   // solde de graines CSRD de démo
+  // Solde RÉEL du semeur (grand livre : budget de bienvenue − financements).
+  const _sp = (typeof evadGrainesParty === 'function') ? evadGrainesParty('semeur') : null;
+  if (_sp && typeof evadGrainesEnsureWelcome === 'function') evadGrainesEnsureWelcome(_sp);
+  smktBalance = _sp ? evadGrainesDispo(_sp.type, _sp.id) : (smktBalance || 0);
   const balMain = document.getElementById('semeur-graines-balance');
-  if (balMain) balMain.textContent = smktBalance.toLocaleString('fr-FR');
+  if (balMain) { balMain.textContent = smktBalance.toLocaleString('fr-FR'); balMain.style.cursor = 'pointer'; balMain.onclick = evadOpenWallet; }
   const balMkt = document.getElementById('smkt-balance-display');
-  if (balMkt) balMkt.textContent = smktBalance.toLocaleString('fr-FR');
+  if (balMkt) { balMkt.textContent = smktBalance.toLocaleString('fr-FR'); balMkt.style.cursor = 'pointer'; balMkt.onclick = evadOpenWallet; }
   let offres = [...SMKT_OFFRES];
   if (smktCurrentCat !== 'tous') offres = offres.filter(o => o.cat === smktCurrentCat);
   grid.innerHTML = offres.map(o => {
@@ -10994,6 +11302,10 @@ function bmktFilter(cat, btn) {
 function bmktRender() {
   const grid = document.getElementById('bmkt-grid');
   if (!grid) return;
+  // Solde réel (grand livre − bloqué).
+  const _bw = evadGrainesParty(); if (_bw) evadGrainesEnsureWelcome(_bw);
+  mktBalance = evadGrainesDispo();
+  const _bbal = document.getElementById('bmkt-balance'); if (_bbal) { _bbal.textContent = mktBalance; _bbal.style.cursor = 'pointer'; _bbal.onclick = evadOpenWallet; }
   let offres = [...MKT_OFFRES];
   if (bmktCurrentCat !== 'tous') offres = offres.filter(o => o.cat === bmktCurrentCat);
   grid.innerHTML = offres.map(o => {
@@ -14578,6 +14890,22 @@ window.addEventListener('evad:quetes-ready', function(){
       if (typeof initDossiers === 'function') initDossiers();
       evadRefreshCarteCompteurs();
     } catch(e){}
+  });
+});
+
+// Graines / transactions : soldes et portefeuille rafraîchis en direct (une
+// vente confirmée sur un autre appareil met à jour l'acheteur, etc.).
+['evad:graines-changed', 'evad:graines-ready', 'evad:mkttx-ready'].forEach(function (ev) {
+  window.addEventListener(ev, function () {
+    try {
+      if (typeof evadWalletRender === 'function' && document.getElementById('evad-wallet-modal') && document.getElementById('evad-wallet-modal').style.display !== 'none') evadWalletRender();
+      const mk = document.getElementById('screen-marketplace');
+      if (mk && mk.classList.contains('active') && typeof mktRender === 'function') mktRender();
+      const pilotePanel = document.getElementById('pilote-panel-marketplace');
+      if (pilotePanel && pilotePanel.classList.contains('active') && typeof pmktRenderOffers === 'function') pmktRenderOffers();
+      const batGraines = document.getElementById('bat-panel-graines');
+      if (batGraines && batGraines.classList.contains('active') && typeof bmktRender === 'function') bmktRender();
+    } catch (e) {}
   });
 });
 

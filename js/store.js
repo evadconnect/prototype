@@ -40,6 +40,7 @@
     'quete_preuves',
     'financements',
     'graines_tx',
+    'mkt_transactions',
     'offres_mkt',
     'reseau_posts'
   ];
@@ -556,6 +557,103 @@
     return _hydrateQueteChildren('quete_preuves', upsertPreuveRemote, 'evad:preuves-ready');
   }
 
+  // ── Grand livre des graines (monnaie EVAD) : table graines_tx ──
+  // Chaque ligne est un mouvement signé (delta) rattaché à un « profil »
+  // (party_type = pilote|batisseur|semeur, party_id = id du lieu / bâtisseur /
+  // semeur). Le solde d'un profil = somme des delta. Partagé entre appareils et
+  // profils : le vendeur voit sa vente créditée, l'acheteur son débit.
+  function remoteGrainesTxRow(row) {
+    return {
+      id: row.id,
+      user_id: currentUserId || null,
+      party_type: row.party_type || null,
+      party_id: row.party_id || null,
+      delta: (typeof row.delta === 'number') ? row.delta : 0,
+      type: row.type || null,
+      label: row.label || null,
+      ref_table: row.ref_table || null,
+      ref_id: row.ref_id != null ? String(row.ref_id) : null,
+      donnees: row,
+      created_at: row.created_at || nowISO()
+    };
+  }
+  function upsertGrainesTxRemote(row) {
+    if (!global.evadSupabase || !row || !row.id) return;
+    global.evadSupabase
+      .from('graines_tx')
+      .upsert(remoteGrainesTxRow(row), { onConflict: 'id' })
+      .then(function (result) {
+        if (result.error) notifySyncError('Mouvement de graines non enregistré : ' + result.error.message);
+      });
+  }
+  async function hydrateGraines() {
+    if (!global.evadSupabase) return;
+    try {
+      var result = await global.evadSupabase.from('graines_tx').select('*');
+      if (result.error) { console.warn('Lecture graines_tx impossible : ' + result.error.message); return; }
+      var rows = (result.data || []).map(function (r) {
+        return Object.assign({}, r.donnees || {}, {
+          id: r.id, party_type: r.party_type, party_id: r.party_id,
+          delta: r.delta, type: r.type, label: r.label,
+          ref_table: r.ref_table, ref_id: r.ref_id, created_at: r.created_at
+        });
+      });
+      write('graines_tx', rows);
+      global.dispatchEvent(new CustomEvent('evad:graines-ready', { detail: { rows: rows } }));
+    } catch (e) { console.warn('Erreur récupération graines_tx :', e); }
+  }
+
+  // ── Transactions Marketplace (escrow / double validation) : mkt_transactions ──
+  // Un achat crée une transaction « en_attente » (graines de l'acheteur
+  // bloquées). Le vendeur confirme la remise → « confirmee » (transfert des
+  // graines via graines_tx). Annulable tant que non confirmée.
+  function remoteMktTxRow(row) {
+    return {
+      id: row.id,
+      user_id: currentUserId || null,
+      offer_id: row.offer_id != null ? String(row.offer_id) : null,
+      offer_titre: row.offer_titre || null,
+      prix: (typeof row.prix === 'number') ? row.prix : 0,
+      buyer_type: row.buyer_type || null,
+      buyer_id: row.buyer_id || null,
+      buyer_nom: row.buyer_nom || null,
+      seller_type: row.seller_type || null,
+      seller_id: row.seller_id || null,
+      seller_nom: row.seller_nom || null,
+      code: row.code || null,
+      statut: row.statut || 'en_attente',
+      donnees: row,
+      created_at: row.created_at || nowISO(),
+      updated_at: nowISO()
+    };
+  }
+  function upsertMktTxRemote(row) {
+    if (!global.evadSupabase || !row || !row.id) return;
+    global.evadSupabase
+      .from('mkt_transactions')
+      .upsert(remoteMktTxRow(row), { onConflict: 'id' })
+      .then(function (result) {
+        if (result.error) notifySyncError('Transaction non enregistrée : ' + result.error.message);
+      });
+  }
+  async function hydrateMktTx() {
+    if (!global.evadSupabase) return;
+    try {
+      var result = await global.evadSupabase.from('mkt_transactions').select('*');
+      if (result.error) { console.warn('Lecture mkt_transactions impossible : ' + result.error.message); return; }
+      var rows = (result.data || []).map(function (r) {
+        return Object.assign({}, r.donnees || {}, {
+          id: r.id, offer_id: r.offer_id, offer_titre: r.offer_titre, prix: r.prix,
+          buyer_type: r.buyer_type, buyer_id: r.buyer_id, buyer_nom: r.buyer_nom,
+          seller_type: r.seller_type, seller_id: r.seller_id, seller_nom: r.seller_nom,
+          code: r.code, statut: r.statut, created_at: r.created_at, updated_at: r.updated_at
+        });
+      });
+      write('mkt_transactions', rows);
+      global.dispatchEvent(new CustomEvent('evad:mkttx-ready', { detail: { rows: rows } }));
+    } catch (e) { console.warn('Erreur récupération mkt_transactions :', e); }
+  }
+
   // ── Solutions & indicateurs d'un lieu (tables dédiées) ──
   // Écrites à la publication de la fiche lieu : on remplace l'ensemble des
   // lignes du lieu (suppression puis insertion) pour refléter retraits/ajouts.
@@ -843,6 +941,10 @@
         upsertCandidatureRemote(row);
       } else if (table === 'quete_preuves') {
         upsertPreuveRemote(row);
+      } else if (table === 'graines_tx') {
+        upsertGrainesTxRemote(row);
+      } else if (table === 'mkt_transactions') {
+        upsertMktTxRemote(row);
       }
 
       return row;
@@ -877,6 +979,10 @@
             upsertCandidatureRemote(rows[i]);
           } else if (table === 'quete_preuves') {
             upsertPreuveRemote(rows[i]);
+          } else if (table === 'graines_tx') {
+            upsertGrainesTxRemote(rows[i]);
+          } else if (table === 'mkt_transactions') {
+            upsertMktTxRemote(rows[i]);
           }
 
           return rows[i];
@@ -1056,6 +1162,8 @@
   store.upsertQueteRemote = upsertQueteRemote;
   store.deleteCandidatureRemote = deleteCandidatureRemote;
   store.replaceLieuChildren = replaceLieuChildren;
+  store.hydrateGraines = hydrateGraines;
+  store.hydrateMktTx = hydrateMktTx;
 
   /*
    * Récupération de la session Supabase si elle existe.
@@ -1078,6 +1186,8 @@
         hydrateQuetes();
         hydrateCandidatures();
         hydratePreuves();
+        hydrateGraines();
+        hydrateMktTx();
         hydrateSolutions();
         hydrateIndicateurs();
         hydrateDrafts().then(function () {
@@ -1102,6 +1212,8 @@
         setTimeout(hydrateQuetes, 0);
         setTimeout(hydrateCandidatures, 0);
         setTimeout(hydratePreuves, 0);
+        setTimeout(hydrateGraines, 0);
+        setTimeout(hydrateMktTx, 0);
         setTimeout(hydrateSolutions, 0);
         setTimeout(hydrateIndicateurs, 0);
         hydrateDrafts().then(function () {
