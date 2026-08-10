@@ -320,7 +320,7 @@ function renderReseau(){
       <div style="font-size:.8rem;color:var(--ink);line-height:1.5">${p.text}</div>
       ${questCard}${imgCard}${matchBox}
       <div style="display:flex;align-items:center;gap:.6rem;margin-top:.8rem;padding-top:.7rem;border-top:1px solid rgba(46,102,66,.08)">
-        <button onclick="mmBubble('💬 Tu ouvres un échange avec ${p.author}')" style="background:white;border:1px solid rgba(46,102,66,.25);color:var(--forest);border-radius:100px;padding:.4rem .9rem;font-size:.72rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:.35rem">💬 Échanger</button>
+        <button onclick="evadStartChat({id:'user:${(p.author||'').replace(/'/g,"\\'")}',nom:'${(p.author||'').replace(/'/g,"\\'")}',role:'${p.profile||''}',lieu_id:'${(p.lieu||'').replace(/'/g,"\\'")}'})" style="background:white;border:1px solid rgba(46,102,66,.25);color:var(--forest);border-radius:100px;padding:.4rem .9rem;font-size:.72rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:.35rem">💬 Échanger</button>
         <button onclick="evadGoLieu('${(p.author||'').replace(/'/g,"\\'")}','${(p.lieu||'').replace(/'/g,"\\'")}')" style="background:white;border:1px solid rgba(46,102,66,.25);color:var(--forest);border-radius:100px;padding:.4rem .9rem;font-size:.72rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:.35rem">🗺 Voir le lieu</button>
         <button onclick="${p.type === 'quete' && p.quest
           ? `reseauJoinQuete('${String(p.quest.id || '').replace(/'/g, "\\'")}','${String(p.quest.titre || '').replace(/'/g, "\\'")}')`
