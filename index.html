@@ -12,7 +12,7 @@
         crossorigin=""
     />
         
-<link rel="stylesheet" href="css/styles.css?v=194">
+<link rel="stylesheet" href="css/styles.css?v=196">
 </head>
 <body>
 
@@ -93,7 +93,7 @@
 </div>
 
 
-<script src="js/splash-onboarding.js?v=194"></script>
+<script src="js/splash-onboarding.js?v=196"></script>
 
 <div class="app">
 
@@ -1183,18 +1183,18 @@
             <div class="fiche-section-head"><span class="fiche-section-title">📬 Contact & accès</span></div>
             <div class="fiche-section-body">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
-                <div class="fiche-field"><div class="fiche-label">Responsable</div><input class="fiche-input" value="" placeholder="Nom du responsable"></div>
-                <div class="fiche-field"><div class="fiche-label">Email public</div><input class="fiche-input" value="" placeholder="contact@exemple.fr"></div>
-                <div class="fiche-field"><div class="fiche-label">Téléphone</div><input class="fiche-input" value="" placeholder="Ex : 06 12 34 56 78"></div>
-                <div class="fiche-field"><div class="fiche-label">Site web</div><input class="fiche-input" value="" placeholder="www.exemple.fr"></div>
-                <div class="fiche-field" style="grid-column:1/-1"><div class="fiche-label">Horaires d'ouverture</div><input class="fiche-input" value="" placeholder="Ex : Lun–Ven 9h–19h, Sam 10h–17h"></div>
+                <div class="fiche-field"><div class="fiche-label">Responsable</div><input class="fiche-input" id="fiche-f-responsable" value="" placeholder="Nom du responsable"></div>
+                <div class="fiche-field"><div class="fiche-label">Email public</div><input class="fiche-input" id="fiche-f-email" value="" placeholder="contact@exemple.fr"></div>
+                <div class="fiche-field"><div class="fiche-label">Téléphone</div><input class="fiche-input" id="fiche-f-tel" value="" placeholder="Ex : 06 12 34 56 78"></div>
+                <div class="fiche-field"><div class="fiche-label">Site web</div><input class="fiche-input" id="fiche-f-web" value="" placeholder="www.exemple.fr"></div>
+                <div class="fiche-field" style="grid-column:1/-1"><div class="fiche-label">Horaires d'ouverture</div><input class="fiche-input" id="fiche-f-horaires" value="" placeholder="Ex : Lun–Ven 9h–19h, Sam 10h–17h"></div>
               </div>
             </div>
           </div>
 
           <div style="display:flex;gap:0.75rem">
-            <button class="btn btn-primary" style="flex:1;padding:0.65rem" onclick="mmBubble('💾 Fiche sauvegardée, modifications publiées ✅')">💾 Enregistrer les modifications</button>
-            <button class="btn btn-ghost" style="padding:0.65rem 1rem">Annuler</button>
+            <button class="btn btn-primary" style="flex:1;padding:0.65rem" onclick="piloteFicheSave()">💾 Enregistrer les modifications</button>
+            <button class="btn btn-ghost" style="padding:0.65rem 1rem" onclick="ficheFillFromMyLieu()">Annuler</button>
           </div>
 
         </div>
@@ -1488,9 +1488,9 @@
   </div>
 </div>
 
-<script src="js/data-reseau.js?v=194"></script>
+<script src="js/data-reseau.js?v=196"></script>
 
-<script src="js/regen-loop.js?v=194"></script>
+<script src="js/regen-loop.js?v=196"></script>
 
 <!-- Modale ajout/édition offre Pilote -->
 <div id="pmkt-modal" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(14,26,18,0.75);backdrop-filter:blur(6px);align-items:center;justify-content:center">
@@ -2507,9 +2507,9 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-config.js?v=194"></script>
-<script src="js/store.js?v=194"></script>
-<script src="js/app-core.js?v=194"></script>
+<script src="js/supabase-config.js?v=196"></script>
+<script src="js/store.js?v=196"></script>
+<script src="js/app-core.js?v=196"></script>
 
 <script
   src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -2568,9 +2568,9 @@
   </div>
 </div>
 
-<script src="js/deva.js?v=194"></script>
+<script src="js/deva.js?v=196"></script>
 
-<script src="js/nav-mobile.js?v=194"></script>
+<script src="js/nav-mobile.js?v=196"></script>
 
 <!-- ── Modal : Choisir ton profil ── -->
 <div id="auth-profil-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(14,26,18,.6);backdrop-filter:blur(6px);align-items:center;justify-content:center">
@@ -2615,7 +2615,7 @@
 </div>
 
 
-<script src="js/auth.js?v=194"></script>
+<script src="js/auth.js?v=196"></script>
 
 <!-- Espace modal, placé au niveau body pour rester accessible depuis tous les contextes -->
 <div id="espace-modal">
@@ -2704,17 +2704,17 @@
     </div>
   </div>
 </div>
-<script src="js/espace-modal.js?v=194"></script>
+<script src="js/espace-modal.js?v=196"></script>
 
 <!-- ═══════════════════════════════════════════════════════
      COUCHE DE CONVERGENCE, PERMA-COMPTABILITÉ EVAD
      Saisie unique → traduction multi-cadres institutionnels
      ═══════════════════════════════════════════════════════ -->
-<script src="js/quetes.js?v=194"></script>
-<script src="js/ici.js?v=194"></script>
+<script src="js/quetes.js?v=196"></script>
+<script src="js/ici.js?v=196"></script>
 
-<script src="js/contribution.js?v=194"></script>
-<script src="js/messages.js?v=194"></script>
+<script src="js/contribution.js?v=196"></script>
+<script src="js/messages.js?v=196"></script>
 
 <!-- Modal détail solution (créer lieu step 4) -->
 <div id="creer-sol-detail-modal" style="display:none;position:fixed;inset:0;z-index:10010;background:rgba(13,43,34,.6);backdrop-filter:blur(6px);align-items:flex-end;justify-content:center;" onclick="if(event.target===this)creerCloseSolDetail()">
@@ -2727,7 +2727,7 @@
   </div>
 </div>
 
-<script src="js/fil-rouge-feedback.js?v=194"></script>
+<script src="js/fil-rouge-feedback.js?v=196"></script>
 
 </body>
 </html>

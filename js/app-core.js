@@ -9661,6 +9661,12 @@ function ficheFillFromMyLieu() {
   const STAT = { asso:'Association loi 1901', scic:'SCIC', sas:'SAS', coop:'Coopérative', autre:'Autre' };
   if (d.statut) { const s = document.getElementById('fiche-f-statut'); if (s) s.value = STAT[d.statut] || d.statut; }
   set('fiche-f-desc', d.desc);
+  // Contact & accès
+  set('fiche-f-responsable', d.responsable);
+  set('fiche-f-email', d.email);
+  set('fiche-f-tel', d.tel);
+  set('fiche-f-web', d.web);
+  set('fiche-f-horaires', d.horaires);
   // Phase : bouton actif par libellé
   const PH = { idee:'Idée', conception:'Conception', chantier:'Chantier', operationnel:'Opérationnel' };
   if (d.phase) {
@@ -9673,6 +9679,59 @@ function ficheFillFromMyLieu() {
     if (d.logo) logo.innerHTML = '<img src="' + d.logo + '" style="width:100%;height:100%;object-fit:cover" alt="">';
     else if (d.icon) logo.textContent = d.icon;
   }
+}
+
+// Enregistre RÉELLEMENT l'onglet « Fiche lieu » du tableau de bord :
+// lit tous les champs → myLieuData → Supabase (le bouton n'était qu'un toast).
+function piloteFicheSave() {
+  const val = (id) => { const el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; };
+  if (typeof myLieuData === 'undefined' || !myLieuData) myLieuData = (typeof cData !== 'undefined' && cData) ? cData : {};
+
+  // Type : libellé du select → id interne.
+  const typeLbl = val('fiche-f-type');
+  const typeId = (typeof TYPES_LIEU !== 'undefined' && (TYPES_LIEU.find(t => t.l === typeLbl) || {}).id) || myLieuData.type || '';
+  // Statut : libellé → id.
+  const STAT_INV = { 'Association loi 1901':'asso', 'SCIC':'scic', 'SAS':'sas', 'Coopérative':'coop', 'Autre':'autre' };
+  const statutId = STAT_INV[val('fiche-f-statut')] || myLieuData.statut || '';
+  // Phase : bouton actif → id.
+  const PH_INV = { 'Idée':'idee', 'Conception':'conception', 'Chantier':'chantier', 'Opérationnel':'operationnel' };
+  let phaseId = myLieuData.phase || '';
+  const root = document.getElementById('pilote-panel-fiche');
+  if (root) {
+    const activeTag = Array.from(root.querySelectorAll('.fiche-tag.active'))
+      .find(b => Object.keys(PH_INV).some(l => b.textContent.indexOf(l) !== -1));
+    if (activeTag) { const l = Object.keys(PH_INV).find(l => activeTag.textContent.indexOf(l) !== -1); if (l) phaseId = PH_INV[l]; }
+  }
+
+  const patch = {
+    nom: val('fiche-f-nom') || myLieuData.nom,
+    type: typeId,
+    localisation: val('fiche-f-adresse') || myLieuData.localisation,
+    annee: val('fiche-f-annee'),
+    surface: val('fiche-f-surface'),
+    statut: statutId,
+    phase: phaseId,
+    desc: val('fiche-f-desc'),
+    responsable: val('fiche-f-responsable'),
+    email: val('fiche-f-email'),
+    tel: val('fiche-f-tel'),
+    web: val('fiche-f-web'),
+    horaires: val('fiche-f-horaires')
+  };
+  Object.assign(myLieuData, patch);
+
+  if (window.store) {
+    try {
+      // upsert : met à jour la ligne si elle existe, sinon la crée (avec son id
+      // s'il est déjà connu) → pousse vers Supabase dans les deux cas.
+      const saved = store.upsert('lieux', Object.assign({}, myLieuData));
+      if (saved && saved.id) myLieuData.id = saved.id;
+    } catch (e) {}
+  }
+  // Reflète le lieu mis à jour dans l'en-tête du tableau de bord et sur la carte.
+  if (typeof evadReflectLieuInDashboard === 'function') { try { evadReflectLieuInDashboard(); } catch (e) {} }
+  if (typeof syncMapPlacesFromStore === 'function') { try { syncMapPlacesFromStore(); } catch (e) {} }
+  if (typeof mmBubble === 'function') mmBubble('💾 Fiche enregistrée · modifications publiées ✅');
 }
 
 // Reflète le lieu créé (myLieuData) dans l'en-tête du tableau de bord.
