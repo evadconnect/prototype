@@ -1030,14 +1030,43 @@ function lieuRenderQuetes() {
   const box = document.getElementById('lieu-quetes-list');
   if (!box) return;
 
-  // Plus de quêtes générées automatiquement : on affiche celles que le
-  // Pilote a réellement créées et publiées.
-  if (typeof syncPiloteQuetesFromLieu === 'function') { try { syncPiloteQuetesFromLieu(); } catch (e) {} }
-  const _lieuNom = (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom) || cData.nom || 'Mon lieu';
-  const solQuetes = (typeof PILOTE_QUETES_DEMO !== 'undefined' ? PILOTE_QUETES_DEMO : [])
-    .filter(q => q.statut === 'ouverte')
-    .map(q => ({ titre: q.titre, duree: q.duree, nb: q.nb, impact_quete: q.impact, source: _lieuNom, sourceIc: q.sourceIc || '⚡', sourceCat: null, tok: q.graines || 50 }));
+  // On affiche les quêtes réellement publiées PAR LE LIEU AFFICHÉ (cData),
+  // pas celles du Pilote courant. Lecture directe du store par lieu_id : cela
+  // vaut pour mon lieu comme pour les autres (leurs quêtes sont hydratées de
+  // Supabase dans le store).
+  const _lieuId  = (typeof cData !== 'undefined' && cData && cData.id) || null;
+  const _myId    = (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.id) || null;
+  const _isMine  = _lieuId && _myId && _lieuId === _myId;
+  const _lieuNom = (typeof cData !== 'undefined' && cData && cData.nom)
+    || (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom) || 'Ce lieu';
+
+  // Si c'est mon lieu, resynchroniser d'abord pour capter une quête tout juste
+  // publiée (et alimenter le repli brouillon sans id).
+  if (_isMine && typeof syncPiloteQuetesFromLieu === 'function') { try { syncPiloteQuetesFromLieu(); } catch (e) {} }
+
+  let _rows = [];
+  if (_lieuId && window.store) {
+    _rows = store.where('quetes', r => r.lieu_id === _lieuId);
+  } else if (typeof PILOTE_QUETES_DEMO !== 'undefined') {
+    // Lieu sans id (brouillon = forcément le mien) : repli sur la liste synchro.
+    _rows = PILOTE_QUETES_DEMO.slice();
+  }
+  const _ouvertes  = _rows.filter(q => q.statut === 'ouverte');
+  const _terminees = _rows.filter(q => q.statut === 'terminee');
+  const solQuetes = _ouvertes.map(q => ({ id: q.id, titre: q.titre, duree: q.duree, nb: q.nb, impact_quete: q.impact, source: _lieuNom, sourceIc: q.sourceIc || '⚡', sourceCat: null, tok: q.graines || 50 }));
   const espQuetes = [];
+
+  // Sidebar « graines distribués » : chiffres réels du lieu affiché.
+  try {
+    const _setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    const _grainesOuvertes  = _ouvertes.reduce((s, q) => s + (+q.graines || 0), 0);
+    const _grainesDistrib   = _terminees.reduce((s, q) => s + (+q.graines || 0), 0);
+    _setTxt('lqs-adistribuer', _grainesOuvertes || 0);
+    _setTxt('lqs-total', _grainesDistrib || 0);
+    _setTxt('lqs-batremuneres', _terminees.length || 0);
+    _setTxt('lqs-ouvertes', _ouvertes.length || 0);
+    _setTxt('lqs-terminees', _terminees.length || 0);
+  } catch (e) {}
 
   const total = solQuetes.length + espQuetes.length;
 
@@ -1061,8 +1090,9 @@ function lieuRenderQuetes() {
   function queteCard(q, idx) {
     const col   = q.fromEspace ? (q.espCol || '#4a8c5c') : (CAT_COLORS[q.sourceCat] || '#4a8c5c');
     const tokensEst = q.tok || 50;
+    const _clic = q.id ? ` onclick="openLieuQueteFiche('${q.id}')"` : '';
     return `
-    <div style="background:white;border:1.5px solid ${col}28;border-left:3px solid ${col};border-radius:var(--r-lg);padding:.85rem 1rem;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 4px 14px ${col}18'" onmouseout="this.style.boxShadow=''">
+    <div style="background:white;border:1.5px solid ${col}28;border-left:3px solid ${col};border-radius:var(--r-lg);padding:.85rem 1rem;transition:box-shadow .15s;cursor:pointer"${_clic} onmouseover="this.style.boxShadow='0 4px 14px ${col}18'" onmouseout="this.style.boxShadow=''">
       <div style="display:flex;align-items:flex-start;gap:.6rem">
         <div style="width:34px;height:34px;border-radius:8px;background:${col}18;border:1px solid ${col}33;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0">${q.sourceIc}</div>
         <div style="flex:1;min-width:0">
@@ -8730,7 +8760,63 @@ function qdSupprimer() {
   setTimeout(queteDetailBack, 250);
 }
 
+// Ouvre le détail d'une quête depuis la fiche lieu (modal carte). Construit
+// l'objet quête à partir de la ligne du store, rattaché au LIEU AFFICHÉ (cData),
+// puis masque le modal le temps d'afficher la fiche (retour = réouverture).
+let _qdLieuReturnScreen = null;
+function openLieuQueteFiche(qid) {
+  if (!window.store || typeof showQueteFiche !== 'function') return;
+  const r = store.get('quetes', qid);
+  if (!r) return;
+  const sol = (typeof SOLS !== 'undefined' && r.source) ? SOLS.find(s => s.nom === r.source) : null;
+  const lieuNom = (typeof cData !== 'undefined' && cData && cData.nom) || 'Ce lieu';
+  const ville   = (typeof cData !== 'undefined' && cData && (cData.localisation || cData.ville)) || '';
+  const _si = (sol && typeof SOLS_INDICATORS !== 'undefined' && SOLS_INDICATORS[sol.nom]) ? SOLS_INDICATORS[sol.nom] : null;
+  const _plan = (Array.isArray(r.plan) && r.plan.length) ? r.plan : ((_si && _si.plan) || []);
+  const _mat  = (Array.isArray(r.materiel) && r.materiel.length) ? r.materiel : ((_si && _si.materiel) || []);
+  const _icis = (Array.isArray(r.icis) && r.icis.length && typeof iciGetICI === 'function')
+    ? r.icis.map(id => iciGetICI(id)).filter(Boolean)
+    : ((sol && typeof iciPourSolution === 'function') ? (iciPourSolution(sol.nom) || []) : []);
+  const _cands = store.where('quete_candidatures', c => c.quete_id === r.id && c.statut === 'inscrit');
+  const _eqCols = ['#4a8c5c', '#c8732a', '#7a6ea8', '#3a6e8c', '#b84e35', '#2e6642'];
+  const _equipe = _cands.map((c, i) => ({ i: ((c.batisseur_nom || 'B').trim().charAt(0) || 'B').toUpperCase(), c: _eqCols[i % _eqCols.length], nom: c.batisseur_nom || 'Bâtisseur', bid: c.batisseur_id || null }));
+  const _nbMax = parseInt(r.nb, 10) || 6;
+  // Masque le modal lieu (overlay) et mémorise l'écran sous-jacent pour le retour.
+  _qdLieuReturnScreen = document.querySelector('.screen.active')?.id?.replace('screen-', '') || 'carte';
+  const m = document.getElementById('lieu-modal');
+  if (m) m.style.display = 'none';
+  showQueteFiche({
+    titre: r.titre || 'Quête',
+    type: (r.sourceIc || (sol && sol.img) || '⚡') + ' ' + ((sol && sol.cat) || 'Quête'),
+    lieu: lieuNom, pilote: lieuNom, ville: ville,
+    desc: r.desc || (sol && sol.desc) || r.titre,
+    impact: r.impact || (sol && sol.impact) || '',
+    plan: _plan, materiel: _mat,
+    preuve: r.preuve || 'Photos de l\'action réalisée + indicateurs mesurés.',
+    apprendre: r.competence ? ('Compétence : ' + r.competence) : ('Mise en œuvre de « ' + ((sol && sol.nom) || r.titre) + ' ».'),
+    duree: r.duree || '1 journée',
+    places: Math.min(_equipe.length, _nbMax) + '/' + _nbMax,
+    etape_actuelle: 1, etapes: _plan.length || 4,
+    etapeLabels: _plan.length ? _plan.map(p => p.titre) : ['Lancement', 'Préparation', 'Réalisation', 'Certification'],
+    tokens: r.graines || 50, co2: (sol && sol.co2) || 0,
+    esrs: ((sol && sol.esrs) || []).map(e => String(e).replace('ESRS ', '').trim()),
+    financement: { objectif: 0, montant: 0, semeur: null },
+    equipe: _equipe, dates: [], dateISO: r.dateISO || null, heure: r.heure || null,
+    icis: _icis,
+    srcId: r.id, published: r.statut === 'ouverte' || r.statut === 'terminee', paused: r.statut === 'en_pause'
+  }, 'lieu-modal');
+}
+
 function queteDetailBack() {
+  // Retour vers la fiche lieu (modal carte) d'où la quête a été ouverte.
+  if (_qdFrom === 'lieu-modal') {
+    showScreen(_qdLieuReturnScreen || 'carte');
+    const m = document.getElementById('lieu-modal');
+    if (m) { m.style.display = 'block'; document.body.style.overflow = 'hidden'; }
+    if (typeof lieuTab === 'function') { try { lieuTab('quetes', document.getElementById('ltab-quetes')); } catch (e) {} }
+    if (typeof lieuRenderQuetes === 'function') { try { lieuRenderQuetes(); } catch (e) {} }
+    return;
+  }
   showScreen(_qdFrom);
   // showScreen('pilote') réinitialise sur l'onglet Aperçu : on rétablit l'onglet
   // Quêtes, d'où la fiche quête du Pilote est toujours ouverte.
@@ -9018,6 +9104,14 @@ function renderQueteDetail() {
   const panel = document.getElementById('qd-panel');
   if (currentRole === 'batisseur' || !currentRole) {
     const md = q.matchDetails || [];
+    // Score de compatibilité : présent quand la quête vient du matching bâtisseur.
+    // Ouverte depuis une fiche lieu sans profil bâtisseur → on le calcule si un
+    // profil existe, sinon on affiche un tiret plutôt que « undefined ».
+    let _match = (q.match != null && !isNaN(q.match)) ? Math.round(q.match) : null;
+    if (_match == null && typeof batFicheData !== 'undefined' && batFicheData && typeof calcMatchFull === 'function') {
+      try { const _mf = calcMatchFull(batFicheData, q); if (_mf && !isNaN(_mf.score)) _match = Math.round(_mf.score); } catch (e) {}
+    }
+    const _hasMatch = _match != null;
     panel.innerHTML = `
       <!-- Match score -->
       <div style="background:linear-gradient(135deg,#1a3a2e,#0e2820);border-radius:var(--r-xl);padding:1.2rem;text-align:center;border:1px solid rgba(74,140,92,.2)">
@@ -9026,13 +9120,14 @@ function renderQueteDetail() {
           <svg viewBox="0 0 80 80" style="width:100%;height:100%;transform:rotate(-90deg)">
             <circle cx="40" cy="40" r="33" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="7"/>
             <circle cx="40" cy="40" r="33" fill="none" stroke="#7ab840" stroke-width="7" stroke-linecap="round"
-              stroke-dasharray="${2*Math.PI*33}" stroke-dashoffset="${2*Math.PI*33*(1-q.match/100)}"/>
+              stroke-dasharray="${2*Math.PI*33}" stroke-dashoffset="${2*Math.PI*33*(1-(_hasMatch?_match:0)/100)}"/>
           </svg>
           <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
-            <span style="font-family:'Satoshi', sans-serif;font-size:1.4rem;font-weight:900;color:white;line-height:1">${q.match}</span>
+            <span style="font-family:'Satoshi', sans-serif;font-size:1.4rem;font-weight:900;color:white;line-height:1">${_hasMatch?_match:'–'}</span>
             <span style="font-size:.48rem;color:rgba(255,255,255,.4);text-transform:uppercase">match</span>
           </div>
         </div>
+        ${_hasMatch ? '' : '<div style="font-size:.58rem;color:rgba(255,255,255,.45);line-height:1.4;margin-bottom:.2rem">Crée ta fiche bâtisseur pour voir ta compatibilité</div>'}
         ${md.map(m=>`<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem">
           <span style="font-size:.62rem;color:rgba(255,255,255,.55);flex:1;text-align:left">${m.skill}</span>
           <div style="width:60px;height:3px;background:rgba(255,255,255,.1);border-radius:100px;overflow:hidden">

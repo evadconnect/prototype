@@ -429,12 +429,12 @@
               <div style="font-size:.78rem;font-weight:700;color:var(--ink)">🌱 graines distribués</div>
             </div>
             <div style="padding:.8rem 1rem;display:flex;flex-direction:column;gap:.4rem">
-              <div style="display:flex;justify-content:space-between;font-size:.72rem"><span style="color:var(--moss)">Ce mois</span><span style="font-weight:700;color:var(--amber)">-</span></div>
-              <div style="display:flex;justify-content:space-between;font-size:.72rem"><span style="color:var(--moss)">Total distribués</span><span style="font-weight:700;color:var(--ink)">-</span></div>
-              <div style="display:flex;justify-content:space-between;font-size:.72rem"><span style="color:var(--moss)">Bâtisseurs rémunérés</span><span style="font-weight:700;color:var(--fern)">-</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:.72rem"><span style="color:var(--moss)">À distribuer (ouvertes)</span><span id="lqs-adistribuer" style="font-weight:700;color:var(--amber)">-</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:.72rem"><span style="color:var(--moss)">Total distribués</span><span id="lqs-total" style="font-weight:700;color:var(--ink)">-</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:.72rem"><span style="color:var(--moss)">Bâtisseurs rémunérés</span><span id="lqs-batremuneres" style="font-weight:700;color:var(--fern)">-</span></div>
               <div style="height:1px;background:rgba(46,102,66,.08);margin:.2rem 0"></div>
-              <div style="display:flex;justify-content:space-between;font-size:.72rem"><span style="color:var(--moss)">Quêtes ouvertes</span><span style="font-weight:700;color:var(--sky)">-</span></div>
-              <div style="display:flex;justify-content:space-between;font-size:.72rem"><span style="color:var(--moss)">Quêtes terminées</span><span style="font-weight:700;color:var(--moss)">-</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:.72rem"><span style="color:var(--moss)">Quêtes ouvertes</span><span id="lqs-ouvertes" style="font-weight:700;color:var(--sky)">-</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:.72rem"><span style="color:var(--moss)">Quêtes terminées</span><span id="lqs-terminees" style="font-weight:700;color:var(--moss)">-</span></div>
             </div>
           </div>
           <button class="acteur-cta" style="background:var(--forest);color:white" onclick="showScreen('quete')">
@@ -2509,7 +2509,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-config.js?v=200"></script>
 <script src="js/store.js?v=200"></script>
-<script src="js/app-core.js?v=201"></script>
+<script src="js/app-core.js?v=204"></script>
 
 <script
   src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
