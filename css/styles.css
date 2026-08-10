@@ -2656,10 +2656,18 @@ body {
 ═══════════════════════════════════════════════════════ */
 @media (max-width: 600px) {
   html { -webkit-text-size-adjust: 100%; }
-  body { overflow-x: hidden; }
+  /* Le bloc @media 820px met body en `overflow:auto` → body devient un conteneur
+     de scroll (hauteur = contenu) qui bloque le défilement tactile sur iOS Safari.
+     On force `overflow-y: visible` pour rendre le document (documentElement) seul
+     défileur (géré correctement par iOS), et `overflow-x: clip` bride l'horizontal
+     SANS recréer de conteneur de scroll (clip + visible = combinaison valide). */
+  body { overflow-x: clip; overflow-y: visible; }
   .app { flex-direction: column !important; height: auto !important; min-height: 100dvh !important; }
   .nav { display: none !important; }
-  .main { width: 100%; }
+  /* Sur mobile, on ne veut pas que .main soit un second conteneur de scroll
+     (flex:1 + overflow:auto en colonne = piège de scroll iOS) : le contenu
+     coule dans le document, qui défile. */
+  .main { width: 100%; overflow: visible !important; }
   /* Sidebar masquée en mobile → panneau espace plein écran */
   #espace-modal { left: 0; }
 
