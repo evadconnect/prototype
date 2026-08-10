@@ -9667,6 +9667,21 @@ function ficheFillFromMyLieu() {
     if (d.logo) logo.innerHTML = '<img src="' + d.logo + '" style="width:100%;height:100%;object-fit:cover" alt="">';
     else if (d.icon) logo.textContent = d.icon;
   }
+  // Besoins : coche les chips correspondantes ; réinjecte les besoins
+  // personnalisés (absents des chips prédéfinies) en les ajoutant sélectionnés.
+  const bt = document.getElementById('fiche-besoins-tags');
+  if (bt && Array.isArray(d.besoins)) {
+    const chips = Array.from(bt.querySelectorAll('.esp-tag'));
+    const known = chips.map(b => (b.textContent || '').trim());
+    chips.forEach(b => b.classList.toggle('sel', d.besoins.includes((b.textContent || '').trim())));
+    d.besoins.filter(x => x && !known.includes(x)).forEach(x => {
+      const btn = document.createElement('button');
+      btn.className = 'esp-tag sel';
+      btn.textContent = x;
+      btn.onclick = () => btn.classList.toggle('sel');
+      bt.appendChild(btn);
+    });
+  }
 }
 
 // Enregistre RÉELLEMENT l'onglet « Fiche lieu » du tableau de bord :
@@ -9691,6 +9706,11 @@ function piloteFicheSave() {
     if (activeTag) { const l = Object.keys(PH_INV).find(l => activeTag.textContent.indexOf(l) !== -1); if (l) phaseId = PH_INV[l]; }
   }
 
+  // Besoins : chips sélectionnées (prédéfinies + personnalisées ajoutées).
+  const besoins = [];
+  const bt = document.getElementById('fiche-besoins-tags');
+  if (bt) bt.querySelectorAll('.esp-tag.sel').forEach(b => { const t = (b.textContent || '').trim(); if (t && !besoins.includes(t)) besoins.push(t); });
+
   const patch = {
     nom: val('fiche-f-nom') || myLieuData.nom,
     type: typeId,
@@ -9704,7 +9724,8 @@ function piloteFicheSave() {
     email: val('fiche-f-email'),
     tel: val('fiche-f-tel'),
     web: val('fiche-f-web'),
-    horaires: val('fiche-f-horaires')
+    horaires: val('fiche-f-horaires'),
+    besoins: besoins
   };
   Object.assign(myLieuData, patch);
 
