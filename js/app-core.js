@@ -13244,7 +13244,35 @@ function ficheSaveEspace() {
     ficheRenderEspaces();
     ficheSolsByEspace = {};
     setTimeout(ficheMmRender, 80);
+    // Propage vers la fiche lieu (données + carte + mind map de la fiche).
+    ficheEspacesPersist();
   }
+}
+
+// Propage les espaces édités dans le tableau de bord vers la fiche lieu :
+// myLieuData.espacesData ← ficheEspaces, sauvegarde Supabase, reconstruction de
+// la carte, et rafraîchissement en direct de la fiche lieu (onglets Espaces +
+// Écosystème / mind map) si elle est ouverte sur ce lieu.
+function ficheEspacesPersist() {
+  if (typeof myLieuData === 'undefined' || !myLieuData) return;
+  myLieuData.espacesData = ficheEspaces.map(e => Object.assign({}, e));
+  // Champ à plat (noms d'espaces) tenu cohérent pour les vues qui l'utilisent.
+  myLieuData.espaces = myLieuData.espacesData.map(e => e.nom).filter(Boolean);
+  // Persistance Supabase seulement si le lieu existe déjà (id connu) : sinon on
+  // garde la modif en local, elle partira à la publication de la fiche.
+  if (window.store && myLieuData.id) {
+    try { const saved = store.upsert('lieux', Object.assign({}, myLieuData)); if (saved && saved.id) myLieuData.id = saved.id; } catch (e) {}
+  }
+  try {
+    if (typeof syncMapPlacesFromStore === 'function') syncMapPlacesFromStore();
+    // Fiche lieu (modal) ouverte sur CE lieu → mise à jour immédiate.
+    const modal = document.getElementById('lieu-modal');
+    if (modal && modal.style.display !== 'none' && typeof cData !== 'undefined' && cData && cData.id && cData.id === myLieuData.id) {
+      cData.espacesData = myLieuData.espacesData;
+      if (typeof lieuRenderEspaces === 'function') lieuRenderEspaces();
+      if (typeof lieuRenderMindmap === 'function') lieuRenderMindmap();
+    }
+  } catch (e) {}
 }
 
 function ficheRemoveEspace(idx) {
@@ -13256,6 +13284,7 @@ function ficheRemoveEspace(idx) {
   ficheSolsByEspace = {};
   ficheRenderEspaces();
   setTimeout(ficheMmRender, 80);
+  ficheEspacesPersist();
   mmBubble('🗑 Espace supprimé');
 }
 
