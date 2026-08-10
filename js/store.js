@@ -163,10 +163,12 @@
   }
 
   /*
-   * Création d'un nouveau lieu dans Supabase.
+   * Création / sauvegarde d'un lieu dans Supabase.
    *
-   * On utilise insert et non upsert afin que la politique
-   * RLS publique d'insertion soit suffisante.
+   * upsert avec onConflict:'id' (idempotent, comme fiche_batisseur /
+   * fiche_semeur) : republier ou re-sauver le MÊME id met à jour la ligne au
+   * lieu d'en créer une seconde. Sans ça, une session dont le cache local est
+   * vide (nouvelle connexion) ré-insérait le lieu et créait un doublon.
    */
   function insertLieuRemote(row) {
     if (!global.evadSupabase) {
@@ -180,7 +182,7 @@
 
     global.evadSupabase
       .from('fiche_pilote')
-      .insert(payload)
+      .upsert(payload, { onConflict: 'id' })
       .then(function (result) {
         if (result.error) {
           console.error(
@@ -1045,6 +1047,10 @@
 
   global.store = store;
   global.EvadStore = store;
+  // Id du compte connecté (Supabase auth) : permet à l'app de retrouver LE lieu
+  // de l'utilisateur (par user_id) plutôt que le dernier lieu de la communauté,
+  // et donc de mettre à jour sa fiche au lieu d'en créer une nouvelle.
+  store.userId = function () { return currentUserId; };
   store.hydrateDrafts = hydrateDrafts;
   store.deleteQueteRemote = deleteQueteRemote;
   store.upsertQueteRemote = upsertQueteRemote;

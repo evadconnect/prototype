@@ -2415,8 +2415,15 @@ async function switchRole(role){
       const { data: sess } = await window.evadSupabase.auth.getSession();
       const uid = sess && sess.session && sess.session.user && sess.session.user.id;
       if (uid) {
-        const { data } = await window.evadSupabase.from('fiche_pilote').select('id').eq('user_id', uid).limit(1);
-        if (data && data.length) { done = true; if (typeof evadMarkFicheDone === 'function') evadMarkFicheDone('pilote'); }
+        const { data } = await window.evadSupabase.from('fiche_pilote').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(1);
+        if (data && data.length) {
+          done = true;
+          if (typeof evadMarkFicheDone === 'function') evadMarkFicheDone('pilote');
+          // Rattache myLieuData à SA fiche (id réel) : toute sauvegarde ultérieure
+          // met à jour cette ligne au lieu d'en insérer une nouvelle (doublon).
+          const _row = data[0];
+          myLieuData = Object.assign({}, _row.donnees || {}, _row, { id: _row.id, lat: _row.latitude, lng: _row.longitude });
+        }
       }
     } catch (e) {}
   }
@@ -7276,13 +7283,31 @@ const TYPE_IC={tiers:'🌿',ferme:'🌾',ecolieu:'🏡',fablab:'⚙️',habitat:
 // Instantané du dernier lieu créé par l'utilisateur (pour l'onglet « Fiche lieu »)
 let myLieuData = null;
 
-// Réhydratation : au chargement, on restaure le dernier lieu publié depuis le
+// Retrouve LE lieu de l'utilisateur connecté (par user_id) parmi les lieux du
+// store. C'est essentiel pour éviter les doublons : sans ça, on prenait « le
+// dernier lieu de la communauté » comme s'il était le nôtre, si bien qu'à la
+// connexion l'app ne reconnaissait pas la fiche déjà en base et en re-créait
+// une. Repli sur le dernier lieu seulement s'il n'y a pas de session (mode
+// démo local sans compte).
+function evadOwnedLieu() {
+  if (!window.store) return null;
+  const rows = store.all('lieux');
+  if (!rows.length) return null;
+  const uid = (typeof store.userId === 'function') ? store.userId() : null;
+  if (uid) {
+    const mine = rows.filter(r => r.user_id === uid);
+    // Le plus récent des lieux du compte (rows triés par created_at croissant).
+    return mine.length ? Object.assign({}, mine[mine.length - 1]) : null;
+  }
+  // Pas de compte connecté : on garde le repli historique (dernier lieu local).
+  return Object.assign({}, rows[rows.length - 1]);
+}
+
+// Réhydratation : au chargement, on restaure le lieu de l'utilisateur depuis le
 // store, sinon la fiche lieu est vide après un simple rechargement de page.
 try {
-  if (window.store) {
-    const _rows = store.all('lieux');
-    if (_rows.length) myLieuData = Object.assign({}, _rows[_rows.length - 1]);
-  }
+  const _own = evadOwnedLieu();
+  if (_own) myLieuData = _own;
 } catch (e) {}
 
 // Solutions retenues d'un lieu : le champ à plat `solutions`, sinon
@@ -14342,8 +14367,8 @@ window.addEventListener('evad:supabase-ready', function(){
   // suppressions faites côté Supabase), sauf si une édition est en cours.
   try {
     if (typeof cData === 'undefined' || !cData || !cData.nom) {
-      const _r = store.all('lieux');
-      myLieuData = _r.length ? Object.assign({}, _r[_r.length - 1]) : null;
+      // LE lieu du compte connecté (par user_id), pas le dernier de la communauté.
+      myLieuData = (typeof evadOwnedLieu === 'function') ? evadOwnedLieu() : null;
     }
   } catch(e){}
   _mapCommunityRendered = false; // force mapRenderCommunity à reparcourir MAP_PLACES
