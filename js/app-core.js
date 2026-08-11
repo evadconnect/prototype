@@ -1252,12 +1252,13 @@ function lieuRenderEspaces() {
 
         ${esp.notes ? `<div style="font-size:.65rem;color:var(--moss);opacity:.7;font-style:italic;padding:.5rem .7rem;background:rgba(46,102,66,.04);border-radius:var(--r);border-left:2px solid ${col}55">${esp.notes}</div>` : ''}
 
-        ${typeof evadEspaceEcoHTML === 'function' ? evadEspaceEcoHTML(esp, espIdx, cData) : ''}
-
       </div>
     </div>`;
   }).join('');
 
+  // La rentabilité (chiffres financiers) reste PRIVÉE au porteur : elle n'est
+  // PAS affichée ici (fiche complète, visible par tous), mais dans la création
+  // de fiche et le tableau de bord Pilote.
   box.innerHTML = header + cards;
 }
 
@@ -1715,6 +1716,46 @@ const SOLS=[
    photo:'https://images.unsplash.com/photo-1489274495757-95c7c837b101?w=800&q=80&auto=format&fit=crop',
    lieux:['tiers','ecolieu','fablab','repair','ressourcerie','cafe','epicerie','coworking','incubateur','ecole','autre'],
    quete:{titre:'Lancer un point de réemploi',duree:'4 journées',nb:'4–8 pers.',impact_quete:'+12 pts éco locale · réemploi'}},
+
+  {nom:'Café associatif',cat:'social',cplx:'moyen',impact:'lieu de vie · 100 % local',co2:.3,tok:60,img:'☕',
+   desc:'Un café géré par l\'association et ses bénévoles : boissons et petite restauration issues de producteurs locaux, prix accessibles, programmation conviviale (concerts, jeux, débats). C\'est le cœur battant du lieu : l\'endroit où la communauté se croise, où les nouveaux arrivent, et une source de revenus réguliers qui finance le reste du projet.',
+   avantages:['Crée LE point de rencontre du lieu et du quartier','Revenus réguliers réinjectés dans le projet','Approvisionnement 100 % local et de saison'],
+   budget:'2 500–10 000 € (aménagement, équipement, licence)',
+   ind:['Nb événements communautaires/mois','% approvisionnement local','Bénévoles mobilisés'],
+   esrs:['ESRS S3','ESRS S2'],esrs_detail:'Cohésion et vie de la communauté (S3) · chaîne de valeur locale (S2).',
+   photo:'https://images.unsplash.com/photo-1445116572660-236099ec97a0?w=800&q=80&auto=format&fit=crop',
+   lieux:['cafe','tiers','ecolieu','epicerie','ecole','autre'],
+   quete:{titre:'Ouvrir le café associatif',duree:'4 journées',nb:'4–8 pers.',impact_quete:'+12 pts social · lieu de vie du quartier'}},
+
+  {nom:'Épicerie participative',cat:'alimentaire',cplx:'moyen',impact:'~80 % produits locaux',co2:.4,tok:55,img:'🛒',
+   desc:'Une épicerie gérée par ses membres : chacun donne quelques heures par mois (caisse, réception, rayons) en échange de produits locaux à prix coûtant. L\'approvisionnement se fait en direct des producteurs du territoire, sans marge intermédiaire. Le modèle rend l\'alimentation de qualité accessible et tisse un lien direct ville-campagne.',
+   avantages:['Produits locaux 20–40 % moins chers (prix coûtant)','Chaque membre devient acteur du magasin','Revenu direct et équitable pour les producteurs'],
+   budget:'1 500–8 000 € (rayonnages, froid, caisse)',
+   ind:['Approvisionnement local %','Partenaires locaux','Bénévoles mobilisés'],
+   esrs:['ESRS S2','ESRS S3'],esrs_detail:'Circuit court équitable (S2) · gouvernance participative et lien social (S3).',
+   photo:'https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80&auto=format&fit=crop',
+   lieux:['epicerie','tiers','cafe','ecolieu','autre'],
+   quete:{titre:'Monter le rayon vrac & local',duree:'2 journées',nb:'3–6 pers.',impact_quete:'+10 pts éco locale · 80 % local'}},
+
+  {nom:'Conserverie anti-gaspi',cat:'alimentaire',cplx:'moyen',impact:'−800 kg gaspillés/an',co2:.5,tok:55,img:'🫙',
+   desc:'Transformer les invendus et surplus (du jardin, des producteurs voisins, des marchés) en conserves, jus, soupes et pickles vendus sur place. La cuisine devient un outil anti-gaspillage qui crée de la valeur locale : ce qui allait être jeté devient un produit du lieu, avec des ateliers de transformation ouverts aux habitants.',
+   avantages:['−800 kg de nourriture sauvée de la poubelle par an','Crée une gamme de produits signés du lieu','Ateliers de transformation ouverts aux habitants'],
+   budget:'2 000–9 000 € (stérilisateur, bocaux, plan de travail)',
+   ind:['Kg invendus transformés/an','Production locale kg/an','Nb ateliers/mois'],
+   esrs:['ESRS E5','ESRS S3'],esrs_detail:'Anti-gaspillage, économie circulaire alimentaire (E5) · ateliers ouverts (S3).',
+   photo:'https://images.unsplash.com/photo-1530062845289-9109b2c9c868?w=800&q=80&auto=format&fit=crop',
+   lieux:['ferme','cafe','epicerie','tiers','ecolieu','autre'],
+   quete:{titre:'Lancer la conserverie anti-gaspi',duree:'2 journées',nb:'3–6 pers.',impact_quete:'+10 pts éco locale · −800 kg gaspillés/an'}},
+
+  {nom:'Réemploi informatique',cat:'dechets',cplx:'facile',impact:'~300 kg DEEE évités/an',co2:.6,tok:40,img:'💻',
+   desc:'Collecter, reconditionner et redistribuer les ordinateurs et équipements numériques dormants du territoire : le lieu s\'équipe gratuitement, les habitants accèdent à du matériel fiable à petit prix, et des ateliers d\'initiation accompagnent la prise en main. Un ordinateur reconditionné évite ~80 % de l\'empreinte carbone d\'un neuf.',
+   avantages:['Équipe le lieu et les habitants à très bas coût','−300 kg de déchets électroniques par an','Ateliers numériques : personne ne reste au bord du chemin'],
+   budget:'500–3 000 € (outillage, pièces, stockage)',
+   ind:['Kg DEEE évités/an','Nb équipements reconditionnés','Nb personnes formées'],
+   esrs:['ESRS E5','ESRS S1','ESRS S3'],esrs_detail:'Réemploi DEEE (E5) · montée en compétences (S1) · inclusion numérique (S3).',
+   photo:'https://images.unsplash.com/photo-1588508065123-287b28e013da?w=800&q=80&auto=format&fit=crop',
+   lieux:['coworking','fablab','tiers','ecole','incubateur','repair','ressourcerie','autre'],
+   quete:{titre:'Organiser une collecte de matériel informatique',duree:'1 journée',nb:'2–4 pers.',impact_quete:'+8 pts déchets · 300 kg DEEE évités'}},
 ];
 
 /* ── Coûts structurés par défaut (miroir des colonnes biblio_solutions) ──
@@ -1723,14 +1764,36 @@ const SOLS=[
    écrase ces défauts à l'hydratation (cf. store.js). Le texte `budget`
    reste le repli d'affichage quand rien n'est structuré. */
 const SOLS_COUTS_DEFAUT = {
-  'Toiture végétalisée':            { fixe: 1500, unitaire: 120, dim: 'm2' },
-  'Isolation paille':               { fixe: 1000, unitaire: 110, dim: 'm2' },
-  'Désimperméabilisation des sols': { fixe: 500,  unitaire: 80,  dim: 'm2' },
-  'Jardin permaculture':            { fixe: 300,  unitaire: 15,  dim: 'm2' },
-  'Potager en buttes':              { fixe: 100,  unitaire: 10,  dim: 'm2' },
-  'Récupération eau de pluie':      { fixe: 1200, unitaire: 8,   dim: 'm2' },
-  'Phytoépuration':                 { fixe: 3000, unitaire: 100, dim: 'usager' },
-  'Toilettes sèches':               { fixe: 800,  unitaire: 40,  dim: 'usager' },
+  // dim 'm2' : coût = fixe + unitaire × surface de l'espace (m²)
+  // dim 'usager' : coût = fixe + unitaire × capacité de l'espace (personnes)
+  'Toiture végétalisée':                { fixe: 1500, unitaire: 120, dim: 'm2' },
+  'Toiture & murs végétalisés':         { fixe: 1200, unitaire: 90,  dim: 'm2' },
+  'Isolation paille':                   { fixe: 1000, unitaire: 110, dim: 'm2' },
+  'Rafraîchissement passif du bâti':    { fixe: 1200, unitaire: 45,  dim: 'm2' },
+  'Désimperméabilisation des sols':     { fixe: 500,  unitaire: 80,  dim: 'm2' },
+  'Canopée & îlots de fraîcheur':       { fixe: 1000, unitaire: 40,  dim: 'm2' },
+  'Ombrières & pergolas bioclimatiques':{ fixe: 800,  unitaire: 90,  dim: 'm2' },
+  'Jardin permaculture':                { fixe: 300,  unitaire: 15,  dim: 'm2' },
+  'Potager en buttes':                  { fixe: 100,  unitaire: 10,  dim: 'm2' },
+  'Haie champêtre':                     { fixe: 200,  unitaire: 6,   dim: 'm2' },
+  'Mare écologique':                    { fixe: 1500, unitaire: 25,  dim: 'm2' },
+  'Récupération eau de pluie':          { fixe: 1200, unitaire: 8,   dim: 'm2' },
+  'Panneaux solaires PV':               { fixe: 4000, unitaire: 60,  dim: 'm2' },
+  'Recyclerie & réemploi local':        { fixe: 2000, unitaire: 15,  dim: 'm2' },
+  'Réemploi matériaux':                 { fixe: 500,  unitaire: 5,   dim: 'm2' },
+  'Phytoépuration':                     { fixe: 3000, unitaire: 100, dim: 'usager' },
+  'Toilettes sèches':                   { fixe: 800,  unitaire: 40,  dim: 'usager' },
+  'Chauffe-eau solaire':                { fixe: 3000, unitaire: 120, dim: 'usager' },
+  'Compostage partagé':                 { fixe: 400,  unitaire: 8,   dim: 'usager' },
+  'Repair café':                        { fixe: 1500, unitaire: 20,  dim: 'usager' },
+  'Atelier de transmission':            { fixe: 600,  unitaire: 10,  dim: 'usager' },
+  'Chantier participatif':              { fixe: 400,  unitaire: 8,   dim: 'usager' },
+  'AMAP circuit court':                 { fixe: 800,  unitaire: 3,   dim: 'usager' },
+  'Approvisionnement local':            { fixe: 300,  unitaire: 2,   dim: 'usager' },
+  'Café associatif':                    { fixe: 2500, unitaire: 30,  dim: 'usager' },
+  'Épicerie participative':             { fixe: 1500, unitaire: 60,  dim: 'm2' },
+  'Conserverie anti-gaspi':             { fixe: 2000, unitaire: 60,  dim: 'usager' },
+  'Réemploi informatique':              { fixe: 800,  unitaire: 15,  dim: 'usager' },
 };
 SOLS.forEach(s => {
   const c = SOLS_COUTS_DEFAUT[s.nom];
@@ -1745,6 +1808,57 @@ function evadCoutSolEstime(sol, esp) {
   const dimVal = parUsager ? (parseFloat(esp && esp.capacite) || 0) : (parseFloat(esp && esp.surface) || 0);
   if (!(dimVal > 0)) return (sol.coutFixe > 0) ? sol.coutFixe : null;
   return (sol.coutFixe || 0) + (sol.coutUnitaire || 0) * dimVal;
+}
+
+/* ── Économies & revenus des solutions, via leurs ICI ──
+   Chaque solution monétisable déclare la quantité annuelle prudente qu'elle
+   produit sur UN de ses ICI ; ICI_PRIX convertit en euros. `parM2` : quantité
+   par m² de l'espace (solutions de culture). Les ICI non monétisables
+   (CO₂, social, biodiversité) restent de l'impact pur, pas des euros. */
+const ICI_PRIX = {
+  eco_eau:         { prix: 0.004, type: 'economie' },  // €/L d'eau potable évitée
+  eco_enr:         { prix: 0.18,  type: 'economie' },  // €/kWh produit ou non acheté
+  eco_dechets:     { prix: 0.15,  type: 'economie' },  // €/kg de benne/traitement évité
+  eco_prod_locale: { prix: 3,     type: 'revenu'   },  // €/kg vendu ou autoconsommé
+};
+const SOLS_ECO_GAINS = {
+  'Récupération eau de pluie':   { ici: 'eco_eau',         base: 15000 },
+  'Phytoépuration':              { ici: 'eco_eau',         base: 8000 },
+  'Toilettes sèches':            { ici: 'eco_eau',         base: 10000 },
+  'Panneaux solaires PV':        { ici: 'eco_enr',         base: 6000 },
+  'Chauffe-eau solaire':         { ici: 'eco_enr',         base: 2000 },
+  'Isolation paille':            { ici: 'eco_enr',         parM2: 30 },   // kWh de chauffage évités/m²/an
+  'Rafraîchissement passif du bâti': { ici: 'eco_enr',     parM2: 12 },
+  'Compostage partagé':          { ici: 'eco_dechets',     base: 500 },
+  'Repair café':                 { ici: 'eco_dechets',     base: 1000 },
+  'Réemploi matériaux':          { ici: 'eco_dechets',     base: 1500 },
+  'Recyclerie & réemploi local': { ici: 'eco_dechets',     base: 3000 },
+  'Jardin permaculture':         { ici: 'eco_prod_locale', parM2: 0.4 },  // kg/m²/an prudents
+  'Potager en buttes':           { ici: 'eco_prod_locale', parM2: 0.6 },
+  'Haie champêtre':              { ici: 'eco_prod_locale', base: 50 },
+  'AMAP circuit court':          { ici: 'eco_prod_locale', base: 800 },
+  // Une solution peut porter PLUSIEURS gains (tableau).
+  'Conserverie anti-gaspi':      [{ ici: 'eco_dechets', base: 800 }, { ici: 'eco_prod_locale', base: 300 }],
+  'Réemploi informatique':       { ici: 'eco_dechets', base: 300 },
+  // Café associatif & Épicerie participative : leur revenu EST déjà le barème
+  // de l'espace (café/boutique) → pas de gain ici, pour ne pas compter double.
+};
+// Gains annuels (€) des solutions retenues d'un espace : { economies, revenus, details[] }.
+function evadSolsGainsEstime(noms, esp) {
+  let economies = 0, revenus = 0; const details = [];
+  (noms || []).forEach(nom => {
+    const entry = SOLS_ECO_GAINS[nom]; if (!entry) return;
+    (Array.isArray(entry) ? entry : [entry]).forEach(g => {
+      const p = ICI_PRIX[g.ici]; if (!p) return;
+      const surface = parseFloat(esp && esp.surface) || 0;
+      const qte = (g.parM2 != null) ? (surface > 0 ? g.parM2 * surface : 0) : (g.base || 0);
+      if (!(qte > 0)) return;
+      const eur = qte * p.prix;
+      if (p.type === 'revenu') revenus += eur; else economies += eur;
+      details.push({ nom, ici: g.ici, eur, type: p.type });
+    });
+  });
+  return { economies, revenus, total: economies + revenus, details };
 }
 
 /* ── Potentiel économique d'un ESPACE (miroir de la table biblio_espaces_eco) ──
@@ -1768,10 +1882,19 @@ const ESPACES_ECO = {
 // Fréquentation selon la famille du type de lieu (même clé que les ICI).
 const ESPACES_ECO_COEF_TYPES = { agriculture: 0.8, fabrication: 0.9, social: 1, travail: 1.1 };
 
+// Type d'espace (eid) d'un espace : champ direct sinon dérivé de sa 1ère fonction.
+const EVAD_FN_TO_ESPS = { cuisine:'cuisine',cafe:'cafe',cantine:'cafe',coworking:'bureau',reunion:'bureau',atelier:'atelier',fablab:'fablab',scene:'salle',expo:'salle',boutique:'boutique',biblio:'salle',formation:'salle',jardin:'jardin',serre:'serre',compost:'jardin',hebergement:'dortoir',sport:'salle',meditation:'salle',stockage:'bureau',autre:'cafe',elec_gestion:'dortoir',renouv_prod:'dortoir',therm_gestion:'dortoir',eau_gestion:'serre',ecoconstruct:'atelier',dechets_gestion:'jardin',mobilite:'bureau',gouvernance:'bureau',numerique:'bureau' };
+function evadEspaceEid(esp) {
+  if (!esp) return null;
+  if (esp.eid) return esp.eid;
+  const fn = esp.fonctions && esp.fonctions[0];
+  return (fn && EVAD_FN_TO_ESPS[fn]) || null;
+}
+
 // Potentiel économique calculé d'un espace (null si pas de barème/dimension).
 function evadEspaceEco(esp, espIdx, L) {
   if (!esp) return null;
-  const bar = ESPACES_ECO[esp.eid];
+  const bar = ESPACES_ECO[evadEspaceEid(esp)];
   if (!bar || bar.actif === false) return null;
   L = L || (typeof cData !== 'undefined' ? cData : {}) || {};
   const dimVal = bar.dim === 'forfait' ? 1
@@ -1782,9 +1905,10 @@ function evadEspaceEco(esp, espIdx, L) {
   const unites = dimVal * bar.facteur * coef;
   const revMin = unites * bar.prixMin;
   const revMax = unites * bar.prixMax;
-  const margeMin = revMin * (1 - bar.charges);
-  const margeMax = revMax * (1 - bar.charges);
-  // Coût des solutions rattachées à cet espace (point mort).
+  let margeMin = revMin * (1 - bar.charges);
+  let margeMax = revMax * (1 - bar.charges);
+  // Solutions rattachées à cet espace : coût (point mort) + gains via les ICI
+  // (économies de charges + revenus, ajoutés à la marge mensuelle).
   let coutSols = 0;
   const noms = (espIdx != null && L.solsByEspace && L.solsByEspace[espIdx]) || [];
   noms.forEach(nom => {
@@ -1792,9 +1916,12 @@ function evadEspaceEco(esp, espIdx, L) {
     const c = evadCoutSolEstime(sol, esp);
     if (c) coutSols += c;
   });
+  const gains = (typeof evadSolsGainsEstime === 'function') ? evadSolsGainsEstime(noms, esp) : { economies: 0, revenus: 0, total: 0, details: [] };
+  const gainsMois = gains.total / 12;
+  margeMin += gainsMois; margeMax += gainsMois;
   const margeMoy = (margeMin + margeMax) / 2;
   const pointMort = (coutSols > 0 && margeMoy > 0) ? Math.ceil(coutSols / margeMoy) : null;
-  return { bar, unites, revMin, revMax, margeMin, margeMax, coutSols, pointMort };
+  return { bar, unites, revMin, revMax, margeMin, margeMax, coutSols, pointMort, gains };
 }
 
 // Bloc HTML « Potentiel économique » d'un espace (fiche lieu · onglet Espaces).
@@ -1819,8 +1946,73 @@ function evadEspaceEcoHTML(esp, espIdx, L) {
       ${e.pointMort ? `<div><div style="font-size:.54rem;color:var(--moss);opacity:.65;text-transform:uppercase;letter-spacing:.05em">Solutions amorties en</div>
         <div style="font-size:.76rem;font-weight:800;color:var(--sky)">≈ ${e.pointMort > 24 ? Math.round(e.pointMort / 12) + ' ans' : e.pointMort + ' mois'}</div></div>` : ''}
     </div>
+    ${e.gains && e.gains.total > 0 ? `<div style="margin-top:.4rem;padding:.35rem .55rem;background:rgba(74,140,92,.07);border:1px solid rgba(74,140,92,.2);border-radius:8px;font-size:.6rem;color:var(--fern);font-weight:600;line-height:1.5">🌱 Grâce à tes solutions : ${e.gains.economies > 0 ? '−' + fmtE(e.gains.economies) + ' €/an de charges (eau, énergie, déchets)' : ''}${e.gains.economies > 0 && e.gains.revenus > 0 ? ' · ' : ''}${e.gains.revenus > 0 ? '+' + fmtE(e.gains.revenus) + ' €/an de revenus (production locale)' : ''} — inclus dans la marge.</div>` : ''}
     <div style="font-size:.56rem;color:var(--moss);opacity:.65;margin-top:.3rem;line-height:1.45">Base : ${Math.round(e.unites).toLocaleString('fr-FR')} ${e.bar.unite} × ${e.bar.prixMin}–${e.bar.prixMax} ${e.bar.prixUnite} · charges ~${Math.round(e.bar.charges * 100)} %${e.coutSols ? ' · solutions prévues ≈ ' + fmtE(e.coutSols) + ' €' : ''}. À ajuster selon tes prix et ton territoire.${enChantier ? ' <b>Espace en montée en charge : vise 20-40 % de ce potentiel au début.</b>' : ''}</div>
   </div>`;
+}
+
+// ── Rentabilité estimée DU LIEU : somme des potentiels économiques par espace ──
+// (version béta simplifiée : réutilise evadEspaceEco, chiffres mensuels → annuels).
+function evadLieuRentabilite(L) {
+  L = L || (typeof cData !== 'undefined' ? cData : {}) || {};
+  const esps = L.espacesData || [];
+  let revMin = 0, revMax = 0, margeMin = 0, margeMax = 0, coutSols = 0, nb = 0, nbSansDim = 0;
+  esps.forEach((esp, i) => {
+    const e = evadEspaceEco(esp, i, L);
+    if (!e) return;
+    if (e.manqueDim) { nbSansDim++; return; }
+    revMin += e.revMin; revMax += e.revMax;
+    margeMin += e.margeMin; margeMax += e.margeMax;
+    coutSols += e.coutSols || 0; nb++;
+  });
+  const margeMoy = (margeMin + margeMax) / 2;
+  const pointMortMois = (coutSols > 0 && margeMoy > 0) ? Math.ceil(coutSols / margeMoy) : null;
+  return { revMin, revMax, margeMin, margeMax, coutSols, nb, nbSansDim, pointMortMois };
+}
+
+// Carte récap « Rentabilité estimée du lieu » (en tête de l'onglet Espaces).
+function evadLieuRentabiliteHTML(L) {
+  const r = evadLieuRentabilite(L);
+  const fmtE = n => Math.round(n).toLocaleString('fr-FR');
+  if (!r.nb) {
+    return `<div style="margin-bottom:1.1rem;padding:.7rem .9rem;background:rgba(200,115,42,.05);border:1px dashed rgba(200,115,42,.28);border-radius:var(--r-lg);font-size:.68rem;color:var(--moss);line-height:1.5">
+      💶 <b>Rentabilité du lieu</b> : renseigne la <b>superficie</b> ou la <b>capacité</b> de tes espaces pour estimer le chiffre d'affaires potentiel.</div>`;
+  }
+  const caMin = r.revMin * 12, caMax = r.revMax * 12;   // mensuel → annuel
+  const mMin = r.margeMin * 12, mMax = r.margeMax * 12;
+  const pm = r.pointMortMois ? (r.pointMortMois > 24 ? '≈ ' + Math.round(r.pointMortMois / 12) + ' ans' : '≈ ' + r.pointMortMois + ' mois') : '—';
+  const kpi = (lbl, val, col) => `<div style="flex:1;min-width:120px"><div style="font-size:.54rem;color:var(--moss);opacity:.65;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.15rem">${lbl}</div><div style="font-family:'Satoshi',sans-serif;font-size:.95rem;font-weight:900;color:${col};line-height:1.1">${val}</div></div>`;
+  return `<div style="margin-bottom:1.2rem;background:linear-gradient(135deg,rgba(200,115,42,.08),rgba(74,140,92,.06));border:1px solid rgba(200,115,42,.22);border-radius:var(--r-xl,18px);padding:.95rem 1.1rem">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:.5rem;flex-wrap:wrap;margin-bottom:.6rem">
+      <span style="font-size:.74rem;font-weight:800;color:var(--amber)">💶 Rentabilité estimée du lieu</span>
+      <span style="font-size:.56rem;color:var(--moss);opacity:.65">estimation · fourchette · ${r.nb} espace${r.nb > 1 ? 's' : ''} chiffré${r.nb > 1 ? 's' : ''}</span>
+    </div>
+    <div style="display:flex;gap:1rem;flex-wrap:wrap">
+      ${kpi("Chiffre d'affaires potentiel", fmtE(caMin) + '–' + fmtE(caMax) + ' €/an', 'var(--ink)')}
+      ${kpi('Marge estimée', fmtE(mMin) + '–' + fmtE(mMax) + ' €/an', 'var(--fern)')}
+      ${r.coutSols ? kpi('Investissement solutions', fmtE(r.coutSols) + ' €', 'var(--sky)') : ''}
+      ${r.coutSols ? kpi('Rentabilisé en', pm, 'var(--lavender)') : ''}
+    </div>
+    <div style="font-size:.56rem;color:var(--moss);opacity:.65;margin-top:.5rem;line-height:1.45">Somme des potentiels par espace (superficie/capacité × barème d'activité, charges standard). ${r.nbSansDim ? r.nbSansDim + ' espace' + (r.nbSansDim > 1 ? 's' : '') + ' sans superficie/capacité renseignée, non compté' + (r.nbSansDim > 1 ? 's' : '') + '. ' : ''}À affiner avec tes prix réels et ton territoire.</div>
+  </div>`;
+}
+
+// Insère/rafraîchit la carte rentabilité juste APRÈS une liste d'espaces
+// (tableau de bord Pilote). Réservée au porteur → jamais dans la fiche
+// complète publique.
+function evadInsertRentaCard(listId, cardId, L, hasEspaces) {
+  const list = document.getElementById(listId);
+  if (!list) return;
+  const old = document.getElementById(cardId);
+  if (old) old.remove();
+  if (!hasEspaces) return;
+  const html = (typeof evadLieuRentabiliteHTML === 'function') ? evadLieuRentabiliteHTML(L) : '';
+  if (!html) return;
+  const div = document.createElement('div');
+  div.id = cardId;
+  div.style.marginTop = '.8rem';
+  div.innerHTML = html;
+  list.parentNode.insertBefore(div, list.nextSibling);
 }
 
 // Bloc « Coût estimé » de la fiche solution : contextualisé à l'espace du
@@ -2225,7 +2417,7 @@ function solutionsForProbleme(txt, opts) {
 const ESPS=[
   {id:'cafe',    l:'Café',         ic:'☕',c:'#8a4a1a',bg:'rgba(200,115,42,0.1)',
    desc:'Espace convivial de rencontre et de consommation locale.',
-   sols:['AMAP circuit court','Compostage partagé','Repair café'],
+   sols:['Café associatif','AMAP circuit court','Compostage partagé','Approvisionnement local','Conserverie anti-gaspi','Repair café'],
    esrs:['ESRS S3','ESRS E5'],
    indicateurs:['Kg déchets organiques compostés/mois','% approvisionnement local','Nb événements communautaires/mois','CO₂ évité logistique kg/an'],
    quetes:[
@@ -2234,7 +2426,7 @@ const ESPS=[
    ]},
   {id:'fablab',  l:'FabLab',       ic:'⚙️',c:'#1a3a5a',bg:'rgba(58,110,140,0.1)',
    desc:'Atelier de fabrication numérique et réparation ouverte.',
-   sols:['Réemploi matériaux','Repair café'],
+   sols:['Réemploi matériaux','Repair café','Réemploi informatique','Atelier de transmission'],
    esrs:['ESRS E5','ESRS S1','ESRS S3'],
    indicateurs:['Nb objets réparés/mois','Kg matériaux réemployés/an','Nb personnes formées','CO₂ évité par réparation kg/an'],
    quetes:[
@@ -2252,7 +2444,7 @@ const ESPS=[
    ]},
   {id:'dortoir', l:'Dortoir',      ic:'🛏',c:'#5a3a80',bg:'rgba(122,100,168,0.1)',
    desc:'Hébergement collectif pour bâtisseurs et visiteurs itinérants.',
-   sols:['Isolation paille','Chauffe-eau solaire','Toilettes sèches'],
+   sols:['Isolation paille','Chauffe-eau solaire','Toilettes sèches','Récupération eau de pluie','Rafraîchissement passif du bâti'],
    esrs:['ESRS E1','ESRS E3','ESRS S3'],
    indicateurs:['CO₂ évité chauffage kg/an','Eau économisée L/an','Nuitées solidaires nb/an','% énergie renouvelable'],
    quetes:[
@@ -2261,7 +2453,7 @@ const ESPS=[
    ]},
   {id:'boutique',l:'Boutique',     ic:'🛍',c:'#903060',bg:'rgba(180,78,100,0.1)',
    desc:'Point de vente de productions locales et de seconde main.',
-   sols:['AMAP circuit court','Réemploi matériaux'],
+   sols:['Épicerie participative','AMAP circuit court','Approvisionnement local','Recyclerie & réemploi local','Réemploi matériaux'],
    esrs:['ESRS S2','ESRS S3','ESRS G1'],
    indicateurs:['% produits locaux vendus','Nb producteurs partenaires','CA en graines','Kg objets seconde main écoulés/mois'],
    quetes:[
@@ -2270,7 +2462,7 @@ const ESPS=[
    ]},
   {id:'cuisine', l:'Cuisine',      ic:'🍳',c:'#7a5010',bg:'rgba(200,140,42,0.1)',
    desc:'Cuisine collective pour transformer et valoriser les productions.',
-   sols:['AMAP circuit court','Compostage partagé','Récupération eau de pluie'],
+   sols:['Conserverie anti-gaspi','AMAP circuit court','Compostage partagé','Approvisionnement local','Récupération eau de pluie'],
    esrs:['ESRS E3','ESRS E5','ESRS S3'],
    indicateurs:['Kg biodéchets compostés/mois','Repas produits localement nb/mois','Eau économisée L/an','% gaspillage alimentaire évité'],
    quetes:[
@@ -2279,7 +2471,7 @@ const ESPS=[
    ]},
   {id:'jardin',  l:'Jardin',       ic:'🌿',c:'#1a6040',bg:'rgba(26,112,80,0.1)',
    desc:'Espace extérieur de maraîchage, permaculture et biodiversité.',
-   sols:['Jardin permaculture','Potager en buttes','Haie champêtre','Mare écologique','Compostage partagé'],
+   sols:['Jardin permaculture','Potager en buttes','Haie champêtre','Mare écologique','Compostage partagé','Chantier participatif','Récupération eau de pluie'],
    esrs:['ESRS E4','ESRS E3','ESRS S3'],
    indicateurs:['Score biodiversité','Production alimentaire kg/an','Espèces favorisées nb','Surface végétalisée m²','Eau économisée L/an'],
    quetes:[
@@ -2289,7 +2481,7 @@ const ESPS=[
    ]},
   {id:'atelier', l:'Atelier',      ic:'🔨',c:'#6a3020',bg:'rgba(160,80,50,0.1)',
    desc:'Espace de fabrication, réparation et transmission de savoir-faire.',
-   sols:['Réemploi matériaux','Repair café','Isolation paille'],
+   sols:['Réemploi matériaux','Repair café','Atelier de transmission','Chantier participatif','Isolation paille'],
    esrs:['ESRS E5','ESRS S1','ESRS G1'],
    indicateurs:['Nb personnes formées/mois','Kg matériaux réemployés/an','Nb ateliers transmission/mois','CO₂ évité réparation kg/an'],
    quetes:[
@@ -2298,7 +2490,7 @@ const ESPS=[
    ]},
   {id:'bureau',  l:'Bureau',       ic:'💻',c:'#2a5070',bg:'rgba(58,110,140,0.1)',
    desc:'Espace de coworking et de gestion administrative du lieu.',
-   sols:['Panneaux solaires PV','Chauffe-eau solaire'],
+   sols:['Panneaux solaires PV','Réemploi informatique','Rafraîchissement passif du bâti','Chauffe-eau solaire'],
    esrs:['ESRS E1','ESRS G1','ESRS S1'],
    indicateurs:['kWh consommés/mois','% énergie renouvelable','Nb emplois locaux créés','Score gouvernance transparence'],
    quetes:[
@@ -2307,7 +2499,7 @@ const ESPS=[
    ]},
   {id:'salle',   l:'Salle commune',ic:'🏛',c:'#4a3060',bg:'rgba(100,80,140,0.1)',
    desc:'Espace polyvalent d\'événements, d\'ateliers et de gouvernance collective.',
-   sols:['Repair café','Panneaux solaires PV'],
+   sols:['Café associatif','Atelier de transmission','Repair café','Rafraîchissement passif du bâti','Panneaux solaires PV'],
    esrs:['ESRS S1','ESRS S3','ESRS G1'],
    indicateurs:['Nb événements collectifs/mois','Nb personnes impliquées','Nb décisions co-construites/an','kWh consommés événements'],
    quetes:[
@@ -4989,6 +5181,11 @@ function creerStep3SidebarHTML(){
     ? '<button onclick="creerFocusEsp(' + _next + ')" style="width:100%;margin-top:1rem;padding:.72rem;border:none;border-radius:100px;background:var(--forest);color:#fff;font-family:inherit;font-size:.8rem;font-weight:800;cursor:pointer">Aller à l\'espace suivant →</button>'
     : '<div style="margin-top:1rem;text-align:center;font-size:.66rem;color:var(--fern);font-weight:700;line-height:1.5">✓ Tous les espaces sont passés en revue.<br>Génère les quêtes en bas 👇</div>';
 
+  // Potentiel économique : affiché ICI, au moment de choisir solutions &
+  // indicateurs (le coût des solutions retenues nourrit le point mort).
+  const rentaLieu = (typeof evadLieuRentabiliteHTML === 'function') ? evadLieuRentabiliteHTML(cData) : '';
+  const espaceEco = (typeof evadEspaceEcoHTML === 'function') ? evadEspaceEcoHTML(it.esp, active, cData) : '';
+
   return titre + btns
     + '<div style="background:' + col + '0a;border:1px solid ' + col + '26;border-radius:14px;padding:.85rem .9rem">'
     + head
@@ -4996,8 +5193,11 @@ function creerStep3SidebarHTML(){
     + creerEspaceSolBlockHTML(active)
     + secTitle('📊', 'Indicateurs', 'var(--sky)')
     + creerEspaceIndicsHTML(active)
+    + espaceEco
     + navBtn
-    + '</div>';
+    + '</div>'
+    // Récap du lieu SOUS le bloc de l'espace (pas au-dessus).
+    + '<div style="margin-top:1rem">' + rentaLieu + '</div>';
 }
 
 // Écran de chargement « Deva compose tes quêtes » (avant la phase quêtes),
@@ -8182,6 +8382,8 @@ const BAT_SKILL_KW = {
   facilitation:['atelier','animation','formation','sensibilis','médiation','amap','facilitation'],
   construction:['isolation','paille','toiture','construction','chantier','bois','maçonn'],
   biodiversite:['haie','mare','biodiv','pollinis','arbre','verger','permacult','jardin'],
+  eau:         ['eau','pluie','phyto','arrosage','assainiss','potable','toilettes s','récupération d'],
+  adaptation:  ['canicule','fraîcheur','fraicheur','ombr','désimperméabilis','desimperméabilis','climat','chaleur','rafraîchiss','îlot','végétalis'],
 };
 // Palette des pastilles d'équipe (bâtisseurs inscrits).
 const _BAT_EQ_COLS = ['#4a8c5c', '#c8732a', '#7a6ea8', '#3a6e8c', '#b84e35', '#2e6642'];
@@ -11528,6 +11730,8 @@ const BAT_SKILLS = [
   { id:'facilitation',ic:'📚', label:'Facilitation',   col:'#3a6e8c', bg:'rgba(58,110,140,.18)', stars:1, desc:'Ateliers, animation, formation' },
   { id:'construction',ic:'🏗', label:'Construction',   col:'#b84e35', bg:'rgba(184,78,53,.18)',  stars:0, desc:'Chantiers participatifs, bois' },
   { id:'biodiversite',ic:'🌿', label:'Biodiversité',   col:'#2e6642', bg:'rgba(46,102,66,.18)',  stars:0, desc:'Haies, mares, pollinisateurs' },
+  { id:'eau',         ic:'💧', label:'Gestion de l\'eau',    col:'#3a7fa0', bg:'rgba(58,127,160,.18)', stars:0, desc:'Récupération, phytoépuration, toilettes sèches' },
+  { id:'adaptation',  ic:'🌡', label:'Adaptation climatique',col:'#c8892a', bg:'rgba(200,138,42,.18)', stars:0, desc:'Ombrage, fraîcheur, désimperméabilisation' },
 ];
 
 const BAT_VALEURS = [
@@ -13782,6 +13986,9 @@ function creerRenderEspaces() {
   if (!list) return;
   const empty = document.getElementById('creer-espace-empty');
   Array.from(list.querySelectorAll('.espace-card')).forEach(el => el.remove());
+  // Le potentiel économique n'est plus ici : il s'affiche à l'étape « choix des
+  // solutions & indicateurs » (où le coût des solutions nourrit le calcul).
+  const _oldRenta = document.getElementById('creer-renta-card'); if (_oldRenta) _oldRenta.remove();
   if (cData.espacesData.length === 0) {
     if (empty) empty.style.display = '';
     return;
@@ -13827,7 +14034,6 @@ function creerRenderEspaces() {
       ${esp.probleme ? `<div class="flux-row" style="align-items:flex-start"><span class="flux-row-label">🎯</span><span style="font-size:.66rem;color:var(--amber);font-weight:600;line-height:1.4">${String(esp.probleme).replace(/[<>]/g,'')}</span></div>` : ''}
       ${esp.responsable ? `<div class="espace-meta-item" style="font-size:.63rem;opacity:.7">👤 ${esp.responsable}</div>` : ''}
       ${esp.notes ? `<div class="espace-meta-item" style="font-size:.63rem;opacity:.6;font-style:italic">${esp.notes}</div>` : ''}
-      ${typeof evadEspaceEcoHTML === 'function' ? evadEspaceEcoHTML(esp, idx, cData) : ''}
     `;
     list.appendChild(card);
   });
@@ -14074,6 +14280,13 @@ function ficheRenderEspaces() {
 
   // Remove existing cards (keep #espace-empty)
   Array.from(list.querySelectorAll('.espace-card')).forEach(el => el.remove());
+
+  // Rentabilité estimée du lieu (privée au porteur).
+  evadInsertRentaCard('espace-list', 'fiche-renta-card', {
+    type: (typeof myLieuData !== 'undefined' && myLieuData) ? myLieuData.type : null,
+    espacesData: ficheEspaces,
+    solsByEspace: (typeof ficheSolsByEspace !== 'undefined' ? ficheSolsByEspace : {})
+  }, ficheEspaces.length > 0);
 
   if (ficheEspaces.length === 0) {
     if (empty) empty.style.display = '';
