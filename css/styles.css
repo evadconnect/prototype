@@ -2663,7 +2663,10 @@ body {
      hauteur du viewport et on fait défiler UN seul conteneur interne, .main,
      avec l'inertie iOS. C'est le même modèle que le desktop. */
   html, body { height: 100% !important; overflow: hidden !important; overscroll-behavior: none; }
-  .app { flex-direction: column !important; height: 100dvh !important; min-height: 100dvh !important; overflow: hidden !important; }
+  /* padding-top = zone sûre iOS (barre d'état) : avec viewport-fit=cover le
+     contenu est edge-to-edge, on décale TOUT le shell sous la barre d'état
+     (box-sizing:border-box global → la hauteur reste 100dvh). */
+  .app { flex-direction: column !important; height: 100dvh !important; min-height: 100dvh !important; overflow: hidden !important; padding-top: env(safe-area-inset-top, 0px) !important; background: var(--vert-pale); }
   .nav { display: none !important; }
   .main {
     width: 100%;
@@ -2765,13 +2768,8 @@ body {
   .mob-wstep.done .mob-wlabel { color: rgba(207,238,231,0.85); }
   .mob-wstep.active .mob-wlabel { color: var(--cream); font-weight: 800; }
 
-  /* ── Topbar ── */
-  /* padding-top inclut la zone sûre iOS (barre d'état) : avec viewport-fit=cover,
-     le contenu remonte sous la barre d'état ; on repousse le titre en dessous. */
-  .topbar {
-    padding: calc(0.6rem + env(safe-area-inset-top, 0px)) 1rem 0.6rem !important;
-    flex-wrap: wrap; gap: 0.4rem; min-height: auto;
-  }
+  /* ── Topbar ── (la zone sûre iOS est gérée par le padding-top de .app) */
+  .topbar { padding: 0.6rem 1rem !important; flex-wrap: wrap; gap: 0.4rem; min-height: auto; }
   .topbar > div:first-child { flex: 1; min-width: 0; }
   .topbar-actions { margin-left: 0 !important; width: 100%; gap: 0.35rem; }
   .topbar-actions .btn {
