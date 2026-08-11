@@ -3100,20 +3100,12 @@ function mapShowBatisseur(idx) {
       <!-- Stats -->
       <div class="acteur-stat-row">
         <div class="acteur-stat">
-          <div class="acteur-stat-val" style="color:var(--amber)">${b.graines} <span style="font-size:.65rem">🌱</span></div>
-          <div class="acteur-stat-lbl">graines</div>
-        </div>
-        <div class="acteur-stat">
           <div class="acteur-stat-val" style="color:var(--fern)">${b.quetes_realisees}</div>
           <div class="acteur-stat-lbl">Quêtes ✓</div>
         </div>
         <div class="acteur-stat">
           <div class="acteur-stat-val" style="color:var(--sky)">${b.quetes_actives}</div>
           <div class="acteur-stat-lbl">En cours</div>
-        </div>
-        <div class="acteur-stat">
-          <div class="acteur-stat-val" style="color:var(--lavender)">+${b.graines_passifs}</div>
-          <div class="acteur-stat-lbl">graines/mois</div>
         </div>
       </div>
 
