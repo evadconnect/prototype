@@ -3816,6 +3816,11 @@ function bddIciDetail(id, targetEl){
       +'<div style="font-family:\'Satoshi\',sans-serif;font-size:1.25rem;font-weight:900;color:var(--ink);line-height:1.15;margin-bottom:.25rem">'+ici.nom+'</div>'
       +'<div style="font-size:.72rem;color:var(--moss);opacity:.75;margin-bottom:.6rem">Indicateur de Changement d\'Impact · mesuré en <b>'+(ici.unite||'-')+'</b></div>')
       +(ici.desc?'<div style="font-size:.76rem;color:var(--ink);opacity:.85;line-height:1.6;margin-bottom:1rem">'+ici.desc+'</div>':'')
+      // « En quoi c'est utile de la calculer » (pendant de la section régénérative des solutions)
+      +((typeof iciUtilite==='function' && iciUtilite(ici.id))?('<div style="margin-bottom:1rem;background:rgba(74,140,92,.06);border:1px solid rgba(74,140,92,.22);border-radius:1rem;padding:.95rem 1.1rem">'
+        +'<div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--fern);font-weight:800;margin-bottom:.4rem">🌱 En quoi c\'est utile de la calculer</div>'
+        +'<div style="font-size:.76rem;color:var(--ink);line-height:1.6;opacity:.92">'+iciUtilite(ici.id)+'</div>'
+      +'</div>'):'')
       // Barème : point de départ → référence « excellent » (sous-score 100)
       +'<div style="background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:.8rem 1rem;margin-bottom:1rem">'
         +'<div style="font-size:.58rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem">Barème Vadance</div>'

@@ -113,6 +113,33 @@ const ICI_CATALOG = [
     solutionIds: ['Approvisionnement local', 'Recyclerie & réemploi local', 'AMAP circuit court'] },
 ];
 
+/* ── « En quoi c'est utile de la calculer » : un texte par indicateur, pendant
+   de la section « en quoi c'est régénératif » des fiches solution. Explique ce
+   que la mesure révèle et ce qu'elle débloque (preuve, financeurs, CSRD…). ── */
+const ICI_UTILITE = {
+  eco_co2: "La mesurer, c'est traduire tes efforts en langage climat : chaque kilo de CO₂ évité prouve que ton lieu allège l'empreinte du territoire. C'est le chiffre que comprennent financeurs, collectivités et rapports CSRD, et celui qui transforme une intention en impact vérifiable.",
+  eco_renat: "La surface renaturée dit combien d'espace tu rends au vivant. La suivre, c'est piloter le retour de la biodiversité année après année, et montrer noir sur blanc qu'un sol vivant remplace un sol artificialisé.",
+  eco_eau: "Compter les litres économisés rend visible un enjeu invisible : la sobriété hydrique. En période de sécheresse, c'est l'indicateur qui prouve ta résilience et justifie les aides à la gestion de l'eau.",
+  eco_enr: "Mesurer l'énergie que tu produis, c'est mesurer ton chemin vers l'autonomie. Le kWh renouvelable est une preuve tangible de décarbonation, et un argument fort face aux financeurs de la transition.",
+  eco_fraicheur: "Les degrés gagnés l'été chiffrent ton adaptation aux canicules. Cette donnée, encore rare, montre concrètement qu'un lieu végétalisé protège les personnes quand le climat se dérègle.",
+  eco_dechets: "Peser ce qui ne part plus à la benne, c'est rendre l'économie circulaire mesurable. Chaque kilo détourné prouve que réparer, composter et réemployer n'est pas un slogan mais un résultat.",
+  eco_prod_locale: "Compter ta production nourricière relie le lieu à l'assiette du territoire. C'est la preuve qu'une alimentation de proximité remplace des kilomètres alimentaires, et un repère précieux pour les circuits courts.",
+  soc_insertion: "Suivre les personnes accueillies met des visages sur l'impact social. C'est l'indicateur qui compte pour les partenaires de l'emploi et les financeurs solidaires, et qui rappelle qu'un lieu régénératif régénère aussi des parcours.",
+  soc_formation: "Mesurer les heures transmises, c'est valoriser ce qui se propage : les savoir-faire de la transition. Plus tu formes, plus l'impact essaime au-delà de tes murs, et ça se prouve.",
+  soc_benevoles: "Compter les bénévoles mesure la vitalité de ta communauté. C'est le signe qu'un lieu appartient à son territoire, et une donnée qui rassure financeurs et collectivités sur son ancrage.",
+  soc_sensibilisation: "Chaque personne sensibilisée est une graine semée ailleurs. Suivre ce chiffre montre le rayonnement du lieu et son rôle d'école à ciel ouvert de la transition.",
+  soc_evenements: "Compter les événements ouverts dit à quel point le lieu est vivant et partagé. C'est un marqueur d'ouverture au territoire, souvent attendu par les financeurs publics.",
+  eco_emplois: "Mesurer les emplois créés prouve qu'un lieu régénératif fait vivre, pas seulement du bien. C'est le chiffre qui parle aux élus et aux financeurs du développement local.",
+  eco_approv: "Suivre la part locale de ton budget rend visible l'argent que tu fais circuler près de chez toi. Chaque point gagné irrigue l'économie de proximité, et se raconte facilement dans un rapport d'impact.",
+  eco_biosource: "Peser les matériaux biosourcés ou réemployés, c'est chiffrer une filière locale préférée aux chaînes mondiales. Une donnée clé pour la construction bas carbone et les critères CSRD.",
+  eco_partenaires: "Compter tes partenaires mesure le maillage que tu tisses. Plus il est dense, plus le lieu est résilient et crédible : c'est la carte de ton écosystème local."
+};
+// Texte « utile de la calculer » d'un indicateur (champ du catalogue sinon map).
+const iciUtilite = (id) => {
+  const i = (typeof ICI_CATALOG !== 'undefined') ? ICI_CATALOG.find((x) => x.id === id) : null;
+  return (i && i.utilite) || ICI_UTILITE[id] || '';
+};
+
 const iciGetICI = (id) => ICI_CATALOG.find((i) => i.id === id) || null;
 const iciParLivre = (livre) => ICI_CATALOG.filter((i) => i.livre === livre);
 // ICI portés par une solution (par son nom SOLS).
