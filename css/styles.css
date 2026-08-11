@@ -2656,18 +2656,23 @@ body {
 ═══════════════════════════════════════════════════════ */
 @media (max-width: 600px) {
   html { -webkit-text-size-adjust: 100%; }
-  /* Le bloc @media 820px met body en `overflow:auto` → body devient un conteneur
-     de scroll (hauteur = contenu) qui bloque le défilement tactile sur iOS Safari.
-     On force `overflow-y: visible` pour rendre le document (documentElement) seul
-     défileur (géré correctement par iOS), et `overflow-x: clip` bride l'horizontal
-     SANS recréer de conteneur de scroll (clip + visible = combinaison valide). */
-  body { overflow-x: clip; overflow-y: visible; }
-  .app { flex-direction: column !important; height: auto !important; min-height: 100dvh !important; }
+  /* ── Modèle « app-shell » mobile (robuste iOS Safari) ──
+     Le scroll du document/body sur iOS est capricieux (surtout après un bloc
+     @media qui met body en overflow:auto → conteneur de scroll piégé : le
+     tactile ne défile qu'une fois zoomé). On verrouille donc la page à la
+     hauteur du viewport et on fait défiler UN seul conteneur interne, .main,
+     avec l'inertie iOS. C'est le même modèle que le desktop. */
+  html, body { height: 100% !important; overflow: hidden !important; overscroll-behavior: none; }
+  .app { flex-direction: column !important; height: 100dvh !important; min-height: 100dvh !important; overflow: hidden !important; }
   .nav { display: none !important; }
-  /* Sur mobile, on ne veut pas que .main soit un second conteneur de scroll
-     (flex:1 + overflow:auto en colonne = piège de scroll iOS) : le contenu
-     coule dans le document, qui défile. */
-  .main { width: 100%; overflow: visible !important; }
+  .main {
+    width: 100%;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;          /* indispensable pour que overflow marche en flex */
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch; /* inertie sur iOS < 13 */
+  }
   /* Sidebar masquée en mobile → panneau espace plein écran */
   #espace-modal { left: 0; }
 
