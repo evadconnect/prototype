@@ -4633,6 +4633,51 @@ function batGeoSelect(label, lat, lng) {
   batTreeUpdate();
 }
 
+// ── Géolocalisation du champ « Ville / Localisation » du TABLEAU DE BORD
+//    bâtisseur (ids batd-loc-* dédiés pour ne pas entrer en conflit avec le
+//    champ homonyme du wizard). Autocomplétion api-adresse.data.gouv.fr. ──
+let _batDashGeoTimer;
+function batDashGeoAutoInput(q) {
+  batFicheData.ville = q;               // frappe libre conservée
+  const drop = document.getElementById('batd-loc-drop'); if (drop) drop.remove();
+  if ((q || '').length < 3) return;
+  clearTimeout(_batDashGeoTimer);
+  _batDashGeoTimer = setTimeout(async () => {
+    try {
+      const r = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=5`);
+      const d = await r.json();
+      batDashGeoShowDrop(d.features || []);
+    } catch (e) {}
+  }, 320);
+}
+function batDashGeoShowDrop(features) {
+  const wrap = document.getElementById('batd-loc-wrap');
+  if (!wrap || !features.length) return;
+  const old = document.getElementById('batd-loc-drop'); if (old) old.remove();
+  const ul = document.createElement('div');
+  ul.id = 'batd-loc-drop';
+  ul.style.cssText = 'position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #d4deca;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.12);z-index:9999;overflow:hidden;margin-top:2px;';
+  features.forEach((f, i) => {
+    const label = f.properties.label;
+    const c = f.geometry.coordinates; const lng = c[0], lat = c[1];
+    const row = document.createElement('div');
+    row.style.cssText = `padding:.55rem .75rem;font-size:.72rem;cursor:pointer;border-bottom:${i < features.length - 1 ? '1px solid #eef2ea' : 'none'};display:flex;align-items:center;gap:.5rem;`;
+    row.innerHTML = `<span style="font-size:.85rem">📍</span><span>${label}</span>`;
+    row.onmousedown = () => batDashGeoSelect(label, lat, lng);
+    row.onmouseover = () => row.style.background = '#f0f5ee';
+    row.onmouseout = () => row.style.background = '';
+    ul.appendChild(row);
+  });
+  wrap.appendChild(ul);
+}
+function batDashGeoSelect(label, lat, lng) {
+  batFicheData.ville = label;
+  batFicheData.lat = lat;
+  batFicheData.lng = lng;
+  const drop = document.getElementById('batd-loc-drop'); if (drop) drop.remove();
+  if (typeof batDashFicheRender === 'function') batDashFicheRender();
+}
+
 function togActivite(a) {
   const i = cData.activites.indexOf(a);
   if (i >= 0) cData.activites.splice(i,1); else cData.activites.push(a);
@@ -14395,20 +14440,21 @@ function batDashFicheRender() {
             </div>
           </div>
         </div>
-        <div class="fiche-field">
-          <div class="fiche-label">Image de couverture</div>
-          <div id="bat-cover-preview" style="width:100%;height:110px;border-radius:var(--r);border:1.5px dashed rgba(46,102,66,.25);background:rgba(46,102,66,.04);display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:var(--moss);overflow:hidden;margin-bottom:.5rem">${fd.cover?`<img src="${fd.cover}" style="width:100%;height:100%;object-fit:cover">`:'🌄'}</div>
-          <label style="display:inline-flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.68rem;font-weight:600;color:var(--forest);padding:.3rem .7rem;border:1px solid rgba(46,102,66,.3);border-radius:100px;background:rgba(46,102,66,.06)">
-            📁 Choisir un fichier
-            <input type="file" accept="image/*" style="display:none" onchange="batDashImg(this,'cover')">
-          </label>
-          <div style="font-size:.6rem;color:var(--moss);opacity:.55;margin-top:.3rem">JPG ou PNG · recommandé 1200×400 px</div>
-        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem">
           <div class="fiche-field"><div class="fiche-label">Prénom</div><input class="fiche-input" value="${fd.prenom}" oninput="batFicheData.prenom=this.value" placeholder="Ton prénom"></div>
           <div class="fiche-field"><div class="fiche-label">Nom</div><input class="fiche-input" value="${fd.nom}" oninput="batFicheData.nom=this.value" placeholder="Ton nom"></div>
         </div>
-        <div class="fiche-field"><div class="fiche-label">Ville / Localisation</div><input class="fiche-input" value="${fd.ville||''}" oninput="batFicheData.ville=this.value" placeholder="Ville ou adresse…"></div>
+        <div class="fiche-field">
+          <div class="fiche-label">Ville / Localisation</div>
+          <div style="position:relative" id="batd-loc-wrap">
+            <input class="fiche-input" type="text" id="batd-loc-inp" value="${fd.ville||''}" autocomplete="off"
+              placeholder="Tape une ville ou une adresse…"
+              oninput="batDashGeoAutoInput(this.value)"
+              onfocus="if(this.value.length>2) batDashGeoAutoInput(this.value)"
+              onblur="setTimeout(()=>{const d=document.getElementById('batd-loc-drop');if(d)d.remove();},200)">
+            ${fd.ville ? `<div style="font-size:.6rem;color:var(--fern);margin-top:.2rem;padding-left:.1rem">📍 Position vérifiée</div>` : ''}
+          </div>
+        </div>
         <div class="fiche-field"><div class="fiche-label">Bio publique</div><textarea class="fiche-input fiche-textarea" oninput="batFicheData.bio=this.value" placeholder="Décris-toi en quelques phrases…">${fd.bio}</textarea></div>
         <div class="fiche-field">
           <div class="fiche-label">Disponibilité</div>

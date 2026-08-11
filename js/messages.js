@@ -146,6 +146,7 @@
     +     '<div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--fern),var(--moss));display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">💬</div>'
     +     '<div style="flex:1;min-width:0"><div id="evad-msg-title" style="font-size:.86rem;font-weight:800;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>'
     +       '<div id="evad-msg-sub" style="font-size:.64rem;color:var(--moss);opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div></div>'
+    +     '<button onclick="evadDeleteThread()" aria-label="Supprimer la conversation" title="Supprimer la conversation" style="flex-shrink:0;background:none;border:none;font-size:1rem;color:var(--moss);opacity:.5;cursor:pointer;padding:0 .2rem">🗑</button>'
     +     '<button onclick="evadCloseChat()" aria-label="Fermer" style="flex-shrink:0;background:none;border:none;font-size:1.2rem;color:var(--moss);opacity:.55;cursor:pointer">✕</button>'
     +   '</div>'
     +   '<div id="evad-msg-list" style="flex:1;min-height:0;overflow-y:auto;padding:1rem 1.1rem;background:rgba(46,102,66,.03);display:flex;flex-direction:column;gap:.5rem"></div>'
@@ -234,6 +235,31 @@
     var m = document.getElementById('evad-msg-modal');
     if (m) m.style.display = 'none';
     _state.threadId = null;
+  }
+
+  // Supprime une conversation entière : messages (Supabase + localStorage),
+  // registre du fil et marqueurs « vu ». Par défaut le fil ouvert.
+  async function evadDeleteThread(threadId) {
+    threadId = threadId || _state.threadId;
+    if (!threadId) return;
+    if (!global.confirm('Supprimer cette conversation ? Cette action est définitive.')) return;
+    // Supabase (best effort : la lecture/écriture est publique en bêta).
+    if (global.evadSupabase) {
+      try { await global.evadSupabase.from('messages').delete().eq('thread_id', threadId); } catch (e) {}
+    }
+    // localStorage : messages du fil.
+    try {
+      var kept = lsAll().filter(function (m) { return m.thread_id !== threadId; });
+      global.localStorage.setItem(LS_KEY, JSON.stringify(kept));
+    } catch (e) {}
+    // Registre du fil (titre/interlocuteur).
+    try {
+      var all = threadsAll(); if (all[threadId]) { delete all[threadId]; global.localStorage.setItem(LS_THREADS, JSON.stringify(all)); }
+    } catch (e) {}
+    evadCloseChat();
+    if (typeof evadRefreshUnread === 'function') { try { evadRefreshUnread(); } catch (e) {} }
+    // Rouvre la boîte de réception si elle était derrière.
+    if (typeof evadOpenInbox === 'function') { try { evadOpenInbox(); } catch (e) {} }
   }
 
   async function evadSendChat() {
@@ -473,6 +499,7 @@
 
   global.evadOpenChat = evadOpenChat;
   global.evadCloseChat = evadCloseChat;
+  global.evadDeleteThread = evadDeleteThread;
   global.evadSendChat = evadSendChat;
   global.evadChatThreadQuete = evadChatThreadQuete;
   global.evadChatDmThread = evadChatDmThread;
