@@ -11851,13 +11851,15 @@ function batFicheRenderStep() {
     }
     // Construit les quêtes à partir des lieux de la démo selon le profil saisi
     if (typeof batBuildQuetesFromProfile === 'function') batBuildQuetesFromProfile();
-    // Aucune quête publiée par les pilotes → rien à proposer (le bâtisseur ne voit que le publié).
+    // Aucune quête publiée par les pilotes → rien à proposer, MAIS on peut
+    // quand même publier sa fiche (le bouton reste visible) : la fiche est
+    // utile en soi (carte, contacts), les quêtes viendront après.
     if (!BAT_QUETES.length) {
-      if (pub) pub.style.display = 'none';
+      if (pub) pub.style.display = 'inline-flex';
       c.innerHTML = `<div style="text-align:center;padding:2.5rem 1.2rem;color:var(--moss)">
         <div style="font-size:2rem;margin-bottom:.75rem">🌱</div>
         <div style="font-size:.85rem;font-weight:700;color:var(--ink);margin-bottom:.4rem">Aucune quête publiée pour l'instant</div>
-        <div style="font-size:.72rem;opacity:.75;line-height:1.55;max-width:280px;margin:0 auto">Les quêtes apparaîtront ici dès qu'un Pilote en publiera sur son lieu. Reviens bientôt, la communauté sème 🌿</div>
+        <div style="font-size:.72rem;opacity:.75;line-height:1.55;max-width:280px;margin:0 auto">Les quêtes apparaîtront ici dès qu'un Pilote en publiera sur son lieu. En attendant, <b>publie ta fiche</b> : tu seras visible sur la carte et alerté des prochaines quêtes 🌿</div>
       </div>`;
       return;
     }
