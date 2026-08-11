@@ -3129,6 +3129,33 @@ function mapShowBatisseur(idx) {
         ⏱ ${b.disponibilite}
       </div>
 
+      <!-- Engagement -->
+      ${(() => {
+        const ENG = { ponctuel:'⚡ Ponctuel', recurrent:'🔄 Récurrent', immersif:'🏕 Immersif' };
+        const MODE = { presentiel:'🏡 Présentiel', distanciel:'💻 Distanciel', 'les-deux':'🌀 Présentiel & distanciel' };
+        const eng = ENG[b.engagement]; const mode = MODE[b.mode];
+        if (!eng && !mode) return '';
+        return `<div class="acteur-section-title">🤝 Engagement</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.85rem">
+          ${eng ? `<span class="acteur-skill-tag" style="background:rgba(74,140,92,.08);color:var(--forest);border:1px solid rgba(74,140,92,.2)">${eng}</span>` : ''}
+          ${mode ? `<span class="acteur-skill-tag" style="background:rgba(58,110,140,.08);color:var(--sky);border:1px solid rgba(58,110,140,.2)">${mode}</span>` : ''}
+        </div>`;
+      })()}
+
+      <!-- Contact -->
+      ${(() => {
+        const c = b.contact || {};
+        const rows = [];
+        if (c.email) rows.push(`<a href="mailto:${c.email}" style="display:flex;align-items:center;gap:.5rem;font-size:.72rem;color:var(--forest);text-decoration:none;padding:.15rem 0">✉️ ${c.email}</a>`);
+        if (c.tel)   rows.push(`<a href="tel:${String(c.tel).replace(/\s/g,'')}" style="display:flex;align-items:center;gap:.5rem;font-size:.72rem;color:var(--forest);text-decoration:none;padding:.15rem 0">📞 ${c.tel}</a>`);
+        if (c.web)   rows.push(`<a href="${String(c.web).match(/^https?:/) ? c.web : 'https://' + c.web}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:.5rem;font-size:.72rem;color:var(--forest);text-decoration:none;padding:.15rem 0">🌐 ${c.web} ↗</a>`);
+        if (!rows.length) return '';
+        return `<div class="acteur-section-title">📬 Contact</div>
+        <div style="margin-bottom:.85rem;padding:.5rem .7rem;background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r)">
+          ${rows.join('')}
+        </div>`;
+      })()}
+
       <!-- Lieux fréquentés -->
       <div class="acteur-section-title">🏡 Lieux actifs</div>
       ${b.lieux_frequentes.map(l => `
@@ -15034,6 +15061,9 @@ function _batisseurRowToMapEntry(row){
     quetes_realisees: st.quetes_realisees, quetes_actives: st.quetes_actives,
     competences: competences,
     disponibilite: dispo,
+    engagement: row.engagement || '',
+    mode: row.mode || '',
+    contact: { email: row.email || '', tel: row.tel || '', web: row.web || '' },
     lieux_frequentes: [],
     certifications: [],
     lat: (row.lat != null ? Number(row.lat) : 46.6),
