@@ -2671,7 +2671,9 @@ body {
     min-height: 0 !important;          /* indispensable pour que overflow marche en flex */
     overflow-y: auto !important;
     overflow-x: hidden !important;
-    -webkit-overflow-scrolling: touch; /* inertie sur iOS < 13 */
+    /* NB : pas de `-webkit-overflow-scrolling: touch` — il casse `position: sticky`
+       (la topbar) dans un conteneur de scroll sur iOS, et l'inertie est native
+       depuis iOS 13. */
   }
   /* Sidebar masquée en mobile → panneau espace plein écran */
   #espace-modal { left: 0; }
