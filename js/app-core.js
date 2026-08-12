@@ -3576,6 +3576,7 @@ function initRealMap() {
   mapRenderCommunity();
   if (evadMap) {
     setTimeout(() => evadMap.invalidateSize(), 100);
+    syncMapMarkers();   // resynchronise les marqueurs avec les données à jour
     return;
   }
 
@@ -3588,7 +3589,22 @@ function initRealMap() {
     attribution: "&copy; OpenStreetMap contributors"
   }).addTo(evadMap);
 
+  syncMapMarkers();
+}
+
+// (Re)construit les marqueurs à partir des données courantes (MAP_*). Appelé à
+// chaque affichage de la carte : les marqueurs suivent l'hydratation Supabase,
+// même si la carte a été initialisée AVANT l'arrivée des données (sinon la liste
+// se remplissait mais aucun marqueur n'apparaissait).
+function syncMapMarkers() {
+  if (!evadMap) return;
+  [evadMarkers, batisseurMarkers, semeurMarkers].forEach(arr => {
+    arr.forEach(m => { try { evadMap.removeLayer(m); } catch (e) {} });
+    arr.length = 0;
+  });
+
   MAP_PLACES.forEach((place, idx) => {
+    if (place.lat == null || place.lng == null) return;
     const marker = L.marker([place.lat, place.lng], {
       icon: createEmojiIcon(place.icon, markerBgByType(place.type))
     }).addTo(evadMap);
@@ -3605,6 +3621,7 @@ function initRealMap() {
 
   // ─── Bâtisseurs markers ───
   MAP_BATISSEURS.forEach((b, idx) => {
+    if (b.lat == null || b.lng == null) return;
     const marker = L.marker([b.lat, b.lng], {
       icon: createEmojiIcon(b.icon, "#b85e10", "#e07020", true)
     }).addTo(evadMap);
@@ -3625,6 +3642,7 @@ function initRealMap() {
 
   // ─── Semeurs markers ───
   MAP_SEMEURS.forEach((s, idx) => {
+    if (s.lat == null || s.lng == null) return;
     const marker = L.marker([s.lat, s.lng], {
       icon: createEmojiIcon(s.icon, "#1a4a6a", "#3a6e8c", false, true)
     }).addTo(evadMap);
