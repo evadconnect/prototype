@@ -7799,10 +7799,12 @@ async function createLieuOnMap(){
   } catch(e) {}
 
   // Persistance Supabase : MISE À JOUR si le lieu existe déjà, sinon création.
+  // Publication complète depuis le wizard = édition volontaire des espaces →
+  // drapeau _espacesEdit pour autoriser le garde-fou store (fiche complète).
   if (window.store) {
     try {
       if (_existingId) {
-        store.update('lieux', _existingId, myLieuData);
+        store.update('lieux', _existingId, Object.assign({}, myLieuData, { _espacesEdit: true }));
       } else {
         const row = store.insert('lieux', Object.assign({}, myLieuData));
         myLieuData.id = row.id;
@@ -10686,10 +10688,15 @@ function piloteFicheSave() {
 
   if (window.store) {
     try {
-      // upsert : met à jour la ligne si elle existe, sinon la crée (avec son id
-      // s'il est déjà connu) → pousse vers Supabase dans les deux cas.
-      const saved = store.upsert('lieux', Object.assign({}, myLieuData));
-      if (saved && saved.id) myLieuData.id = saved.id;
+      // FUSION (pas d'écrasement) : on ne met à jour QUE les champs de la fiche
+      // d'identité/contact. store.update fusionne le patch sur la ligne stockée,
+      // donc espacesData / solsByEspace / solutions sont PRÉSERVÉS (ne jamais les
+      // écraser depuis un myLieuData potentiellement périmé).
+      let saved = myLieuData.id ? store.update('lieux', myLieuData.id, patch) : null;
+      if (!saved) saved = store.upsert('lieux', Object.assign({}, myLieuData)); // 1re création
+      // Resynchronise myLieuData depuis la ligne fusionnée (récupère les espaces
+      // complets si l'état local était tronqué).
+      if (saved) { myLieuData = Object.assign({}, saved); }
     } catch (e) {}
   }
   // Reflète le lieu mis à jour dans l'en-tête du tableau de bord et sur la carte.
@@ -14123,8 +14130,10 @@ function ficheEspacesPersist() {
   myLieuData.espaces = myLieuData.espacesData.map(e => e.nom).filter(Boolean);
   // Persistance Supabase seulement si le lieu existe déjà (id connu) : sinon on
   // garde la modif en local, elle partira à la publication de la fiche.
+  // FUSION du seul champ espacesData, avec le drapeau _espacesEdit qui autorise
+  // une réduction (suppression volontaire d'un espace) malgré le garde-fou store.
   if (window.store && myLieuData.id) {
-    try { const saved = store.upsert('lieux', Object.assign({}, myLieuData)); if (saved && saved.id) myLieuData.id = saved.id; } catch (e) {}
+    try { store.update('lieux', myLieuData.id, { espacesData: myLieuData.espacesData, espaces: myLieuData.espaces, _espacesEdit: true }); } catch (e) {}
   }
   try {
     if (typeof syncMapPlacesFromStore === 'function') syncMapPlacesFromStore();
@@ -14921,11 +14930,12 @@ function ficheSolsPersist() {
     }
   } catch (e) {}
 
-  // Écriture Supabase + reconstruction carte, debouncées.
+  // Écriture Supabase + reconstruction carte, debouncées. FUSION : on ne touche
+  // qu'aux solutions (espacesData préservé sur la ligne stockée).
   clearTimeout(_ficheSolsTimer);
   _ficheSolsTimer = setTimeout(() => {
     if (window.store && myLieuData.id) {
-      try { const s = store.upsert('lieux', Object.assign({}, myLieuData)); if (s && s.id) myLieuData.id = s.id; } catch (e) {}
+      try { store.update('lieux', myLieuData.id, { solsByEspace: myLieuData.solsByEspace, solutions: myLieuData.solutions }); } catch (e) {}
     }
     try { if (typeof syncMapPlacesFromStore === 'function') syncMapPlacesFromStore(); } catch (e) {}
   }, 600);

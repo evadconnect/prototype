@@ -1009,6 +1009,23 @@
     update: function (table, id, patch) {
       var rows = read(table);
 
+      // Garde-fou anti-écrasement des espaces d'un lieu : une écriture ne peut
+      // pas RÉDUIRE espacesData (ni le vider) sauf si elle est explicitement
+      // marquée _espacesEdit (édition/suppression volontaire d'un espace). Cela
+      // empêche une sauvegarde d'identité/contact/solutions faite depuis un état
+      // périmé de tronquer silencieusement la liste des espaces.
+      if (table === 'lieux' && patch) {
+        var _allowEspacesShrink = patch._espacesEdit === true;
+        if (patch._espacesEdit !== undefined) { patch = Object.assign({}, patch); delete patch._espacesEdit; }
+        var _cur = store.get('lieux', id);
+        if (!_allowEspacesShrink && _cur && Array.isArray(_cur.espacesData) && Array.isArray(patch.espacesData)
+            && patch.espacesData.length < _cur.espacesData.length) {
+          patch = Object.assign({}, patch);
+          delete patch.espacesData; delete patch.espaces; delete patch.solsByEspace;
+          if (global.console) console.warn('[store] écrasement d\'espacesData bloqué (lieu ' + id + ' : ' + _cur.espacesData.length + ' → ' + '…). Utilise _espacesEdit pour une édition volontaire.');
+        }
+      }
+
       for (var i = 0; i < rows.length; i++) {
         if (rows[i].id === id) {
           rows[i] = Object.assign(
