@@ -91,6 +91,9 @@
   // ── Comptes & onboarding ──
   const ROLES = ['pilote', 'batisseur', 'semeur'];
   const ROLE_IC = { pilote: '🏡', batisseur: '🌿', semeur: '🌰' };
+  // Comptes supprimés dans cette session : filtrés à l'affichage tant que la
+  // liste d'auth (parfois en cache/latence) continue de les renvoyer.
+  const _deletedIds = new Set();
 
   function adminSecret() {
     const s = document.getElementById('secret').value.trim();
@@ -112,9 +115,12 @@
       });
       const data = await res.json();
       if (!res.ok) { out.innerHTML = '<span class="ko">Erreur : ' + (data.error || res.status) + '</span>'; return; }
-      if (!data.users || !data.users.length) { out.innerHTML = 'Aucun compte.'; return; }
-      let html = '<b>' + data.total + ' compte(s)</b>';
-      data.users.forEach(u => {
+      // Masque les comptes déjà supprimés dans cette session : la liste d'auth
+      // peut rester en cache/latence quelques secondes après la suppression.
+      const liste = (data.users || []).filter(u => !_deletedIds.has(u.id));
+      if (!liste.length) { out.innerHTML = 'Aucun compte.'; return; }
+      let html = '<b>' + liste.length + ' compte(s)</b>';
+      liste.forEach(u => {
         // Badges par profil : ✓ fiche faite (→ tableau de bord) / ○ onboarding à venir.
         // Une puce « fiche faite » (✓) est cliquable → relance l'onboarding de CE profil.
         const badges = (u.roles.length ? u.roles : ['?']).map(r => {
@@ -186,7 +192,11 @@
       });
       const data = await res.json();
       if (!res.ok) { alert('Erreur : ' + (data.error || res.status)); btn.disabled = false; btn.textContent = '🗑 Supprimer'; return; }
-      loadUsers(); // recharge la liste
+      // Mémorise l'id supprimé : il sera filtré à chaque rendu, même si la liste
+      // d'auth le renvoie encore (cache/latence juste après la suppression).
+      _deletedIds.add(userId);
+      const row = btn.closest('.row'); if (row) row.remove();
+      loadUsers();
     } catch (e) {
       alert('Erreur réseau : ' + e);
       btn.disabled = false; btn.textContent = '🗑 Supprimer';

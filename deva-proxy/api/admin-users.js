@@ -51,7 +51,11 @@ export default async function handler(req, res) {
       const r = await sb('/auth/v1/admin/users?page=1&per_page=200');
       const data = await r.json();
       if (!r.ok) return res.status(500).json({ error: 'Lecture des comptes impossible', http: r.status, detail: data });
-      const users = (Array.isArray(data) ? data : data.users || []).map((u) => {
+      const users = (Array.isArray(data) ? data : data.users || [])
+        // Ignore les comptes supprimés (GoTrue peut renvoyer des lignes
+        // soft-deleted : deleted_at renseigné) → n'apparaissent plus dans la liste.
+        .filter((u) => !u.deleted_at)
+        .map((u) => {
         const meta = u.user_metadata || {};
         return {
           id: u.id,
