@@ -10255,46 +10255,39 @@ function piloteMktOpenEdit(id) {
   modal.style.display = 'flex';
 }
 
-// Palette d'emojis proposés dans le sélecteur (clic → remplit le champ).
-const PMKT_EMOJIS = ['🥦','🍅','🍞','🧺','🍯','🥚','🧀','🍎','☕','🍲','🎓','📚','🛠','🎨','🧵','🪵','🚲','🏕','🏠','🛖','🌱','🌿','🐝','💧','⚡','🎟','🎉','🤝'];
-
-function pmktPickEmoji(e) {
-  const el = document.getElementById('pf-emoji');
-  if (el) { el.value = e; el.style.borderColor = ''; }
-  document.querySelectorAll('.pmkt-emoji-pick').forEach(b => b.style.borderColor = 'rgba(46,102,66,.15)');
-  const btn = document.getElementById('pmkt-emoji-' + e);
-  if (btn) btn.style.borderColor = 'var(--fern)';
-}
-
 // Catégories du Marché : source unique (valeur technique sans accent + libellé).
 // Les valeurs servent aux filtres (bmktFilter/smktFilter) et doivent rester
 // stables ; les libellés (emoji + accents) sont affichés partout via mktCatLabel.
 const MKT_CATS = [
-  { v:'alimentation', l:'🥦 Alimentation' },
-  { v:'maraichage',   l:'🌱 Maraîchage & plants' },
-  { v:'formation',    l:'📚 Formation & atelier' },
-  { v:'artisanat',    l:'🪵 Artisanat' },
-  { v:'service',      l:'⚙️ Service' },
-  { v:'coupdemain',   l:'🤝 Coup de main' },
-  { v:'reparation',   l:'🔧 Réparation' },
-  { v:'materiel',     l:'🛠 Prêt de matériel' },
-  { v:'location',     l:"🔑 Location d'espace" },
-  { v:'hebergement',  l:'🏡 Hébergement' },
-  { v:'evenement',    l:'🎉 Événement' },
-  { v:'bienetre',     l:'🧘 Bien-être & santé' },
-  { v:'mobilite',     l:'🚲 Mobilité' },
-  { v:'energie',      l:'⚡ Énergie' },
-  { v:'textile',      l:'🧵 Textile & couture' },
-  { v:'culture',      l:'🎨 Culture & art' },
-  { v:'numerique',    l:'💻 Numérique' },
+  { v:'alimentation', e:'🥦', l:'🥦 Alimentation' },
+  { v:'maraichage',   e:'🌱', l:'🌱 Maraîchage & plants' },
+  { v:'formation',    e:'📚', l:'📚 Formation & atelier' },
+  { v:'artisanat',    e:'🪵', l:'🪵 Artisanat' },
+  { v:'service',      e:'⚙️', l:'⚙️ Service' },
+  { v:'coupdemain',   e:'🤝', l:'🤝 Coup de main' },
+  { v:'reparation',   e:'🔧', l:'🔧 Réparation' },
+  { v:'materiel',     e:'🛠', l:'🛠 Prêt de matériel' },
+  { v:'location',     e:'🔑', l:"🔑 Location d'espace" },
+  { v:'hebergement',  e:'🏡', l:'🏡 Hébergement' },
+  { v:'evenement',    e:'🎉', l:'🎉 Événement' },
+  { v:'bienetre',     e:'🧘', l:'🧘 Bien-être & santé' },
+  { v:'mobilite',     e:'🚲', l:'🚲 Mobilité' },
+  { v:'energie',      e:'⚡', l:'⚡ Énergie' },
+  { v:'textile',      e:'🧵', l:'🧵 Textile & couture' },
+  { v:'culture',      e:'🎨', l:'🎨 Culture & art' },
+  { v:'numerique',    e:'💻', l:'💻 Numérique' },
 ];
 function mktCatLabel(v) {
   const c = MKT_CATS.find(x => x.v === v);
   return c ? c.l : (v ? v.charAt(0).toUpperCase() + v.slice(1) : '');
 }
+// Emoji de l'offre = celui de sa catégorie (plus de saisie manuelle).
+function mktCatEmoji(v) {
+  const c = MKT_CATS.find(x => x.v === v);
+  return c ? c.e : '🌿';
+}
 
 function pmktFormHtml(o) {
-  const curEmoji = o ? o.emoji : '';
   // Lieu par défaut : celui porté par l'offre, sinon mon lieu courant.
   const lieuDefault = (o && o.lieu_nom) || (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom) || '';
   const dateVal = (o && o.date) ? o.date : '';
@@ -10304,22 +10297,12 @@ function pmktFormHtml(o) {
       <label class="pmkt-label">Titre de l'offre</label>
       <input class="pmkt-input" id="pf-titre" placeholder="Ex : Panier légumes hebdomadaire" value="${o ? o.titre : ''}">
     </div>
-    <div class="pmkt-two-col">
-      <div class="pmkt-form-row" style="margin-bottom:0">
-        <label class="pmkt-label">Catégorie</label>
-        <select class="pmkt-select" id="pf-cat">
-          ${MKT_CATS.map(c => `<option value="${c.v}" ${o && o.cat===c.v?'selected':''}>${c.l}</option>`).join('')}
-        </select>
-      </div>
-      <div class="pmkt-form-row" style="margin-bottom:0">
-        <label class="pmkt-label">Emoji / icône</label>
-        <input class="pmkt-input" id="pf-emoji" placeholder="🥦" maxlength="4" value="${curEmoji}">
-      </div>
+    <div class="pmkt-form-row">
+      <label class="pmkt-label">Catégorie <span style="font-weight:400;opacity:.5;font-size:.65rem">(définit l'icône)</span></label>
+      <select class="pmkt-select" id="pf-cat">
+        ${MKT_CATS.map(c => `<option value="${c.v}" ${o && o.cat===c.v?'selected':''}>${c.l}</option>`).join('')}
+      </select>
     </div>
-    <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.5rem">
-      ${PMKT_EMOJIS.map(e => `<button type="button" class="pmkt-emoji-pick" id="pmkt-emoji-${e}" onclick="pmktPickEmoji('${e}')" style="width:32px;height:32px;font-size:1.05rem;line-height:1;display:flex;align-items:center;justify-content:center;border:1.5px solid ${e===curEmoji?'var(--fern)':'rgba(46,102,66,.15)'};border-radius:9px;background:white;cursor:pointer;padding:0">${e}</button>`).join('')}
-    </div>
-    <div style="height:.75rem"></div>
     <div class="pmkt-form-row">
       <label class="pmkt-label">Description courte</label>
       <textarea class="pmkt-textarea" id="pf-desc" placeholder="Décrivez l'offre en 1-2 phrases…">${o && o.desc ? o.desc : ''}</textarea>
@@ -10355,7 +10338,7 @@ function pmktFormHtml(o) {
 function pmktSaveOffer() {
   const titre = document.getElementById('pf-titre').value.trim();
   const cat   = document.getElementById('pf-cat').value;
-  const emoji = document.getElementById('pf-emoji').value.trim() || '🌿';
+  const emoji = mktCatEmoji(cat); // icône déduite de la catégorie
   const prix  = parseInt(document.getElementById('pf-prix').value) || 0;
   const stock = parseInt(document.getElementById('pf-stock').value) || 0;
   const descEl = document.getElementById('pf-desc');
