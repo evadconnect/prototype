@@ -8789,36 +8789,11 @@ function showQueteDetail(id, from) {
   showScreen('quete-detail');
 }
 
-// Ouvre la fiche quête dans une modale (depuis la liste « Trouver des quêtes »),
-// pour pouvoir revenir à la liste sans quitter l'étape de création de fiche.
+// Ouvre la fiche quête en PLEINE PAGE (depuis la liste « Trouver des quêtes »).
+// Le bouton « ← Retour » ramène à l'étape de création de fiche bâtisseur.
 function openQueteModalFromFiche(id) {
-  _qdQuestOverride = null;
-  _qdEditSection = null; _qdOpenSections = {};
-  _qdCurrentId = id;
-  _qdFrom = 'fiche-bat';
-  renderQueteDetail(); // remplit l'écran (caché) qd-main / qd-panel / qd-topbar-*
-  // Affichage dans un panneau latéral dédié qui glisse au-dessus de l'arbre :
-  // la liste de matching reste visible dans la colonne de gauche. « ← Retour »
-  // referme le panneau.
-  const ov  = document.getElementById('bat-quete-ov');
-  const host = document.getElementById('bat-quete-ov-box');
-  if (!ov || !host) { showScreen('quete-detail'); return; }
-  host.scrollTop = 0;
-  host.innerHTML = `
-    <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:1rem">
-      <button onclick="closeFicheQueteModal()" class="btn btn-ghost" style="font-size:.72rem;padding:.32rem .8rem;flex-shrink:0">← Retour</button>
-      <div style="min-width:0">
-        <div id="qm-title" style="font-size:.9rem;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
-        <div id="qm-sub" style="font-size:.64rem;color:var(--moss);opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
-      </div>
-    </div>
-    <div id="qm-main" style="display:flex;flex-direction:column;gap:1.1rem;margin-bottom:1rem"></div>
-    <div id="qm-panel" style="display:flex;flex-direction:column;gap:.9rem"></div>
-  `;
-  window._batQueteInline = true;
-  ov.style.display = 'block';
-  requestAnimationFrame(() => { host.style.transform = 'translateY(0)'; });
-  refreshFicheQueteModal();
+  window._batQueteInline = false;
+  showQueteDetail(id, 'fiche-bat');
 }
 
 // Recopie le contenu rendu de la fiche quête dans le panneau (sync après une
@@ -9303,11 +9278,16 @@ function queteDetailBack() {
     showScreen(_qdLieuReturnScreen || 'carte');
     const m = document.getElementById('lieu-modal');
     if (m) { m.style.display = 'block'; document.body.style.overflow = 'hidden'; }
-    if (typeof lieuTab === 'function') { try { lieuTab('quetes', document.getElementById('ltab-quetes')); } catch (e) {} }
-    if (typeof lieuRenderQuetes === 'function') { try { lieuRenderQuetes(); } catch (e) {} }
+    // L'onglet Quêtes a fusionné dans « Espaces & quêtes ».
+    if (typeof lieuTab === 'function') { try { lieuTab('espaces', document.getElementById('ltab-espaces')); } catch (e) {} }
+    if (typeof lieuRenderEspaces === 'function') { try { lieuRenderEspaces(); } catch (e) {} }
     return;
   }
   showScreen(_qdFrom);
+  // Retour à l'étape de création de fiche bâtisseur (liste des quêtes matchées).
+  if (_qdFrom === 'fiche-bat' && typeof batFicheRenderStep === 'function') {
+    try { batFicheRenderStep(); } catch (e) {}
+  }
   // showScreen('pilote') réinitialise sur l'onglet Aperçu : on rétablit l'onglet
   // Quêtes, d'où la fiche quête du Pilote est toujours ouverte.
   if (_qdFrom === 'pilote' && typeof piloteTab === 'function') {
