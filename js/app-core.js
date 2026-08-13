@@ -1164,7 +1164,7 @@ function lieuRenderMarche() {
     <div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-lg);padding:.85rem 1rem;display:flex;align-items:center;gap:.8rem;cursor:pointer;transition:box-shadow .15s" onclick="mktOpenModal('${o.id}')" onmouseover="this.style.boxShadow='0 4px 14px rgba(46,102,66,.1)'" onmouseout="this.style.boxShadow=''">
       <div style="width:44px;height:44px;border-radius:10px;background:${o.bg};display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0">${o.emoji}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:.58rem;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.1rem">${(o.cat||'').charAt(0).toUpperCase()+(o.cat||'').slice(1)}</div>
+        <div style="font-size:.58rem;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.1rem">${(typeof mktCatLabel==='function')?mktCatLabel(o.cat):(o.cat||'')}</div>
         <div style="font-size:.8rem;font-weight:700;color:var(--ink);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.titre}</div>
         <div style="font-size:.65rem;color:var(--moss);opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.desc || ''}</div>
         ${o.date ? `<span style="font-size:.6rem;color:var(--moss);opacity:.8">📅 ${(typeof _mktFmtDate==='function')?_mktFmtDate(o.date):o.date}</span>` : ''}
@@ -10266,8 +10266,34 @@ function pmktPickEmoji(e) {
   if (btn) btn.style.borderColor = 'var(--fern)';
 }
 
+// Catégories du Marché : source unique (valeur technique sans accent + libellé).
+// Les valeurs servent aux filtres (bmktFilter/smktFilter) et doivent rester
+// stables ; les libellés (emoji + accents) sont affichés partout via mktCatLabel.
+const MKT_CATS = [
+  { v:'alimentation', l:'🥦 Alimentation' },
+  { v:'maraichage',   l:'🌱 Maraîchage & plants' },
+  { v:'formation',    l:'📚 Formation & atelier' },
+  { v:'artisanat',    l:'🪵 Artisanat' },
+  { v:'service',      l:'⚙️ Service' },
+  { v:'coupdemain',   l:'🤝 Coup de main' },
+  { v:'reparation',   l:'🔧 Réparation' },
+  { v:'materiel',     l:'🛠 Prêt de matériel' },
+  { v:'location',     l:"🔑 Location d'espace" },
+  { v:'hebergement',  l:'🏡 Hébergement' },
+  { v:'evenement',    l:'🎉 Événement' },
+  { v:'bienetre',     l:'🧘 Bien-être & santé' },
+  { v:'mobilite',     l:'🚲 Mobilité' },
+  { v:'energie',      l:'⚡ Énergie' },
+  { v:'textile',      l:'🧵 Textile & couture' },
+  { v:'culture',      l:'🎨 Culture & art' },
+  { v:'numerique',    l:'💻 Numérique' },
+];
+function mktCatLabel(v) {
+  const c = MKT_CATS.find(x => x.v === v);
+  return c ? c.l : (v ? v.charAt(0).toUpperCase() + v.slice(1) : '');
+}
+
 function pmktFormHtml(o) {
-  const cats = ['alimentation','formation','artisanat','service','hébergement','événement'];
   const curEmoji = o ? o.emoji : '';
   // Lieu par défaut : celui porté par l'offre, sinon mon lieu courant.
   const lieuDefault = (o && o.lieu_nom) || (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom) || '';
@@ -10282,7 +10308,7 @@ function pmktFormHtml(o) {
       <div class="pmkt-form-row" style="margin-bottom:0">
         <label class="pmkt-label">Catégorie</label>
         <select class="pmkt-select" id="pf-cat">
-          ${cats.map(c => `<option value="${c}" ${o && o.cat===c?'selected':''}>${c.charAt(0).toUpperCase()+c.slice(1)}</option>`).join('')}
+          ${MKT_CATS.map(c => `<option value="${c.v}" ${o && o.cat===c.v?'selected':''}>${c.l}</option>`).join('')}
         </select>
       </div>
       <div class="pmkt-form-row" style="margin-bottom:0">
@@ -10434,7 +10460,7 @@ function mktRender() {
         ${badgeHtml}
       </div>
       <div class="mkt-card-body">
-        <div class="mkt-card-cat">${o.cat.charAt(0).toUpperCase()+o.cat.slice(1)}</div>
+        <div class="mkt-card-cat">${mktCatLabel(o.cat)}</div>
         <div class="mkt-card-title">${o.titre}</div>
         <div class="mkt-card-lieu">📍 ${o.lieu} · ${o.ville}</div>
         <div class="mkt-card-desc">${o.desc}</div>
@@ -10474,7 +10500,7 @@ function mktOpenModal(id) {
     <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.2rem">
       <div style="width:64px;height:64px;border-radius:var(--r-lg);background:${o.bg};display:flex;align-items:center;justify-content:center;font-size:1.9rem;flex-shrink:0">${o.emoji}</div>
       <div>
-        <div style="font-size:.62rem;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.2rem">${o.cat}</div>
+        <div style="font-size:.62rem;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.2rem">${mktCatLabel(o.cat)}</div>
         <h2 style="font-family:'Satoshi', sans-serif;font-size:1.25rem;font-weight:900;color:var(--ink);line-height:1.15;margin-bottom:.2rem">${o.titre}</h2>
         <div style="font-size:.7rem;color:var(--moss)">📍 ${o.lieu} · ${o.ville}</div>
         ${o.date ? `<div style="font-size:.7rem;color:var(--moss);margin-top:.15rem">📅 ${_mktFmtDate(o.date)}</div>` : ''}
@@ -11713,7 +11739,7 @@ function smktRender() {
     return `<div class="smkt-card" onclick="smktOpenModal(${o.id})">
       <div class="smkt-img" style="background:${o.bg}">${o.emoji}${badgeHtml}</div>
       <div class="smkt-body">
-        <div class="smkt-cat">${o.cat.charAt(0).toUpperCase()+o.cat.slice(1)}</div>
+        <div class="smkt-cat">${mktCatLabel(o.cat)}</div>
         <div class="smkt-title">${o.titre}</div>
         <div class="smkt-lieu">📍 ${o.lieu} · ${o.ville}</div>
         <div class="smkt-impact">🌱 ${o.impact}</div>
@@ -11740,7 +11766,7 @@ function smktOpenModal(id) {
     <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.2rem">
       <div style="width:60px;height:60px;border-radius:var(--r-lg);background:${o.bg};display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0">${o.emoji}</div>
       <div>
-        <div style="font-size:.6rem;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.15rem">${o.cat}</div>
+        <div style="font-size:.6rem;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.15rem">${mktCatLabel(o.cat)}</div>
         <h2 style="font-family:'Satoshi', sans-serif;font-size:1.1rem;font-weight:900;color:var(--ink);line-height:1.15;margin-bottom:.2rem">${o.titre}</h2>
         <div style="font-size:.7rem;color:var(--moss)">📍 ${o.lieu} · ${o.ville}</div>
       </div>
@@ -11810,7 +11836,7 @@ function bmktRender() {
     return `<div class="smkt-card" onclick="bmktOpenModal(${o.id})">
       <div class="smkt-img" style="background:${o.bg}">${o.emoji}${badgeHtml}</div>
       <div class="smkt-body">
-        <div class="smkt-cat">${o.cat.charAt(0).toUpperCase()+o.cat.slice(1)}</div>
+        <div class="smkt-cat">${mktCatLabel(o.cat)}</div>
         <div class="smkt-title">${o.titre}</div>
         <div class="smkt-lieu">📍 ${o.lieu} · ${o.ville}</div>
         <div class="smkt-impact">🌱 ${o.impact}</div>
@@ -11835,7 +11861,7 @@ function bmktOpenModal(id) {
     <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.2rem">
       <div style="width:60px;height:60px;border-radius:var(--r-lg);background:${o.bg};display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0">${o.emoji}</div>
       <div>
-        <div style="font-size:.6rem;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.15rem">${o.cat}</div>
+        <div style="font-size:.6rem;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.15rem">${mktCatLabel(o.cat)}</div>
         <h2 style="font-family:'Satoshi', sans-serif;font-size:1.1rem;font-weight:900;color:var(--ink);line-height:1.15;margin-bottom:.2rem">${o.titre}</h2>
         <div style="font-size:.7rem;color:var(--moss)">📍 ${o.lieu} · ${o.ville}</div>
       </div>
