@@ -9087,10 +9087,48 @@ function qdValiderEtape() {
   qdRerender();
 }
 
+// Annule la validation de la dernière étape franchie (revient en arrière).
+function qdDevaliderEtape() {
+  const q = qdQuest(); if (!q) return;
+  if ((q.etape_actuelle || 1) <= 1) { mmBubble('Aucune étape validée à annuler'); return; }
+  q.validated = false;
+  q.etape_actuelle = Math.max(1, (q.etape_actuelle || 1) - 1);
+  mmBubble('↩ Validation annulée · retour à l\'étape ' + q.etape_actuelle);
+  qdRerender();
+}
+
+// Matérialise q.plan (depuis les labels génériques) si besoin, pour l'édition.
+function _qdEnsurePlan(q) {
+  if (Array.isArray(q.plan) && q.plan.length) return;
+  const labels = (q.etapeLabels && q.etapeLabels.length) ? q.etapeLabels
+    : Array.from({ length: q.etapes || 4 }, (_, i) => 'Étape ' + (i + 1));
+  q.plan = labels.map(l => ({ ic: '🪜', titre: l, desc: '' }));
+  q.etapes = q.plan.length;
+}
+// Ajoute une étape au plan (mode édition).
+function qdAddStep() {
+  const q = qdQuest(); if (!q) return;
+  _qdEnsurePlan(q);
+  q.plan.push({ ic: '🪜', titre: 'Nouvelle étape', desc: '' });
+  q.etapes = q.plan.length;
+  qdRerender();
+}
+// Supprime une étape du plan (mode édition).
+function qdRemoveStep(i) {
+  const q = qdQuest(); if (!q || !Array.isArray(q.plan)) return;
+  q.plan.splice(i, 1);
+  q.etapes = q.plan.length || 1;
+  if ((q.etape_actuelle || 1) > q.plan.length + 1) q.etape_actuelle = q.plan.length + 1;
+  qdRerender();
+}
+
 // Édition ciblée par section ('infos' | 'materiel' | 'etapes') au lieu d'un mode global.
 function qdEditSection(sec) {
-  if (!qdQuest()) return;
+  const q = qdQuest();
+  if (!q) return;
   _qdEditSection = (_qdEditSection === sec) ? null : sec;
+  // À l'entrée en édition des étapes, matérialise un plan éditable si absent.
+  if (_qdEditSection === 'etapes' && typeof _qdEnsurePlan === 'function') _qdEnsurePlan(q);
   qdRerender();
 }
 function qdSaveSection() {
@@ -9308,9 +9346,9 @@ function renderQueteDetail() {
         ${done?'✓':i+1}
       </div>
       <div style="flex:1;min-width:0"><div style="font-size:.75rem;font-weight:${active?'700':done?'600':'500'};color:${active?'var(--ink)':done?'var(--moss)':'var(--ink)'}">${titre}</div>${desc}</div>
-      ${active?'<span style="font-size:.58rem;padding:.12rem .4rem;border-radius:100px;background:rgba(200,115,42,.15);color:var(--amber);font-weight:600;flex-shrink:0;margin-top:.1rem">En cours</span>':''}
+      ${EDplan ? `<button onclick="qdRemoveStep(${i})" title="Supprimer l'étape" style="flex-shrink:0;background:none;border:none;color:var(--moss);opacity:.5;font-size:.8rem;cursor:pointer;margin-top:.05rem">🗑️</button>` : (active?'<span style="font-size:.58rem;padding:.12rem .4rem;border-radius:100px;background:rgba(200,115,42,.15);color:var(--amber);font-weight:600;flex-shrink:0;margin-top:.1rem">En cours</span>':'')}
     </div>`;
-  }).join('');
+  }).join('') + (EDplan ? `<button onclick="qdAddStep()" style="width:100%;margin-top:.1rem;background:rgba(46,102,66,.07);border:1px dashed rgba(46,102,66,.3);color:var(--forest);border-radius:8px;padding:.45rem;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit">+ Ajouter une étape</button>` : '');
 
   // Financement bar
   const fin = q.financement;
@@ -9389,7 +9427,7 @@ function renderQueteDetail() {
       ${EDinfos ? '' : `<button onclick="qdVoirLieu()" style="display:inline-flex;align-items:center;gap:.35rem;margin-bottom:1rem;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:.4rem .85rem;font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit">🏡 Voir le lieu →</button>`}
       <div style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.07);border-radius:var(--r);padding:.5rem .9rem">
         <span style="font-family:'Satoshi', sans-serif;font-size:1.3rem;font-weight:900;color:var(--amber)">🌱 ${edDark('tokens', q.tokens, true)}</span>
-        <span style="font-size:.6rem;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em">graines</span>
+        <span style="font-size:.6rem;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em">graines${q.grainesParDemiJour ? ' / demi-j / pers.' : ''}</span>
       </div>
     </div>
 
@@ -9486,8 +9524,11 @@ function renderQueteDetail() {
       </div>
       <div style="height:8px;background:rgba(46,102,66,.08);border-radius:100px;overflow:hidden;margin-bottom:.75rem"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--fern),#7ab840);border-radius:100px;transition:width .6s cubic-bezier(.34,1.2,.5,1)"></div></div>
       ${planOpen ? steps : ''}
-      ${currentRole === 'pilote' && !complete ? `<button onclick="qdValiderEtape()" style="width:100%;margin-top:.5rem;background:rgba(74,140,92,.1);color:var(--fern);border:1px solid rgba(74,140,92,.3);border-radius:100px;padding:.55rem;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit">✓ Valider l'étape en cours →</button>`
-        : (complete ? `<div style="margin-top:.5rem;text-align:center;font-size:.72rem;font-weight:700;color:var(--fern);background:rgba(74,140,92,.08);border-radius:100px;padding:.5rem">🌳 Toutes les étapes franchies !</div>` : '')}
+      ${currentRole === 'pilote' ? `<div style="display:flex;gap:.5rem;margin-top:.5rem">
+        ${!complete ? `<button onclick="qdValiderEtape()" style="flex:1;background:rgba(74,140,92,.1);color:var(--fern);border:1px solid rgba(74,140,92,.3);border-radius:100px;padding:.55rem;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit">✓ Valider l'étape en cours →</button>`
+          : `<div style="flex:1;text-align:center;font-size:.72rem;font-weight:700;color:var(--fern);background:rgba(74,140,92,.08);border-radius:100px;padding:.55rem">🌳 Toutes les étapes franchies !</div>`}
+        ${(fait > 0) ? `<button onclick="qdDevaliderEtape()" title="Annuler la dernière validation" style="background:rgba(200,115,42,.08);color:#8a4a1a;border:1px solid rgba(200,115,42,.28);border-radius:100px;padding:.55rem .9rem;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">↩ Annuler</button>` : ''}
+      </div>` : ''}
     </div>`;
     })()}
 
@@ -9515,6 +9556,8 @@ function renderQueteDetail() {
         <div style="font-size:.62rem;font-weight:700;color:var(--sky);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem">📊 Une preuve validée alimente ${q.icis.length} indicateur${q.icis.length>1?'s':''}</div>
         <div style="display:flex;flex-wrap:wrap;gap:.35rem">${q.icis.map(ici=>`<span style="font-size:.66rem;font-weight:600;color:var(--sky);background:rgba(58,110,140,.1);border:1px solid rgba(58,110,140,.28);border-radius:100px;padding:.24rem .6rem">${ici.nom}${ici.unite?` · <span style="opacity:.7">${ici.unite}</span>`:''}</span>`).join('')}</div>`:''}
     </div>
+
+    ${currentRole === 'pilote' ? `<button onclick="qdSaveSection()" style="width:100%;background:var(--forest);color:#fff;border:none;border-radius:100px;padding:.7rem;font-size:.82rem;font-weight:800;cursor:pointer;font-family:inherit;margin-top:.3rem">✓ Valider et enregistrer</button>` : ''}
   `;
 
   // Panneau profil

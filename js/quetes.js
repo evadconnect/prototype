@@ -166,7 +166,7 @@ function openPiloteQueteFiche(qid) {
     places: Math.min(_equipe.length, _nbMax) + '/' + _nbMax,
     etape_actuelle: 1, etapes: _plan.length || 4,
     etapeLabels: _plan.length ? _plan.map(p => p.titre) : ['Lancement', 'Préparation', 'Réalisation', 'Certification'],
-    tokens: pq.graines || 50, co2: (sol && sol.co2) || 0,
+    tokens: pq.graines || 50, grainesParDemiJour: pq.grainesParDemiJour || null, co2: (sol && sol.co2) || 0,
     esrs: ((sol && sol.esrs) || []).map(e => String(e).replace('ESRS ', '').trim()),
     financement: { objectif: 0, montant: 0, semeur: null },
     equipe: _equipe, dates: [], dateISO: pq.dateISO || null, heure: pq.heure || null,
@@ -254,7 +254,8 @@ function syncPiloteQuetesFromLieu() {
       // id propre au lieu → pas de collision entre Pilotes en base.
       const lieuId = (L && L.id) || 'draft';
       const qid = lieuId + '-sol-' + String(nom).replace(/[^a-z0-9]+/gi, '-').toLowerCase();
-      if (!store.get('quetes', qid)) {
+      // Ne pas re-générer (ni re-pousser) une quête de solution supprimée/retirée.
+      if (!store.get('quetes', qid) && !quetesRetirees.has('sol:' + nom)) {
         store.upsert('quetes', {
           id: qid, lieu_id: (L && L.id) || null, custom: false, source: nom, sourceIc: sol.img || '⚡',
           titre: sol.quete.titre, duree: sol.quete.duree || '-', nb: sol.quete.nb || '-',
@@ -799,7 +800,9 @@ function renderPiloteQuetes() {
         </div>
         ${progressHtml}
         ${validerHtml}
-        <div class="pq-actions">${actions}</div>
+        <div class="pq-actions">${actions}
+          <button class="btn btn-ghost" style="font-size:.68rem;padding:.5rem .7rem;color:var(--terracotta);margin-left:auto" onclick="piloteQueteSupprimer('${q.id}')" title="Supprimer définitivement (efface de la base)">🗑 Supprimer</button>
+        </div>
       </div>`;
   };
 
@@ -957,6 +960,36 @@ function _quetePublierStore(id, q) {
     store.upsert('quetes', Object.assign({}, q, { id: id, lieu_id: lieuId, statut: 'ouverte' }));
   }
 }
+// Suppression DÉFINITIVE d'une quête : efface la ligne locale + Supabase
+// (lieu_quetes). Pour une quête dérivée d'une solution, on marque la solution
+// comme retirée pour qu'elle ne soit pas re-générée (ni re-poussée).
+function piloteQueteSupprimer(id) {
+  const q = PILOTE_QUETES_DEMO.find(x => x.id === id);
+  const titre = (q && q.titre) || 'cette quête';
+  if (typeof confirm === 'function' && !confirm('Supprimer définitivement « ' + titre + ' » ?\nElle sera effacée de la base (action irréversible).')) return;
+
+  // Empêche la régénération d'une quête issue d'une solution retenue.
+  if (q && !q.custom && q.source && typeof myLieuData !== 'undefined' && myLieuData) {
+    const key = 'sol:' + q.source;
+    const list = Array.isArray(myLieuData.quetesRetirees) ? myLieuData.quetesRetirees.slice() : [];
+    if (list.indexOf(key) < 0) list.push(key);
+    myLieuData.quetesRetirees = list;
+    if (window.store && myLieuData.id) { try { store.update('lieux', myLieuData.id, { quetesRetirees: list }); } catch (e) {} }
+  }
+
+  if (window.store) {
+    try { store.remove('quetes', id); } catch (e) {}                 // local
+    if (typeof store.deleteQueteRemote === 'function') store.deleteQueteRemote(id); // Supabase
+  }
+  const i = PILOTE_QUETES_DEMO.findIndex(x => x.id === id);
+  if (i >= 0) PILOTE_QUETES_DEMO.splice(i, 1);
+  if (typeof quetesValidees !== 'undefined') quetesValidees.delete(id);
+
+  if (typeof mmBubble === 'function') mmBubble('🗑 Quête supprimée définitivement');
+  renderPiloteQuetes();
+  if (typeof evadRefreshCarteCompteurs === 'function') { try { evadRefreshCarteCompteurs(); } catch (e) {} }
+}
+
 function piloteQueteRetirer(id) {
   const q = PILOTE_QUETES_DEMO.find(x => x.id === id); if (!q) return;
   const wasPublished = q.statut === 'ouverte';
