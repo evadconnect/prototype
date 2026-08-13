@@ -8552,7 +8552,7 @@ function batBuildQuetesFromProfile() {
       ? q.icis.map(id => iciGetICI(id)).filter(Boolean)
       : ((sol && typeof iciPourSolution === 'function') ? (iciPourSolution(sol.nom) || []) : []);
 
-    // Équipe réelle : bâtisseurs inscrits (table quete_candidatures).
+    // Équipe réelle : bâtisseurs VALIDÉS (statut « inscrit »).
     const cands = store.where('quete_candidatures', c => c.quete_id === q.id && c.statut === 'inscrit');
     const equipe = cands.map((c, i) => ({
       i: ((c.batisseur_nom || 'B').trim().charAt(0) || 'B').toUpperCase(),
@@ -8560,7 +8560,11 @@ function batBuildQuetesFromProfile() {
       nom: c.batisseur_nom || 'Bâtisseur',
       bid: c.batisseur_id || null
     }));
-    const joined = !!(myBid && cands.some(c => c.batisseur_id === myBid));
+    // Demandes en attente de validation du Pilote.
+    const pendCands = store.where('quete_candidatures', c => c.quete_id === q.id && c.statut === 'en_attente');
+    const estValide = !!(myBid && cands.some(c => c.batisseur_id === myBid));
+    const estEnAttente = !!(myBid && pendCands.some(c => c.batisseur_id === myBid));
+    const joined = estValide || estEnAttente;
     const nbMax = parseInt(q.nb, 10) || 6;
 
     const entry = {
@@ -8587,7 +8591,7 @@ function batBuildQuetesFromProfile() {
       tokens: q.graines || (sol && sol.tok) || 50, co2: (sol && sol.co2) || 0,
       esrs: ((sol && sol.esrs) || []).map(e => String(e).replace('ESRS ', '').trim()),
       financement: { objectif: 0, montant: 0, semeur: null },
-      equipe: equipe, joined: joined,
+      equipe: equipe, joined: joined, pending: estEnAttente,
       dateISO: q.dateISO || null, heure: q.heure || null,
       icis: icis,
       dates: [] // plus de dates factices : la vraie date vient de dateISO/heure
@@ -8620,9 +8624,11 @@ function _batQueteCard(q) {
   const etapePct = Math.round((q.etape_actuelle / q.etapes) * 100);
   const statutBadge = q.statut === 'terminee'
     ? '<span class="quete-status" style="font-size:.58rem;background:rgba(74,140,92,.12);color:var(--fern)">✓ Terminée</span>'
-    : q.joined
-      ? '<span class="quete-status" style="font-size:.58rem;background:rgba(1,130,98,.1);color:var(--forest)">🔨 Inscrit</span>'
-      : '<span class="quete-status qs-open" style="font-size:.58rem">Ouvert</span>';
+    : q.pending
+      ? '<span class="quete-status" style="font-size:.58rem;background:rgba(200,115,42,.12);color:#8a4a1a">🕓 En attente</span>'
+      : q.joined
+        ? '<span class="quete-status" style="font-size:.58rem;background:rgba(1,130,98,.1);color:var(--forest)">🔨 Inscrit</span>'
+        : '<span class="quete-status qs-open" style="font-size:.58rem">Ouvert</span>';
   const dateTxt = (q.dateISO && typeof qdFormatDateFr === 'function') ? qdFormatDateFr(q.dateISO, q.heure) : '';
   return `<div class="quete-card" onclick="batSelectQuete(${q.id})" style="display:flex;align-items:center;gap:1rem;padding:1rem 1.1rem">
     <div style="width:42px;height:42px;border-radius:10px;background:rgba(74,140,92,0.1);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">${q.type.split(' ')[0]}</div>
@@ -9260,7 +9266,7 @@ function renderQueteDetail() {
   const funded = q.financement && q.financement.objectif > 0 && q.financement.montant >= q.financement.objectif;
   const done = (k) => `<button class="btn" disabled style="opacity:.65;cursor:default;background:rgba(74,140,92,.12);color:var(--fern);border:1px solid rgba(74,140,92,.3)">${k}</button>`;
   const ctas = {
-    batisseur: q.joined ? done('✓ Tu participes') : `<button class="btn btn-primary" onclick="qdJoindre()">✅ Rejoindre cette quête</button>`,
+    batisseur: q.pending ? done('🕓 Demande en attente') : q.joined ? done('✓ Tu participes') : `<button class="btn btn-primary" onclick="qdJoindre()">✅ Rejoindre cette quête</button>`,
     semeur: funded ? done('✓ Quête financée') : `<button class="btn btn-primary" onclick="qdFinancer()">💰 Financer cette quête</button>`,
     // Pilote : pas de bouton dans le bandeau, les actions vivent dans
     // « Gestion de la quête » (publier/modifier) et « Preuves des bâtisseurs » (valider).
@@ -9353,7 +9359,7 @@ function renderQueteDetail() {
         ${q.validated ? '<span style="font-size:.62rem;padding:.18rem .5rem;border-radius:100px;background:rgba(74,140,92,.25);color:#9be3a6;border:1px solid rgba(74,140,92,.4);font-weight:700">✓ Validée</span>' : ''}
         ${q.closed ? '<span style="font-size:.62rem;padding:.18rem .5rem;border-radius:100px;background:rgba(200,115,42,.2);color:#f0b96a;border:1px solid rgba(200,115,42,.35);font-weight:700">🔒 Clôturée</span>' : ''}
         ${q.paused ? '<span style="font-size:.62rem;padding:.18rem .5rem;border-radius:100px;background:rgba(240,200,74,.2);color:#f0d878;border:1px solid rgba(240,200,74,.35);font-weight:700">⏸ En pause</span>' : ''}
-        ${q.joined ? '<span style="font-size:.62rem;padding:.18rem .5rem;border-radius:100px;background:rgba(74,140,92,.2);color:#9be3a6;border:1px solid rgba(74,140,92,.35);font-weight:700">✓ Tu participes</span>' : ''}
+        ${q.pending ? '<span style="font-size:.62rem;padding:.18rem .5rem;border-radius:100px;background:rgba(200,115,42,.2);color:#f0b96a;border:1px solid rgba(200,115,42,.35);font-weight:700">🕓 En attente</span>' : q.joined ? '<span style="font-size:.62rem;padding:.18rem .5rem;border-radius:100px;background:rgba(74,140,92,.2);color:#9be3a6;border:1px solid rgba(74,140,92,.35);font-weight:700">✓ Tu participes</span>' : ''}
       </div>
       <div style="font-family:'Satoshi', sans-serif;font-size:1.5rem;font-weight:900;color:white;line-height:1.15;margin-bottom:.5rem">${edDark('titre', q.titre)}</div>
       <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:${EDinfos ? '1rem' : '.7rem'};flex-wrap:wrap">
@@ -9543,7 +9549,9 @@ function renderQueteDetail() {
       </div>
 
       <!-- CTA -->
-      ${q.joined
+      ${q.pending
+        ? `<button class="btn" disabled style="width:100%;padding:.8rem;font-size:.82rem;background:rgba(200,115,42,.1);color:#8a4a1a;border:1px solid rgba(200,115,42,.3);cursor:default">🕓 Demande en attente de validation du lieu</button>`
+        : q.joined
         ? `<button class="btn" disabled style="width:100%;padding:.8rem;font-size:.82rem;background:rgba(74,140,92,.12);color:var(--fern);border:1px solid rgba(74,140,92,.3);cursor:default">✓ Tu participes à cette quête</button>
            <button class="btn btn-ghost" style="width:100%;font-size:.72rem" onclick="qdDeposerPreuve()">📎 Déposer une preuve</button>`
         : `<button class="btn btn-primary" style="width:100%;padding:.8rem;font-size:.82rem" onclick="qdJoindre()">✅ Rejoindre cette quête</button>`}
@@ -9963,6 +9971,7 @@ function evadWalletRender() {
 
 function qdJoindre() {
   const q = qdQuest(); if (!q) return;
+  if (q.pending) { mmBubble('🕓 Ta demande est déjà en attente de validation du lieu'); return; }
   if (q.joined) { mmBubble('Tu participes déjà à cette quête'); return; }
   const prenom = (typeof batFicheData !== 'undefined' && batFicheData.prenom) || '';
   const nom = (typeof batFicheData !== 'undefined' && batFicheData.nom) || '';
@@ -9973,8 +9982,9 @@ function qdJoindre() {
   const m = String(q.places || '0/6').split('/');
   const cur = Math.min((parseInt(m[0], 10) || 0) + 1, parseInt(m[1], 10) || 6);
   q.places = cur + '/' + (m[1] || 6);
-  // Inscription persistée : table quete_candidatures (locale + Supabase).
-  // Id composite bâtisseur × quête → pas de doublon, et le Pilote la voit.
+  // Demande d'inscription persistée : table quete_candidatures (locale + Supabase).
+  // Statut « en_attente » : le Pilote doit valider avant que le bâtisseur
+  // rejoigne réellement l'équipe. Id composite bâtisseur × quête → pas de doublon.
   if (window.store && q.srcId) {
     try {
       const bid = _currentBatisseurId();
@@ -9984,11 +9994,12 @@ function qdJoindre() {
         lieu_id: q.lieuId || null,
         batisseur_id: bid,
         batisseur_nom: batNom,
-        statut: 'inscrit'
+        statut: 'en_attente'
       });
     } catch (e) {}
   }
-  mmBubble('✅ Inscription confirmée · tu as rejoint « ' + (q.titre || 'la quête') + ' »');
+  q.pending = true;
+  mmBubble('🕓 Demande envoyée · en attente de validation du lieu pour « ' + (q.titre || 'la quête') + ' »');
   qdRerender();
 }
 function qdFinancer() {

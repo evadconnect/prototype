@@ -504,16 +504,35 @@ function renderQueteConvBadges(quete) {
 }
 
 /* ─── Rendu de la liste des quêtes dans le panel Pilote ─── */
-// ── Suivi d'une quête : agrégats réels (inscrits, preuves) depuis le store ──
+// ── Suivi d'une quête : agrégats réels (inscrits, demandes, preuves) ──
 function _pqStats(qid) {
-  let inscrits = 0, preuvesDep = 0, preuvesAValider = 0;
+  let inscrits = 0, preuvesDep = 0, preuvesAValider = 0, enAttente = [];
   if (window.store && qid != null) {
     inscrits = store.where('quete_candidatures', c => c && c.statut === 'inscrit' && c.quete_id === qid).length;
+    enAttente = store.where('quete_candidatures', c => c && c.statut === 'en_attente' && c.quete_id === qid);
     const pr = store.where('quete_preuves', p => p && p.quete_id === qid);
     preuvesDep = pr.length;
     preuvesAValider = pr.filter(p => !p.validee).length;
   }
-  return { inscrits, preuvesDep, preuvesAValider };
+  return { inscrits, preuvesDep, preuvesAValider, enAttente };
+}
+
+// Validation d'un bâtisseur en attente → il rejoint l'équipe de la quête.
+function piloteValiderBatisseur(candId) {
+  if (!window.store || !candId) return;
+  const c = store.get('quete_candidatures', candId);
+  if (!c) return;
+  store.update('quete_candidatures', candId, { statut: 'inscrit' });
+  if (typeof mmBubble === 'function') mmBubble('✅ ' + (c.batisseur_nom || 'Le bâtisseur') + ' a rejoint la quête');
+  renderPiloteQuetes();
+}
+// Refus d'une demande (statut « refuse » : propagé en base, exclu des requêtes).
+function piloteRefuserBatisseur(candId) {
+  if (!window.store || !candId) return;
+  const c = store.get('quete_candidatures', candId);
+  store.update('quete_candidatures', candId, { statut: 'refuse' });
+  if (typeof mmBubble === 'function') mmBubble('Demande de ' + ((c && c.batisseur_nom) || 'bâtisseur') + ' déclinée');
+  renderPiloteQuetes();
 }
 // Cible de participants extraite d'un libellé libre ("2–4 pers." → 4).
 function _pqTargetNb(nbStr) {
@@ -591,6 +610,19 @@ function renderPiloteQuetes() {
           ${st.preuvesDep ? `<span style="font-size:.6rem;color:var(--moss)">✅ ${st.preuvesDep} preuve${st.preuvesDep > 1 ? 's' : ''}</span>` : ''}
           ${st.preuvesAValider ? `<button onclick="openPiloteQueteFiche('${q.id}')" style="font-size:.6rem;font-weight:700;color:#8a4a1a;background:rgba(200,115,42,.12);border:1px solid rgba(200,115,42,.3);border-radius:100px;padding:.15rem .5rem;cursor:pointer">🕓 ${st.preuvesAValider} à valider →</button>` : ''}
         </div>`;
+    // Bâtisseurs en attente : le Pilote valide (rejoint l'équipe) ou décline.
+    const pend = st.enAttente || [];
+    const validerHtml = (estAVerif || !pend.length) ? '' : `
+        <div style="margin:.5rem 0 .1rem;background:rgba(200,115,42,.06);border:1px solid rgba(200,115,42,.2);border-radius:var(--r)">
+          <div style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#8a4a1a;padding:.45rem .6rem .2rem">👋 ${pend.length} bâtisseur${pend.length > 1 ? 's' : ''} à valider</div>
+          ${pend.map(c => `<div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.3rem .6rem;border-top:1px solid rgba(200,115,42,.12)">
+            <span style="font-size:.7rem;color:var(--ink);font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.batisseur_nom || 'Bâtisseur'}</span>
+            <span style="display:flex;gap:.35rem;flex-shrink:0">
+              <button onclick="piloteValiderBatisseur('${c.id}')" style="font-size:.62rem;font-weight:700;color:white;background:var(--forest);border:0;border-radius:100px;padding:.28rem .7rem;cursor:pointer">✓ Valider</button>
+              <button onclick="piloteRefuserBatisseur('${c.id}')" style="font-size:.62rem;color:var(--moss);background:transparent;border:1px solid rgba(46,102,66,.2);border-radius:100px;padding:.28rem .55rem;cursor:pointer" title="Décliner">✕</button>
+            </span>
+          </div>`).join('')}
+        </div>`;
     const statutHtml = estAVerif
       ? `<span class="pq-status a-verifier">🕓 À vérifier</span>`
       : estPause
@@ -622,6 +654,7 @@ function renderPiloteQuetes() {
           <span style="color:var(--fern);font-weight:600">${(q.impact || '').split('·')[0].trim()}</span>
         </div>
         ${progressHtml}
+        ${validerHtml}
         <div class="pq-actions">${actions}</div>
       </div>`;
   };
@@ -665,16 +698,17 @@ function renderPiloteQuetes() {
   };
 
   // Liste filtrée (utilisée par les vues Agenda et le filtre « À traiter »).
-  const _pqHasPreuve = q => _pqStats(q.id).preuvesAValider > 0;
+  // « À traiter » = preuve à valider OU bâtisseur en attente de validation.
+  const _pqNeedsAction = q => { const s = _pqStats(q.id); return s.preuvesAValider > 0 || (s.enAttente && s.enAttente.length > 0); };
   const filteredList =
       F === 'a_publier' ? aVerifier.slice()
     : F === 'ouvertes'  ? enLigneActives.concat(enPause)
     : F === 'terminees' ? terminees.slice()
-    : F === 'a_traiter' ? aVerifier.concat(enLigne.filter(_pqHasPreuve))
+    : F === 'a_traiter' ? aVerifier.concat(enLigne.filter(_pqNeedsAction))
     : PILOTE_QUETES_DEMO.slice();
 
   const emptyMsg = (F === 'a_traiter')
-    ? `<div style="text-align:center;padding:2.2rem 1rem;color:var(--moss)"><div style="font-size:1.6rem;margin-bottom:.6rem">🎉</div><div style="font-size:.78rem;font-weight:700;color:var(--ink)">Rien à traiter pour l'instant</div><div style="font-size:.7rem;opacity:.75;margin-top:.3rem">Aucune preuve à valider ni quête à publier.</div></div>`
+    ? `<div style="text-align:center;padding:2.2rem 1rem;color:var(--moss)"><div style="font-size:1.6rem;margin-bottom:.6rem">🎉</div><div style="font-size:.78rem;font-weight:700;color:var(--ink)">Rien à traiter pour l'instant</div><div style="font-size:.7rem;opacity:.75;margin-top:.3rem">Aucune preuve à valider, aucun bâtisseur en attente, aucune quête à publier.</div></div>`
     : (() => {
         const labels = { a_publier: 'à publier', ouvertes: 'ouverte', terminees: 'terminée' };
         return `<div style="text-align:center;padding:2.2rem 1rem;color:var(--moss)">
@@ -685,14 +719,15 @@ function renderPiloteQuetes() {
       })();
 
   // ── Zone « À traiter » : centralise ce qui demande une action du Pilote ──
-  let totInscrits = 0, totPreuves = 0;
-  PILOTE_QUETES_DEMO.forEach(q => { const s = _pqStats(q.id); totInscrits += s.inscrits; totPreuves += s.preuvesAValider; });
+  let totInscrits = 0, totPreuves = 0, totAValiderBat = 0;
+  PILOTE_QUETES_DEMO.forEach(q => { const s = _pqStats(q.id); totInscrits += s.inscrits; totPreuves += s.preuvesAValider; totAValiderBat += (s.enAttente ? s.enAttente.length : 0); });
   const totAPublier = aVerifier.length;
   const _chip = (bg, bd, col) => `background:${bg};border:1px solid ${bd};color:${col};border-radius:100px;padding:.3rem .75rem;font-size:.66rem;font-weight:700;cursor:pointer`;
-  const aTraiterZone = (totPreuves || totAPublier) ? `
+  const aTraiterZone = (totPreuves || totAPublier || totAValiderBat) ? `
     <div style="background:linear-gradient(135deg,rgba(200,115,42,.07),rgba(74,140,92,.06));border:1px solid rgba(200,115,42,.2);border-radius:var(--r-lg);padding:.7rem .9rem;margin-bottom:.9rem">
       <div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#8a4a1a;margin-bottom:.5rem">🎯 À traiter</div>
       <div style="display:flex;flex-wrap:wrap;gap:.4rem;align-items:center">
+        ${totAValiderBat ? `<button onclick="document.getElementById('lqf-a-traiter').click()" style="${_chip('rgba(200,115,42,.12)', 'rgba(200,115,42,.3)', '#8a4a1a')}">👋 ${totAValiderBat} bâtisseur${totAValiderBat > 1 ? 's' : ''} à valider →</button>` : ''}
         ${totPreuves ? `<button onclick="document.getElementById('lqf-a-traiter').click()" style="${_chip('rgba(200,115,42,.12)', 'rgba(200,115,42,.3)', '#8a4a1a')}">🕓 ${totPreuves} preuve${totPreuves > 1 ? 's' : ''} à valider →</button>` : ''}
         ${totAPublier ? `<button onclick="document.getElementById('lqf-a-publier').click()" style="${_chip('rgba(74,140,92,.12)', 'rgba(74,140,92,.3)', 'var(--forest)')}">🟢 ${totAPublier} à publier →</button>` : ''}
         ${totInscrits ? `<span style="font-size:.66rem;color:var(--moss);font-weight:600">👋 ${totInscrits} inscrit${totInscrits > 1 ? 's' : ''}</span>` : ''}
@@ -736,23 +771,24 @@ function renderPiloteQuetes() {
   if (stats[2]) stats[2].textContent = nbTerminees;
   if (stats[3]) stats[3].textContent = totalGraines || '-';
 
-  // Notifications : preuves à valider + bâtisseurs inscrits sur mes quêtes.
-  let nbPreuvesAttente = 0, nbInscritsNotif = 0;
+  // Notifications : preuves à valider + bâtisseurs en attente de validation.
+  let nbPreuvesAttente = 0, nbBatAttente = 0;
   if (window.store) {
     const qidSet = new Set(PILOTE_QUETES_DEMO.map(q => q.id));
     nbPreuvesAttente = store.where('quete_preuves', p => p && !p.validee && qidSet.has(p.quete_id)).length;
-    nbInscritsNotif = store.where('quete_candidatures', c => c && c.statut === 'inscrit' && qidSet.has(c.quete_id)).length;
+    nbBatAttente = store.where('quete_candidatures', c => c && c.statut === 'en_attente' && qidSet.has(c.quete_id)).length;
   }
-  // Point orange sur l'onglet Quêtes tant que des preuves attendent.
+  // Point orange sur l'onglet Quêtes tant qu'une action attend le Pilote.
+  const nbNotif = nbPreuvesAttente + nbBatAttente;
   const tabBtn = document.getElementById('ptab-quetes');
   if (tabBtn) {
     const dot = tabBtn.querySelector('.notif-dot');
-    if (nbPreuvesAttente > 0 && !dot) {
+    if (nbNotif > 0 && !dot) {
       const d = document.createElement('span');
       d.className = 'notif-dot';
       d.style.cssText = 'display:inline-block;width:7px;height:7px;background:var(--amber);border-radius:50%;margin-left:.35rem;vertical-align:middle';
       tabBtn.appendChild(d);
-    } else if (!nbPreuvesAttente && dot) dot.remove();
+    } else if (!nbNotif && dot) dot.remove();
   }
 
   // Répercute sur l'aperçu (Vadance + wallet graines)
