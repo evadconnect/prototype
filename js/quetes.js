@@ -13,6 +13,8 @@ const quetesValidees = new Set();
 let piloteQueteFilter = 'toutes';
 /* Vue de suivi : liste (groupée par espace) | agenda (triée par date de rencontre) */
 let piloteQueteView = 'liste';
+/* Id de la quête en cours d'édition dans le formulaire (null = création). */
+let pqCreerEditId = null;
 
 /* ─── Modal de présentation d'une quête (depuis la solution source) ─── */
 function openQueteModal(qid) {
@@ -326,7 +328,7 @@ function piloteQueteCreerEnsureDom() {
   + '<div role="dialog" aria-label="Nouvelle quête" style="position:relative;max-width:460px;width:calc(100% - 2rem);margin:5vh auto 0;max-height:88vh;overflow-y:auto;background:#fff;border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.32);padding:1.3rem 1.4rem 1.4rem">'
   +   '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem">'
   +     '<div>'
-  +       '<div style="font-size:1.05rem;font-weight:800;color:var(--ink)">⚡ Nouvelle quête</div>'
+  +       '<div id="pq-create-title" style="font-size:1.05rem;font-weight:800;color:var(--ink)">⚡ Nouvelle quête</div>'
   +       '<div style="font-size:.78rem;line-height:1.5;color:var(--moss);margin-top:.3rem">Une action concrète sur ton lieu. Une fois publiée, les bâtisseurs pourront la rejoindre.</div>'
   +     '</div>'
   +     '<button onclick="piloteQueteCreerFermer()" aria-label="Fermer" style="flex-shrink:0;background:none;border:none;font-size:1.2rem;line-height:1;color:var(--moss);opacity:.5;cursor:pointer">✕</button>'
@@ -370,7 +372,7 @@ function piloteQueteCreerEnsureDom() {
   +   '<div id="pq-create-hint" style="font-size:.7rem;color:var(--terracotta);margin-top:.45rem;min-height:1rem"></div>'
   +   '<div style="display:flex;align-items:center;justify-content:flex-end;gap:.6rem;margin-top:.4rem">'
   +     '<button onclick="piloteQueteCreerFermer()" style="background:none;border:none;color:var(--moss);font-size:.8rem;font-weight:600;cursor:pointer;padding:.5rem .6rem;font-family:inherit">Annuler</button>'
-  +     '<button onclick="piloteQueteCreerSave()" style="background:var(--forest);color:#fff;border:none;border-radius:100px;padding:.55rem 1.3rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit">✅ Valider la quête</button>'
+  +     '<button id="pq-create-submit" onclick="piloteQueteCreerSave()" style="background:var(--forest);color:#fff;border:none;border-radius:100px;padding:.55rem 1.3rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit">✅ Valider la quête</button>'
   +   '</div>'
   + '</div>';
   document.body.appendChild(wrap);
@@ -433,28 +435,67 @@ function pqCreerRenderEspaces(selIdx) {
     + esps.map((e, i) => '<option value="' + i + '"' + (String(selIdx) === String(i) ? ' selected' : '') + '>' + String(e.nom || ('Espace ' + (i + 1))).replace(/[<>]/g, '') + '</option>').join('');
 }
 
-function piloteQueteCreerOuvrir() {
+function piloteQueteCreerOuvrir(editId) {
   piloteQueteCreerEnsureDom();
-  ['pq-create-titre', 'pq-create-desc', 'pq-create-duree', 'pq-create-nb', 'pq-create-graines', 'pq-create-date', 'pq-create-impact', 'pq-create-materiel', 'pq-create-etapes'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
-  const cmp = document.getElementById('pq-create-competence'); if (cmp) cmp.selectedIndex = 0;
-  const prv = document.getElementById('pq-create-preuve'); if (prv) prv.value = 'Photos de l\'action réalisée + indicateurs mesurés.';
+  // Quête à éditer (si un id est fourni et qu'elle existe).
+  const editQ = (editId != null && typeof PILOTE_QUETES_DEMO !== 'undefined')
+    ? PILOTE_QUETES_DEMO.find(x => x.id === editId) : null;
+  pqCreerEditId = editQ ? editQ.id : null;
+
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = (v == null ? '' : v); };
+  set('pq-create-titre', editQ ? editQ.titre : '');
+  set('pq-create-desc', editQ ? editQ.desc : '');
+  set('pq-create-duree', editQ && editQ.duree && editQ.duree !== '-' ? editQ.duree : '');
+  set('pq-create-nb', editQ && editQ.nb && editQ.nb !== '-' ? editQ.nb : '');
+  set('pq-create-graines', editQ ? (editQ.grainesParDemiJour || editQ.graines || '') : '');
+  set('pq-create-impact', editQ ? editQ.impact : '');
+  set('pq-create-materiel', editQ && Array.isArray(editQ.materiel) ? editQ.materiel.join('\n') : '');
+
+  const cmp = document.getElementById('pq-create-competence');
+  if (cmp) {
+    cmp.selectedIndex = 0;
+    if (editQ && editQ.competence) {
+      const opt = Array.from(cmp.options).findIndex(o => o.value === editQ.competence || o.text === editQ.competence);
+      if (opt >= 0) cmp.selectedIndex = opt;
+    }
+  }
+  const prv = document.getElementById('pq-create-preuve');
+  if (prv) prv.value = (editQ && editQ.preuve) ? editQ.preuve : 'Photos de l\'action réalisée + indicateurs mesurés.';
+
+  // Indicateurs (ICI) : re-sélectionne ceux de la quête.
+  const _icis = (editQ && Array.isArray(editQ.icis)) ? editQ.icis : [];
   document.querySelectorAll('#pq-create-icis [data-ici]').forEach(b => {
-    b.setAttribute('data-sel', '0');
+    const sel = _icis.includes(b.getAttribute('data-ici'));
+    b.setAttribute('data-sel', sel ? '1' : '0');
     const col = b.getAttribute('data-col') || '#018262';
-    b.style.background = 'transparent'; b.style.borderColor = col + '55'; b.style.fontWeight = '600';
+    b.style.background = sel ? (col + '18') : 'transparent';
+    b.style.borderColor = sel ? col : (col + '55');
+    b.style.fontWeight = sel ? '800' : '600';
   });
   const hint = document.getElementById('pq-create-hint'); if (hint) hint.textContent = '';
-  // Dates : repart d'une seule ligne vide.
+
+  // Dates possibles : celles de la quête, sinon une ligne vide.
   const datesBox = document.getElementById('pq-create-dates'); if (datesBox) datesBox.innerHTML = '';
-  if (typeof pqCreerAddDate === 'function') pqCreerAddDate();
-  // Étapes : liste vide + une première étape à remplir.
+  const _dates = (editQ && Array.isArray(editQ.datesISO) && editQ.datesISO.length) ? editQ.datesISO
+    : (editQ && editQ.dateISO ? [editQ.dateISO] : []);
+  if (_dates.length) _dates.forEach(d => pqCreerAddDate(d)); else pqCreerAddDate();
+
+  // Étapes : celles de la quête (titre + desc + validée), sinon une ligne vide.
   const etapesBox = document.getElementById('pq-create-etapes-list'); if (etapesBox) etapesBox.innerHTML = '';
-  if (typeof pqCreerAddEtape === 'function') pqCreerAddEtape();
-  // Espace : pré-sélectionne celui du flux guidé s'il existe.
-  const _preEsp = (typeof window !== 'undefined' && window._creerQueteEspIdx != null) ? window._creerQueteEspIdx : '';
+  const _plan = (editQ && Array.isArray(editQ.plan) && editQ.plan.length) ? editQ.plan : [];
+  if (_plan.length) _plan.forEach(s => pqCreerAddEtape(s.titre, s.desc, s.done)); else pqCreerAddEtape();
+
+  // Espace : celui de la quête en édition, sinon le flux guidé.
+  const _preEsp = editQ ? (editQ.espIdx != null ? editQ.espIdx : '')
+    : ((typeof window !== 'undefined' && window._creerQueteEspIdx != null) ? window._creerQueteEspIdx : '');
   if (typeof pqCreerRenderEspaces === 'function') pqCreerRenderEspaces(_preEsp);
+
+  // Titre + bouton adaptés au mode.
+  const titleEl = document.getElementById('pq-create-title');
+  if (titleEl) titleEl.textContent = editQ ? '✏️ Modifier la quête' : '⚡ Nouvelle quête';
+  const submitEl = document.getElementById('pq-create-submit');
+  if (submitEl) submitEl.textContent = editQ ? '💾 Enregistrer' : '✅ Valider la quête';
+
   document.getElementById('pq-create-modal').style.display = 'block';
   setTimeout(() => { const t = document.getElementById('pq-create-titre'); if (t) t.focus(); }, 60);
 }
@@ -462,6 +503,7 @@ function piloteQueteCreerOuvrir() {
 function piloteQueteCreerFermer() {
   const m = document.getElementById('pq-create-modal');
   if (m) m.style.display = 'none';
+  pqCreerEditId = null;
   // Le rattachement à un espace ne vaut que pour la création en cours.
   if (typeof window !== 'undefined') window._creerQueteEspIdx = null;
 }
@@ -505,10 +547,12 @@ function piloteQueteCreerSave() {
   const espNom = (espIdx != null && _esps[espIdx]) ? _esps[espIdx].nom : null;
   // Montant de graines exprimé par demi-journée et par personne.
   const grainesUnite = parseInt(val('pq-create-graines'), 10) || 50;
+  // Édition d'une quête existante : on conserve son id et son statut.
+  const editQ = (pqCreerEditId != null) ? PILOTE_QUETES_DEMO.find(x => x.id === pqCreerEditId) : null;
   const q = {
-    id: 'q-' + (window.store ? store.uuid() : Date.now().toString(36)),
+    id: editQ ? editQ.id : ('q-' + (window.store ? store.uuid() : Date.now().toString(36))),
     titre: titre,
-    statut: 'a_verifier',
+    statut: editQ ? editQ.statut : 'a_verifier',
     desc: val('pq-create-desc'),
     duree: val('pq-create-duree') || '-',
     nb: val('pq-create-nb') || '-',
@@ -525,18 +569,26 @@ function piloteQueteCreerSave() {
     // Rattachement à l'espace (select, sinon flux guidé).
     espIdx: espIdx,
     espNom: espNom,
-    source: null, sourceIc: '⚡', custom: true
+    source: editQ ? editQ.source : null,
+    sourceIc: editQ ? (editQ.sourceIc || '⚡') : '⚡',
+    custom: editQ ? (editQ.custom !== false) : true
   };
-  PILOTE_QUETES_DEMO.push(q);
+  if (editQ) {
+    // Fusionne dans l'objet existant (préserve les champs non gérés par le formulaire).
+    Object.assign(editQ, q);
+  } else {
+    PILOTE_QUETES_DEMO.push(q);
+  }
   if (window.store) {
     const lieuId = (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.id) || 'lieu-demo';
-    store.upsert('quetes', Object.assign({ lieu_id: lieuId }, q));
+    store.upsert('quetes', Object.assign({ lieu_id: lieuId }, editQ || q));
   }
+  const wasEdit = !!editQ;
   piloteQueteCreerFermer();
   if (typeof renderPiloteQuetes === 'function') renderPiloteQuetes();
-  // Reflète aussi la nouvelle quête dans le pane Quêtes du wizard de création.
+  // Reflète aussi la quête dans le pane Quêtes du wizard de création.
   if (typeof creerStep3RefreshQuetes === 'function') creerStep3RefreshQuetes();
-  if (typeof mmBubble === 'function') mmBubble('⚡ Quête créée · vérifie-la puis publie-la pour la rendre visible');
+  if (typeof mmBubble === 'function') mmBubble(wasEdit ? '💾 Quête mise à jour' : '⚡ Quête créée · vérifie-la puis publie-la pour la rendre visible');
   return true;
 }
 
@@ -720,15 +772,17 @@ function renderPiloteQuetes() {
         : estValidee
           ? `<span class="pq-status validee">✓ Propagée</span>`
           : `<span class="pq-status ouverte">🟢 En ligne</span>`;
+    const editBtn = `<button class="btn btn-ghost" style="font-size:.72rem;padding:.5rem .9rem" onclick="piloteQueteCreerOuvrir('${q.id}')">✏️ Modifier</button>`;
     const actions = estAVerif
       ? `<button class="btn btn-primary" style="font-size:.74rem;font-weight:700;padding:.5rem 1.1rem" onclick="piloteQuetePublier('${q.id}')">✓ Publier</button>
-         <button class="btn btn-ghost" style="font-size:.72rem;padding:.5rem .9rem" onclick="openPiloteQueteFiche('${q.id}')">Vérifier le détail →</button>
+         ${editBtn}
          <button class="btn btn-ghost" style="font-size:.7rem;padding:.5rem .8rem;color:var(--moss);opacity:.65" onclick="piloteQueteRetirer('${q.id}')">✕ Retirer</button>`
       : estPause
         ? `<button class="btn btn-primary" style="font-size:.74rem;font-weight:700;padding:.5rem 1.1rem" onclick="piloteQueteReactiver('${q.id}')">▶️ Réactiver</button>
-           <button class="btn btn-ghost" style="font-size:.72rem;padding:.5rem .9rem" onclick="openPiloteQueteFiche('${q.id}')">Voir détail →</button>
+           ${editBtn}
            <span style="font-size:.62rem;color:var(--moss);opacity:.7;margin-left:.2rem">Retirée du réseau</span>`
         : `<button class="btn btn-ghost" style="font-size:.74rem;padding:.5rem 1.1rem" onclick="openPiloteQueteFiche('${q.id}')">Voir détail →</button>
+         ${editBtn}
          ${estValidee ? `<span class="pq-propag-badge visible">✦ ${nbDossiers} dossiers mis à jour</span>` : `<span style="font-size:.62rem;color:var(--fern);font-weight:600;margin-left:.2rem">✓ Visible par les bâtisseurs</span>`}`;
     return `
       <div class="pq-card" id="pq-${q.id}" style="${estAVerif || estPause ? 'border-left:3px solid var(--amber)' : ''}${estPause ? ';opacity:.9' : ''}${estValidee ? ';opacity:.78' : ''}">
