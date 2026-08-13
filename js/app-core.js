@@ -3453,7 +3453,7 @@ function mapCloseActeur() {
   document.getElementById('map-panel-main').style.display = '';
 }
 
-function createEmojiIcon(icon, bg = "#1c3d28", bg2 = null, isBatisseur = false, isSemeur = false) {
+function createEmojiIcon(icon, bg = "#1c3d28", bg2 = null, isBatisseur = false, isSemeur = false, logo = null) {
   let shape, extraStyle = "";
   if (isBatisseur) {
     // Hexagonal marker for bâtisseurs
@@ -3482,7 +3482,10 @@ function createEmojiIcon(icon, bg = "#1c3d28", bg2 = null, isBatisseur = false, 
         <span style="position:relative;z-index:1;font-size:18px;line-height:1">${icon}</span>
       </div>`;
   } else {
-    // Default round marker for lieux
+    // Default round marker for lieux : logo image si présent, sinon emoji.
+    const inner = logo
+      ? `<img src="${logo}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+      : icon;
     shape = `
       <div style="
         width:44px;
@@ -3495,7 +3498,8 @@ function createEmojiIcon(icon, bg = "#1c3d28", bg2 = null, isBatisseur = false, 
         box-shadow:0 4px 16px rgba(0,0,0,0.22);
         border:2px solid rgba(255,255,255,0.85);
         font-size:20px;
-      ">${icon}</div>`;
+        overflow:hidden;
+      ">${inner}</div>`;
   }
   return L.divIcon({
     className: "evad-div-icon",
@@ -3672,7 +3676,7 @@ function syncMapMarkers() {
   MAP_PLACES.forEach((place, idx) => {
     if (place.lat == null || place.lng == null) return;
     const marker = L.marker([place.lat, place.lng], {
-      icon: createEmojiIcon(place.icon, markerBgByType(place.type))
+      icon: createEmojiIcon(place.icon, markerBgByType(place.type), null, false, false, place.logo)
     }).addTo(evadMap);
 
     marker.bindPopup(popupHTML(place), {
@@ -7865,6 +7869,7 @@ async function createLieuOnMap(){
     score: 10,
     quetes: 0,
     icon: cData.icon || ic,
+    logo: cData.logo || null,
     lat, lng,
     desc: cData.desc || `${typeLabel} en phase ${cData.phase || 'de démarrage'}, situé à ${adresse}.`,
     batisseurs: 0, semeurs: 0, score_trim: '+0',
@@ -7879,7 +7884,7 @@ async function createLieuOnMap(){
     if (!evadMap) return;
 
     const marker = L.marker([lat, lng], {
-      icon: createEmojiIcon(ic, markerBgByType(typeLabel))
+      icon: createEmojiIcon(ic, markerBgByType(typeLabel), null, false, false, cData.logo)
     }).addTo(evadMap);
 
     marker.bindPopup(
