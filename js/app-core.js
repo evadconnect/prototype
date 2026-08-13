@@ -3425,7 +3425,7 @@ function mapShowLieu(idx) {
       <!-- Quêtes -->
       <div class="acteur-section-title">⚡ Quêtes ouvertes</div>
       ${place.quetes_list.map(q => `
-      <div class="acteur-quete-item" onclick="showScreen('quete')">
+      <div class="acteur-quete-item" style="cursor:pointer" onclick="${q.id ? `openLieuQueteFiche('${q.id}')` : `showScreen('quete')`}">
         <span>${q.icon}</span>
         <div style="flex:1">
           <div style="font-size:.76rem;font-weight:600;color:var(--ink)">${q.title}</div>
@@ -15225,6 +15225,7 @@ function evadLieuStats(lieuId){
   out.quetesTerminees = qs.length - ouvertes.length;
   const qids = new Set(qs.map(q => q.id));
   out.quetes_list = ouvertes.slice(0, 6).map(q => ({
+    id: q.id,
     icon: q.sourceIc || '⚡', title: q.titre || 'Quête',
     meta: [q.duree, q.nb, ((q.graines || 0) + ' graines')].filter(Boolean).join(' · '),
     status: 'Ouverte', sBg: 'rgba(74,140,92,.1)', sC: 'var(--fern)'
