@@ -1192,7 +1192,8 @@ function lieuRenderMarche() {
 function lieuRenderEspaces() {
   const box = document.getElementById('lieu-espaces-content');
   if (!box) return;
-  const espaces = cData.espacesData || [];
+  // Les espaces marqués « masqué » (depuis la mindmap de la fiche) n'apparaissent pas.
+  const espaces = (cData.espacesData || []).filter(e => !e.masque);
 
   if (!espaces.length) {
     box.innerHTML = `<div style="padding:3rem;text-align:center;font-size:.75rem;color:var(--moss);opacity:.45;border:1.5px dashed rgba(46,102,66,.15);border-radius:var(--r-lg)">Aucun espace renseigné pour ce lieu.</div>`;
@@ -1377,7 +1378,7 @@ function lieuRenderMindmap() {
 
   const FN_TO_ESPS = {cuisine:'cuisine',cafe:'cafe',cantine:'cafe',coworking:'bureau',reunion:'bureau',atelier:'atelier',fablab:'fablab',scene:'salle',expo:'salle',boutique:'boutique',biblio:'salle',formation:'salle',jardin:'jardin',serre:'serre',compost:'jardin',hebergement:'dortoir',sport:'salle',meditation:'salle',stockage:'bureau',autre:'cafe',elec_gestion:'dortoir',renouv_prod:'dortoir',therm_gestion:'dortoir',eau_gestion:'serre',ecoconstruct:'atelier',dechets_gestion:'jardin',mobilite:'bureau',gouvernance:'bureau',numerique:'bureau'};
 
-  const rawEspaces = cData.espacesData || [];
+  const rawEspaces = (cData.espacesData || []).filter(e => !e.masque);
   if (!rawEspaces.length) {
     nodesEl.innerHTML = `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.75rem;color:var(--moss);opacity:.45">Aucun espace défini pour ce lieu</div>`;
     return;
@@ -13882,6 +13883,7 @@ const FLUX_CATALOG = [
 ];
 
 let ficheEspaces = [];
+let ficheMmCollapsed = new Set(); // index des espaces dont les solutions sont repliées (mindmap)
 let _espaceContext = 'fiche'; // 'fiche' | 'wizard'
 let _fnPickSelected = []; // ids in selection order
 let _fluxInputSelected = [];
@@ -15068,7 +15070,28 @@ function ficheMmRender() {
     const allSols  = _names.map(n => SOLS.find(s => s.nom === n)).filter(Boolean);
     setTimeout(() => {
       ficheMmLine(cx, cy, ex, ey, col + '99');
-      ficheMmAdd('e-' + i, ic + ' ' + esp.nom, ex, ey, 'espace', col, bg);
+      const espNode = ficheMmAdd('e-' + i, ic + ' ' + esp.nom, ex, ey, 'espace', col, bg);
+      // Contrôles du nœud espace : replier les solutions + masquer de la fiche lieu.
+      const collapsed = ficheMmCollapsed.has(i);
+      const masque    = !!esp.masque;
+      const hasSols   = allSols.length > 0;
+      espNode.innerHTML =
+        (hasSols ? `<span class="mm-esp-toggle" title="${collapsed ? 'Déplier' : 'Réduire'} les solutions" style="cursor:pointer;margin-right:.2rem;font-weight:700">${collapsed ? '▸' : '▾'}</span>` : '')
+        + `<span style="${masque ? 'color:#9a9a9a;text-decoration:line-through' : ''}">${ic} ${esp.nom}</span>`
+        + `<span class="mm-esp-eye" title="${masque ? 'Afficher dans la fiche lieu' : 'Cacher de la fiche lieu'}" style="cursor:pointer;margin-left:.4rem">${masque ? '🙈' : '👁'}</span>`;
+      if (masque) espNode.style.borderStyle = 'dashed';
+      const _tgl = espNode.querySelector('.mm-esp-toggle');
+      if (_tgl) _tgl.onclick = (ev) => { ev.stopPropagation(); if (ficheMmCollapsed.has(i)) ficheMmCollapsed.delete(i); else ficheMmCollapsed.add(i); ficheMmRender(); };
+      const _eye = espNode.querySelector('.mm-esp-eye');
+      if (_eye) _eye.onclick = (ev) => {
+        ev.stopPropagation();
+        esp.masque = !esp.masque;
+        if (typeof ficheEspacesPersist === 'function') ficheEspacesPersist();
+        ficheMmRender();
+        const _lm = document.getElementById('lieu-modal');
+        if (_lm && _lm.style.display !== 'none' && typeof lieuRenderEspaces === 'function') lieuRenderEspaces();
+      };
+      if (collapsed) return; // solutions repliées : on ne dessine pas les nœuds solution
       allSols.forEach((sol, j) => {
         const sa = a + (j - (allSols.length - 1) / 2) * .45;
         const rs = re + 110;
