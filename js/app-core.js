@@ -3147,7 +3147,7 @@ function mapShowBatisseur(idx) {
         <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 80% 20%,rgba(200,115,42,0.25),transparent 60%);pointer-events:none"></div>
         <button onclick="mapCloseActeur()" style="position:absolute;top:.7rem;right:.7rem;background:rgba(255,255,255,0.1);border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:.75rem;color:rgba(255,255,255,0.7);display:flex;align-items:center;justify-content:center">✕</button>
         <div style="position:relative;display:flex;gap:.85rem;align-items:flex-start">
-          <div class="acteur-avatar-ring" style="background:linear-gradient(135deg,var(--amber),#8a5010)">${b.icon}</div>
+          <div class="acteur-avatar-ring" style="background:linear-gradient(135deg,var(--amber),#8a5010);overflow:hidden">${b.avatar ? `<img src="${b.avatar}" alt="" style="width:100%;height:100%;object-fit:cover">` : b.icon}</div>
           <div style="flex:1">
             <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.4rem">
               <span class="acteur-badge" style="background:rgba(200,115,42,0.25);color:var(--amber-soft);border:1px solid rgba(200,115,42,0.35)">🌿 Bâtisseur</span>
@@ -7975,7 +7975,7 @@ function mapShowNewBatisseur() {
         <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 80% 20%,rgba(200,115,42,0.25),transparent 60%);pointer-events:none"></div>
         <button onclick="mapCloseActeur()" style="position:absolute;top:.7rem;right:.7rem;background:rgba(255,255,255,0.1);border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:.75rem;color:rgba(255,255,255,0.7);display:flex;align-items:center;justify-content:center">✕</button>
         <div style="position:relative;display:flex;gap:.85rem;align-items:flex-start">
-          <div class="acteur-avatar-ring" style="background:linear-gradient(135deg,var(--amber),#8a5010)">🌿</div>
+          <div class="acteur-avatar-ring" style="background:linear-gradient(135deg,var(--amber),#8a5010);overflow:hidden">${batFicheData.avatar ? `<img src="${batFicheData.avatar}" alt="" style="width:100%;height:100%;object-fit:cover">` : '🌿'}</div>
           <div style="flex:1">
             <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.4rem">
               <span class="acteur-badge" style="background:rgba(200,115,42,0.25);color:var(--amber-soft);border:1px solid rgba(200,115,42,0.35)">🌿 Bâtisseur</span>
@@ -15282,6 +15282,7 @@ function _batisseurRowToMapEntry(row){
     ville: row.ville || 'France',
     role: 'Bâtisseur d\'impact',
     icon: '🌿',
+    avatar: row.avatar || null,
     niveau: niveau,
     bio: row.bio || 'Bâtisseur d\'impact engagé dans la transition.',
     graines: graines, graines_passifs: 0,
