@@ -576,7 +576,6 @@ function renderPiloteQuetes() {
     const estAVerif  = q.statut === 'a_verifier';
     const estPause   = q.statut === 'en_pause';
     const estValidee = !estAVerif && !estPause && (q.statut === 'terminee' || isVal(q.id));
-    const badges = renderQueteConvBadges(q);
     // Suivi : inscrits / preuves + date de rencontre.
     const st = _pqStats(q.id);
     const di = _pqDateInfo(q.dateISO);
@@ -623,7 +622,6 @@ function renderPiloteQuetes() {
           <span style="color:var(--fern);font-weight:600">${(q.impact || '').split('·')[0].trim()}</span>
         </div>
         ${progressHtml}
-        ${badges}
         <div class="pq-actions">${actions}</div>
       </div>`;
   };
