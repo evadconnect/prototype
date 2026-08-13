@@ -71,6 +71,8 @@ export default async function handler(req, res) {
     if (action === 'reset_onboarding') {
       const userId = String(body.user_id || '').trim();
       if (!userId) return res.status(400).json({ error: 'user_id manquant' });
+      // Optionnel : ne réinitialiser QU'UN profil. Sans role → tous les profils.
+      const role = String(body.role || '').trim();
 
       // Lire les métadonnées actuelles, retirer fiches_faites, réécrire le tout.
       const getRes = await sb('/auth/v1/admin/users/' + encodeURIComponent(userId));
@@ -78,8 +80,16 @@ export default async function handler(req, res) {
       if (!getRes.ok) return res.status(500).json({ error: 'Compte introuvable', http: getRes.status, detail: user });
 
       // GoTrue FUSIONNE user_metadata : retirer la clé ne l'efface pas côté
-      // serveur. On force fiches_faites à null pour la vider réellement.
-      const meta = Object.assign({}, user.user_metadata || {}, { fiches_faites: null });
+      // serveur. On force la nouvelle valeur (null = tout vider réellement).
+      const cur = Array.isArray(user.user_metadata && user.user_metadata.fiches_faites) ? user.user_metadata.fiches_faites : [];
+      let nouvelles;
+      if (role) {
+        nouvelles = cur.filter((r) => r !== role);
+        if (!nouvelles.length) nouvelles = null;   // vider réellement si plus rien
+      } else {
+        nouvelles = null;                           // reset global (tous les profils)
+      }
+      const meta = Object.assign({}, user.user_metadata || {}, { fiches_faites: nouvelles });
 
       const putRes = await sb('/auth/v1/admin/users/' + encodeURIComponent(userId), {
         method: 'PUT',
@@ -88,7 +98,27 @@ export default async function handler(req, res) {
       const updated = await putRes.json();
       if (!putRes.ok) return res.status(500).json({ error: 'Mise à jour impossible', http: putRes.status, detail: updated });
 
-      return res.status(200).json({ ok: true, email: user.email });
+      return res.status(200).json({ ok: true, email: user.email, role: role || null });
+    }
+
+    if (action === 'delete_user') {
+      const userId = String(body.user_id || '').trim();
+      if (!userId) return res.status(400).json({ error: 'user_id manquant' });
+
+      // 1) Supprime les fiches du compte (best effort : la cascade auth ne couvre
+      //    pas toutes les tables selon leur contrainte user_id).
+      const flt = '?user_id=eq.' + encodeURIComponent(userId);
+      for (const t of ['fiche_pilote', 'fiche_batisseur', 'fiche_semeur', 'fiches_brouillons']) {
+        try { await sb('/rest/v1/' + t + flt, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }); } catch (e) {}
+      }
+
+      // 2) Supprime le compte d'authentification.
+      const delRes = await sb('/auth/v1/admin/users/' + encodeURIComponent(userId), { method: 'DELETE' });
+      if (!delRes.ok) {
+        let detail; try { detail = await delRes.json(); } catch (e) { detail = null; }
+        return res.status(500).json({ error: 'Suppression du compte impossible', http: delRes.status, detail });
+      }
+      return res.status(200).json({ ok: true, deleted: userId });
     }
 
     return res.status(400).json({ error: 'Action inconnue : ' + action });
