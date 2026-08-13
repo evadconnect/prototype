@@ -952,8 +952,9 @@ function lieuRenderPresentation() {
   const infos = [
     ['Surface', cData.surface || '-'],
     ['Fondé en', cData.annee || '-'],
-    ['Statut', cData.statut ? STATUTS_MAP[cData.statut]||cData.statut : '-'],
   ];
+  // Statut : affiché seulement s'il est renseigné (sinon rien, pas de « - »).
+  if (cData.statut) infos.push(['Statut', STATUTS_MAP[cData.statut] || cData.statut]);
 
   const _cLink = 'display:inline-flex;align-items:center;gap:.3rem;padding:.28rem .65rem;border-radius:100px;background:rgba(46,102,66,.08);border:1px solid rgba(46,102,66,.2);font-size:.68rem;color:var(--forest);text-decoration:none;font-weight:600';
   const contactLinks = [
