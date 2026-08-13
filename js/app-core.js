@@ -860,7 +860,15 @@ function lieuRenderHero() {
   const loc = cData.localisation || '';
 
   const heroIcon = document.getElementById('lieu-hero-icon');
-  if (heroIcon) heroIcon.textContent = icon;
+  if (heroIcon) {
+    if (cData.logo) {
+      heroIcon.innerHTML = '<img src="' + cData.logo + '" alt="" style="width:100%;height:100%;object-fit:cover">';
+      heroIcon.style.overflow = 'hidden';
+    } else {
+      heroIcon.style.overflow = '';
+      heroIcon.textContent = icon;
+    }
+  }
 
   const heroNom = document.getElementById('lieu-hero-nom');
   if (heroNom) heroNom.textContent = nom;
@@ -3347,7 +3355,7 @@ function mapShowLieu(idx) {
         <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 80% 20%,rgba(74,140,92,0.3),transparent 60%);pointer-events:none"></div>
         <button onclick="mapCloseActeur()" style="position:absolute;top:.7rem;right:.7rem;background:rgba(255,255,255,0.1);border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:.75rem;color:rgba(255,255,255,0.7);display:flex;align-items:center;justify-content:center">✕</button>
         <div style="position:relative;display:flex;gap:.85rem;align-items:flex-start">
-          <div class="acteur-avatar-ring" style="background:linear-gradient(135deg,var(--fern),var(--moss))">${place.icon}</div>
+          <div class="acteur-avatar-ring" style="background:linear-gradient(135deg,var(--fern),var(--moss));overflow:hidden">${place.logo ? `<img src="${place.logo}" alt="" style="width:100%;height:100%;object-fit:cover">` : place.icon}</div>
           <div style="flex:1">
             <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.4rem">
               <span class="acteur-badge" style="background:rgba(74,140,92,0.28);color:var(--sage);border:1px solid rgba(74,140,92,0.35)">🏛 ${place.type}</span>
@@ -3361,6 +3369,14 @@ function mapShowLieu(idx) {
 
       <!-- Description -->
       <p style="font-size:.72rem;color:var(--moss);line-height:1.6;margin-bottom:.75rem;opacity:.85">${place.desc}</p>
+
+      <!-- Actions : au-dessus de Vadance/Vadité -->
+      <div style="margin-bottom:.85rem">
+        <button class="acteur-cta" style="background:var(--forest);color:white" onclick="openLieuModalFromPlace(${idx})">
+          Voir la fiche complète →
+        </button>
+        ${window.evadMsgBtn ? window.evadMsgBtn({ id: 'lieu:' + place.nom, nom: place.nom, role: 'pilote', lieu_id: place.nom }, { mt: '.4rem' }) : ''}
+      </div>
 
       <!-- Vadance + dimensions -->
       <div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-lg);padding:.8rem .9rem;margin-bottom:.75rem">
@@ -3425,10 +3441,6 @@ function mapShowLieu(idx) {
         ).join('')}
       </div>
 
-      <button class="acteur-cta" style="background:var(--forest);color:white;margin-top:.6rem" onclick="openLieuModalFromPlace(${idx})">
-        Voir la fiche complète →
-      </button>
-      ${window.evadMsgBtn ? window.evadMsgBtn({ id: 'lieu:' + place.nom, nom: place.nom, role: 'pilote', lieu_id: place.nom }, { mt: '.4rem' }) : ''}
     </div>
   `;
 
@@ -15193,6 +15205,7 @@ function _lieuRowToMapPlace(row){
           : (row.vadance ? Math.round(((row.vadite || 0) / row.vadance) * 100) : 0),
     quetes: stats.quetes,
     icon: ic,
+    logo: row.logo || null,
     lat: row.lat ?? row.latitude ?? 48.2,
     lng: row.lng ?? row.longitude ?? -2.8,
     desc: row.desc || row.description || `${typeLabel} situé à ${row.localisation || 'Nouvelle-Aquitaine'}.`,
