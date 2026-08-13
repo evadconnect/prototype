@@ -1167,6 +1167,7 @@ function lieuRenderMarche() {
         <div style="font-size:.58rem;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.1rem">${(o.cat||'').charAt(0).toUpperCase()+(o.cat||'').slice(1)}</div>
         <div style="font-size:.8rem;font-weight:700;color:var(--ink);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.titre}</div>
         <div style="font-size:.65rem;color:var(--moss);opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.desc || ''}</div>
+        ${o.date ? `<span style="font-size:.6rem;color:var(--moss);opacity:.8">📅 ${(typeof _mktFmtDate==='function')?_mktFmtDate(o.date):o.date}</span>` : ''}
         ${stockHtml}
       </div>
       <div style="flex-shrink:0;text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:.35rem">
@@ -10085,7 +10086,7 @@ function _offreRowToPmkt(r) {
     titre: r.titre || '', cat: r.cat || 'service', prix: +r.prix || 0,
     stock: +r.stock || 0, stockMax: +r.stockMax || +r.stock_max || 0,
     desc: r.desc || r.description || '', status: r.status || r.statut || 'active',
-    vues: +r.vues || 0, echanges: +r.echanges || 0,
+    vues: +r.vues || 0, echanges: +r.echanges || 0, date: r.date || '',
     lieu_id: r.lieu_id || null, lieu_nom: r.lieu_nom || null
   };
 }
@@ -10104,7 +10105,7 @@ function evadPersistOffre(o) {
   store.upsert('offres_mkt', {
     id: o.id, lieu_id: lieuId, lieu_nom: lieuNom,
     titre: o.titre, cat: o.cat, prix: o.prix, stock: o.stock, stockMax: o.stockMax,
-    emoji: o.emoji, desc: o.desc, status: o.status, vues: o.vues, echanges: o.echanges
+    emoji: o.emoji, desc: o.desc, date: o.date || '', status: o.status, vues: o.vues, echanges: o.echanges
   });
   o.lieu_id = lieuId; o.lieu_nom = lieuNom;
 }
@@ -10254,8 +10255,23 @@ function piloteMktOpenEdit(id) {
   modal.style.display = 'flex';
 }
 
+// Palette d'emojis proposés dans le sélecteur (clic → remplit le champ).
+const PMKT_EMOJIS = ['🥦','🍅','🍞','🧺','🍯','🥚','🧀','🍎','☕','🍲','🎓','📚','🛠','🎨','🧵','🪵','🚲','🏕','🏠','🛖','🌱','🌿','🐝','💧','⚡','🎟','🎉','🤝'];
+
+function pmktPickEmoji(e) {
+  const el = document.getElementById('pf-emoji');
+  if (el) { el.value = e; el.style.borderColor = ''; }
+  document.querySelectorAll('.pmkt-emoji-pick').forEach(b => b.style.borderColor = 'rgba(46,102,66,.15)');
+  const btn = document.getElementById('pmkt-emoji-' + e);
+  if (btn) btn.style.borderColor = 'var(--fern)';
+}
+
 function pmktFormHtml(o) {
   const cats = ['alimentation','formation','artisanat','service','hébergement','événement'];
+  const curEmoji = o ? o.emoji : '';
+  // Lieu par défaut : celui porté par l'offre, sinon mon lieu courant.
+  const lieuDefault = (o && o.lieu_nom) || (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom) || '';
+  const dateVal = (o && o.date) ? o.date : '';
   return `
     <h2 style="font-family:'Satoshi', sans-serif;font-size:1.2rem;font-weight:900;color:var(--ink);margin-bottom:1.2rem">${o ? '✏️ Modifier l\'offre' : '➕ Nouvelle offre Marketplace'}</h2>
     <div class="pmkt-form-row">
@@ -10271,8 +10287,11 @@ function pmktFormHtml(o) {
       </div>
       <div class="pmkt-form-row" style="margin-bottom:0">
         <label class="pmkt-label">Emoji / icône</label>
-        <input class="pmkt-input" id="pf-emoji" placeholder="🥦" maxlength="4" value="${o ? o.emoji : ''}">
+        <input class="pmkt-input" id="pf-emoji" placeholder="🥦" maxlength="4" value="${curEmoji}">
       </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.5rem">
+      ${PMKT_EMOJIS.map(e => `<button type="button" class="pmkt-emoji-pick" id="pmkt-emoji-${e}" onclick="pmktPickEmoji('${e}')" style="width:32px;height:32px;font-size:1.05rem;line-height:1;display:flex;align-items:center;justify-content:center;border:1.5px solid ${e===curEmoji?'var(--fern)':'rgba(46,102,66,.15)'};border-radius:9px;background:white;cursor:pointer;padding:0">${e}</button>`).join('')}
     </div>
     <div style="height:.75rem"></div>
     <div class="pmkt-form-row">
@@ -10287,6 +10306,17 @@ function pmktFormHtml(o) {
       <div class="pmkt-form-row" style="margin-bottom:0">
         <label class="pmkt-label">Stock disponible</label>
         <input class="pmkt-input" id="pf-stock" type="number" min="0" placeholder="10" value="${o ? o.stock : ''}">
+      </div>
+    </div>
+    <div style="height:.75rem"></div>
+    <div class="pmkt-two-col">
+      <div class="pmkt-form-row" style="margin-bottom:0">
+        <label class="pmkt-label">Date <span style="font-weight:400;opacity:.5;font-size:.65rem">(optionnel)</span></label>
+        <input class="pmkt-input" id="pf-date" type="date" value="${dateVal}">
+      </div>
+      <div class="pmkt-form-row" style="margin-bottom:0">
+        <label class="pmkt-label">Lieu</label>
+        <input class="pmkt-input" id="pf-lieu" placeholder="Nom du lieu" value="${lieuDefault}">
       </div>
     </div>
     <div style="height:.9rem"></div>
@@ -10304,16 +10334,20 @@ function pmktSaveOffer() {
   const stock = parseInt(document.getElementById('pf-stock').value) || 0;
   const descEl = document.getElementById('pf-desc');
   const desc  = descEl ? descEl.value.trim() : '';
+  const dateEl = document.getElementById('pf-date');
+  const date  = dateEl ? dateEl.value : '';
+  const lieuEl = document.getElementById('pf-lieu');
+  const lieu  = lieuEl ? lieuEl.value.trim() : '';
   if (!titre) { document.getElementById('pf-titre').style.borderColor='var(--terracotta)'; return; }
 
   if (pmktEditingId !== null) {
     const o = pmktOffers.find(o => o.id === pmktEditingId);
-    if (o) { o.titre=titre; o.cat=cat; o.emoji=emoji; o.prix=prix; o.stock=stock; o.stockMax=stock; o.desc=desc; if(stock>0 && o.status==='full') o.status='active'; evadPersistOffre(o); }
+    if (o) { o.titre=titre; o.cat=cat; o.emoji=emoji; o.prix=prix; o.stock=stock; o.stockMax=stock; o.desc=desc; o.date=date; if(lieu) o.lieu_nom=lieu; if(stock>0 && o.status==='full') o.status='active'; evadPersistOffre(o); }
     mmBubble(`Offre "${titre.substring(0,28)}…" mise à jour ✅`);
   } else {
     // id chaîne stable (uuid) pour Supabase.
     const newId = (window.store && store.uuid) ? store.uuid() : String(Date.now());
-    const o = { id:newId, emoji, bg:'rgba(74,140,92,.1)', titre, cat, prix, stock, stockMax:stock, desc, status:'active', vues:0, echanges:0 };
+    const o = { id:newId, emoji, bg:'rgba(74,140,92,.1)', titre, cat, prix, stock, stockMax:stock, desc, date, lieu_nom:(lieu || undefined), status:'active', vues:0, echanges:0 };
     pmktOffers.push(o);
     evadPersistOffre(o);
     mmBubble(`Nouvelle offre "${titre.substring(0,28)}…" publiée dans le Marché 🎉`);
@@ -10358,7 +10392,7 @@ function pmktToMkt(o) {
     seller_id: sellerId, seller_nom: (o.lieu_nom || lieu),
     unite: o.unite || (o.prix > 0 ? 'à échanger en graines' : 'accès libre'),
     emoji: o.emoji, bg: o.bg || 'rgba(74,140,92,.1)', badge: o.badge || 'new',
-    stock: o.stock, impact: o.impact || "Soutient l'économie locale et circulaire du lieu."
+    stock: o.stock, date: o.date || '', impact: o.impact || "Soutient l'économie locale et circulaire du lieu."
   };
 }
 // Offres affichées dans le Marché = TOUTES les offres publiées (tous lieux),
@@ -10419,6 +10453,16 @@ function mktRender() {
   }).join('');
 }
 
+// Formate une date d'offre (AAAA-MM-JJ) en français lisible, sans casser si vide.
+function _mktFmtDate(d) {
+  if (!d) return '';
+  try {
+    const dt = new Date(d + 'T00:00:00');
+    if (isNaN(dt.getTime())) return d;
+    return dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch (e) { return d; }
+}
+
 function mktOpenModal(id) {
   const o = mktAllOffres().find(x => x.id === id) || MKT_OFFRES[id];
   if (!o) return;
@@ -10433,6 +10477,7 @@ function mktOpenModal(id) {
         <div style="font-size:.62rem;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.2rem">${o.cat}</div>
         <h2 style="font-family:'Satoshi', sans-serif;font-size:1.25rem;font-weight:900;color:var(--ink);line-height:1.15;margin-bottom:.2rem">${o.titre}</h2>
         <div style="font-size:.7rem;color:var(--moss)">📍 ${o.lieu} · ${o.ville}</div>
+        ${o.date ? `<div style="font-size:.7rem;color:var(--moss);margin-top:.15rem">📅 ${_mktFmtDate(o.date)}</div>` : ''}
       </div>
     </div>
     <p style="font-size:.8rem;color:var(--moss);line-height:1.55;margin-bottom:1rem">${o.desc}</p>
