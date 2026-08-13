@@ -11428,6 +11428,18 @@ function lqPiloteFilter(filter, btn) {
   if (typeof renderPiloteQuetes === 'function') renderPiloteQuetes();
 }
 
+// Bascule Liste / Agenda du suivi des quêtes Pilote.
+function lqPiloteView(view, btn) {
+  piloteQueteView = (view === 'agenda') ? 'agenda' : 'liste';
+  document.querySelectorAll('#pilote-panel-quetes .lqv-btn').forEach(b => {
+    const on = b === btn;
+    b.classList.toggle('active', on);
+    b.style.background = on ? 'white' : 'transparent';
+    b.style.color = on ? 'var(--forest)' : 'var(--moss)';
+  });
+  if (typeof renderPiloteQuetes === 'function') renderPiloteQuetes();
+}
+
 /* ─── SEMEUR TABS ─── */
 function semeurTab(tab, btn) {
   document.querySelectorAll('.semeur-tab').forEach(b => b.classList.remove('active'));

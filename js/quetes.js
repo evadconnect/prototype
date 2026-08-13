@@ -9,8 +9,10 @@ const PILOTE_QUETES_DEMO = [];
 /* État des quêtes validées (session) */
 const quetesValidees = new Set();
 
-/* Filtre actif de la liste des quêtes Pilote : toutes | a_publier | ouvertes | terminees */
+/* Filtre actif de la liste des quêtes Pilote : toutes | a_publier | ouvertes | terminees | a_traiter */
 let piloteQueteFilter = 'toutes';
+/* Vue de suivi : liste (groupée par espace) | agenda (triée par date de rencontre) */
+let piloteQueteView = 'liste';
 
 /* ─── Modal de présentation d'une quête (depuis la solution source) ─── */
 function openQueteModal(qid) {
@@ -502,6 +504,39 @@ function renderQueteConvBadges(quete) {
 }
 
 /* ─── Rendu de la liste des quêtes dans le panel Pilote ─── */
+// ── Suivi d'une quête : agrégats réels (inscrits, preuves) depuis le store ──
+function _pqStats(qid) {
+  let inscrits = 0, preuvesDep = 0, preuvesAValider = 0;
+  if (window.store && qid != null) {
+    inscrits = store.where('quete_candidatures', c => c && c.statut === 'inscrit' && c.quete_id === qid).length;
+    const pr = store.where('quete_preuves', p => p && p.quete_id === qid);
+    preuvesDep = pr.length;
+    preuvesAValider = pr.filter(p => !p.validee).length;
+  }
+  return { inscrits, preuvesDep, preuvesAValider };
+}
+// Cible de participants extraite d'un libellé libre ("2–4 pers." → 4).
+function _pqTargetNb(nbStr) {
+  const nums = String(nbStr == null ? '' : nbStr).match(/\d+/g);
+  return (nums && nums.length) ? Math.max.apply(null, nums.map(Number)) : null;
+}
+// Date de rencontre → libellé relatif ("aujourd'hui", "dans 3 j", "passée").
+function _pqDateInfo(dateISO) {
+  if (!dateISO) return null;
+  const d = new Date(dateISO + 'T00:00:00');
+  if (isNaN(d.getTime())) return null;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const diff = Math.round((d - today) / 86400000);
+  const long = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+  let rel, urgent = false, past = false;
+  if (diff < 0) { rel = 'passée'; past = true; }
+  else if (diff === 0) { rel = "aujourd'hui"; urgent = true; }
+  else if (diff === 1) { rel = 'demain'; urgent = true; }
+  else if (diff <= 7) { rel = 'dans ' + diff + ' j'; urgent = true; }
+  else rel = long;
+  return { iso: dateISO, long: long, rel: rel, urgent: urgent, past: past, diff: diff };
+}
+
 function renderPiloteQuetes() {
   const container = document.getElementById('pilote-quetes-list');
   if (!container) return;
@@ -542,6 +577,21 @@ function renderPiloteQuetes() {
     const estPause   = q.statut === 'en_pause';
     const estValidee = !estAVerif && !estPause && (q.statut === 'terminee' || isVal(q.id));
     const badges = renderQueteConvBadges(q);
+    // Suivi : inscrits / preuves + date de rencontre.
+    const st = _pqStats(q.id);
+    const di = _pqDateInfo(q.dateISO);
+    const target = _pqTargetNb(q.nb);
+    const pct = target ? Math.min(100, Math.round(st.inscrits / target * 100)) : (st.inscrits > 0 ? 100 : 0);
+    // Barre de progression (masquée pour les quêtes pas encore publiées).
+    const progressHtml = estAVerif ? '' : `
+        <div style="display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin:.55rem 0 .1rem">
+          <div style="flex:1;min-width:130px">
+            <div style="display:flex;justify-content:space-between;font-size:.58rem;color:var(--moss);margin-bottom:.22rem"><span>👥 Inscrits</span><span style="font-weight:800;color:var(--ink)">${st.inscrits}${target ? ' / ' + target : ''}</span></div>
+            <div style="height:4px;background:rgba(46,102,66,.1);border-radius:100px;overflow:hidden"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#4a8c5c,#82b894);border-radius:100px"></div></div>
+          </div>
+          ${st.preuvesDep ? `<span style="font-size:.6rem;color:var(--moss)">✅ ${st.preuvesDep} preuve${st.preuvesDep > 1 ? 's' : ''}</span>` : ''}
+          ${st.preuvesAValider ? `<button onclick="openPiloteQueteFiche('${q.id}')" style="font-size:.6rem;font-weight:700;color:#8a4a1a;background:rgba(200,115,42,.12);border:1px solid rgba(200,115,42,.3);border-radius:100px;padding:.15rem .5rem;cursor:pointer">🕓 ${st.preuvesAValider} à valider →</button>` : ''}
+        </div>`;
     const statutHtml = estAVerif
       ? `<span class="pq-status a-verifier">🕓 À vérifier</span>`
       : estPause
@@ -569,8 +619,10 @@ function renderPiloteQuetes() {
           <span>⏱ ${q.duree}</span>
           <span>👥 ${q.nb}</span>
           <span>🌱 ${q.graines} graines</span>
+          ${di ? `<span style="color:${di.urgent ? 'var(--amber)' : 'var(--moss)'};font-weight:${di.urgent ? '700' : '400'}">📅 ${di.rel}</span>` : ''}
           <span style="color:var(--fern);font-weight:600">${(q.impact || '').split('·')[0].trim()}</span>
         </div>
+        ${progressHtml}
         ${badges}
         <div class="pq-actions">${actions}</div>
       </div>`;
@@ -593,35 +645,75 @@ function renderPiloteQuetes() {
       ).join('');
   };
 
-  let html = '';
-  if (showAverif && aVerifier.length) {
-    html += `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:.7rem;background:rgba(200,115,42,.08);border:1px solid rgba(200,115,42,.22);border-radius:var(--r-lg);padding:.65rem .9rem;margin-bottom:.75rem">
-        <div style="font-size:.72rem;color:#8a4a1a;line-height:1.45">🕓 <b>${aVerifier.length} quête${aVerifier.length>1?'s':''}</b> en attente de publication. Seules les quêtes publiées sont visibles par les bâtisseurs.</div>
-        <button class="btn btn-primary" style="font-size:.72rem;font-weight:700;padding:.45rem 1rem;white-space:nowrap" onclick="piloteQuetesPublierToutes()">Tout publier →</button>
-      </div>`;
-    html += groupByEspace(aVerifier);
-  }
-  if (showOuvertes && enLigneActives.length) {
-    html += `<div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--moss);opacity:.65;margin:${html ? '1.1rem' : '.2rem'} 0 .55rem">🟢 En ligne · ${enLigneActives.length}</div>`;
-    html += groupByEspace(enLigneActives);
-  }
-  if (showTerminees && terminees.length) {
-    html += `<div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--moss);opacity:.65;margin:${html ? '1.1rem' : '.2rem'} 0 .55rem">✓ Terminées · ${terminees.length}</div>`;
-    html += groupByEspace(terminees);
-  }
-  // Quêtes en pause : publiées puis mises en pause (retirées du réseau).
-  if ((F === 'toutes' || F === 'ouvertes') && enPause.length) {
-    html += `<div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--moss);opacity:.65;margin:${html ? '1.1rem' : '.2rem'} 0 .55rem">⏸ En pause · ${enPause.length}</div>`;
-    html += groupByEspace(enPause);
-  }
-  if (!html) {
-    const labels = { a_publier: 'à publier', ouvertes: 'ouverte', terminees: 'terminée' };
-    html = `<div style="text-align:center;padding:2.2rem 1rem;color:var(--moss)">
-      <div style="font-size:1.6rem;margin-bottom:.6rem">⚡</div>
-      <div style="font-size:.78rem;font-weight:700;color:var(--ink);margin-bottom:.3rem">Aucune quête ${labels[F] || ''} pour l'instant</div>
-      ${F === 'toutes' ? `<div style="font-size:.7rem;opacity:.75;line-height:1.55;max-width:360px;margin:0 auto">Commence par « <b>+ Nouvelle quête</b> » : décris une action concrète de ton lieu, publie-la, et les bâtisseurs pourront la rejoindre.</div>` : ''}
-    </div>`;
+  const sectionTitle = (txt, mt) => `<div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--moss);opacity:.65;margin:${mt} 0 .55rem">${txt}</div>`;
+
+  // ── Vue Agenda : quêtes triées par date de rencontre, groupées par échéance ──
+  const agendaHtml = (list) => {
+    const withDate = list.filter(q => q.dateISO);
+    const noDate   = list.filter(q => !q.dateISO);
+    const sorted = withDate.slice().sort((a, b) => a.dateISO < b.dateISO ? -1 : a.dateISO > b.dateISO ? 1 : 0);
+    const buckets = [
+      { nom: '⚠️ Date passée',   test: di => di.past },
+      { nom: '🔥 Cette semaine', test: di => !di.past && di.diff <= 7 },
+      { nom: '📆 Plus tard',      test: di => !di.past && di.diff > 7 },
+    ];
+    let out = '';
+    buckets.forEach(bk => {
+      const items = sorted.filter(q => bk.test(_pqDateInfo(q.dateISO)));
+      if (items.length) out += sectionTitle(bk.nom + ' · ' + items.length, out ? '1.1rem' : '.2rem') + items.map(card).join('');
+    });
+    if (noDate.length) out += sectionTitle('🗓 Sans date · ' + noDate.length, out ? '1.1rem' : '.2rem') + noDate.map(card).join('');
+    return out;
+  };
+
+  // Liste filtrée (utilisée par les vues Agenda et le filtre « À traiter »).
+  const _pqHasPreuve = q => _pqStats(q.id).preuvesAValider > 0;
+  const filteredList =
+      F === 'a_publier' ? aVerifier.slice()
+    : F === 'ouvertes'  ? enLigneActives.concat(enPause)
+    : F === 'terminees' ? terminees.slice()
+    : F === 'a_traiter' ? aVerifier.concat(enLigne.filter(_pqHasPreuve))
+    : PILOTE_QUETES_DEMO.slice();
+
+  const emptyMsg = (F === 'a_traiter')
+    ? `<div style="text-align:center;padding:2.2rem 1rem;color:var(--moss)"><div style="font-size:1.6rem;margin-bottom:.6rem">🎉</div><div style="font-size:.78rem;font-weight:700;color:var(--ink)">Rien à traiter pour l'instant</div><div style="font-size:.7rem;opacity:.75;margin-top:.3rem">Aucune preuve à valider ni quête à publier.</div></div>`
+    : (() => {
+        const labels = { a_publier: 'à publier', ouvertes: 'ouverte', terminees: 'terminée' };
+        return `<div style="text-align:center;padding:2.2rem 1rem;color:var(--moss)">
+          <div style="font-size:1.6rem;margin-bottom:.6rem">⚡</div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--ink);margin-bottom:.3rem">Aucune quête ${labels[F] || ''} pour l'instant</div>
+          ${F === 'toutes' ? `<div style="font-size:.7rem;opacity:.75;line-height:1.55;max-width:360px;margin:0 auto">Commence par « <b>+ Nouvelle quête</b> » : décris une action concrète de ton lieu, publie-la, et les bâtisseurs pourront la rejoindre.</div>` : ''}
+        </div>`;
+      })();
+
+  // ── Zone « À traiter » : centralise ce qui demande une action du Pilote ──
+  let totInscrits = 0, totPreuves = 0;
+  PILOTE_QUETES_DEMO.forEach(q => { const s = _pqStats(q.id); totInscrits += s.inscrits; totPreuves += s.preuvesAValider; });
+  const totAPublier = aVerifier.length;
+  const _chip = (bg, bd, col) => `background:${bg};border:1px solid ${bd};color:${col};border-radius:100px;padding:.3rem .75rem;font-size:.66rem;font-weight:700;cursor:pointer`;
+  const aTraiterZone = (totPreuves || totAPublier) ? `
+    <div style="background:linear-gradient(135deg,rgba(200,115,42,.07),rgba(74,140,92,.06));border:1px solid rgba(200,115,42,.2);border-radius:var(--r-lg);padding:.7rem .9rem;margin-bottom:.9rem">
+      <div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#8a4a1a;margin-bottom:.5rem">🎯 À traiter</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.4rem;align-items:center">
+        ${totPreuves ? `<button onclick="document.getElementById('lqf-a-traiter').click()" style="${_chip('rgba(200,115,42,.12)', 'rgba(200,115,42,.3)', '#8a4a1a')}">🕓 ${totPreuves} preuve${totPreuves > 1 ? 's' : ''} à valider →</button>` : ''}
+        ${totAPublier ? `<button onclick="piloteQuetesPublierToutes()" style="${_chip('rgba(74,140,92,.12)', 'rgba(74,140,92,.3)', 'var(--forest)')}">🟢 ${totAPublier} à publier · Tout publier →</button>` : ''}
+        ${totInscrits ? `<span style="font-size:.66rem;color:var(--moss);font-weight:600">👋 ${totInscrits} inscrit${totInscrits > 1 ? 's' : ''}</span>` : ''}
+      </div>
+    </div>` : '';
+
+  let html = aTraiterZone;
+  if (piloteQueteView === 'agenda') {
+    const body = agendaHtml(filteredList);
+    html += body || emptyMsg;
+  } else if (F === 'a_traiter') {
+    html += filteredList.length ? (sectionTitle('🎯 À traiter · ' + filteredList.length, '.2rem') + groupByEspace(filteredList)) : emptyMsg;
+  } else {
+    let body = '';
+    if (showAverif && aVerifier.length)       { body += sectionTitle('🕓 À vérifier · ' + aVerifier.length, body ? '1.1rem' : '.2rem') + groupByEspace(aVerifier); }
+    if (showOuvertes && enLigneActives.length) { body += sectionTitle('🟢 En ligne · ' + enLigneActives.length, body ? '1.1rem' : '.2rem') + groupByEspace(enLigneActives); }
+    if (showTerminees && terminees.length)    { body += sectionTitle('✓ Terminées · ' + terminees.length, body ? '1.1rem' : '.2rem') + groupByEspace(terminees); }
+    if ((F === 'toutes' || F === 'ouvertes') && enPause.length) { body += sectionTitle('⏸ En pause · ' + enPause.length, body ? '1.1rem' : '.2rem') + groupByEspace(enPause); }
+    html += body || emptyMsg;
   }
   container.innerHTML = html;
 
