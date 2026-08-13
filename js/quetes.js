@@ -342,21 +342,25 @@ function piloteQueteCreerEnsureDom() {
   +     '<input id="pq-create-nb" style="' + inputStyle + '" placeholder="Ex : 2–4 pers."></div>'
   +   '</div>'
   +   '<div style="display:flex;gap:.6rem">'
-  +     '<div style="flex:1"><label style="' + labelStyle + '" for="pq-create-graines">🌱 Graines gagnées</label>'
-  +     '<input id="pq-create-graines" type="number" min="0" style="' + inputStyle + '" placeholder="50"></div>'
-  +     '<div style="flex:1"><label style="' + labelStyle + '" for="pq-create-date">📅 Date de rencontre</label>'
-  +     '<input id="pq-create-date" type="date" style="' + inputStyle + '"></div>'
+  +     '<div style="flex:1"><label style="' + labelStyle + '" for="pq-create-graines">🌱 Graines / demi-journée / pers.</label>'
+  +     '<input id="pq-create-graines" type="number" min="0" style="' + inputStyle + '" placeholder="25"></div>'
+  +     '<div style="flex:1"><label style="' + labelStyle + '" for="pq-create-espace">📍 Espace concerné</label>'
+  +     '<select id="pq-create-espace" style="' + inputStyle + ';cursor:pointer"></select></div>'
   +   '</div>'
+  +   '<label style="' + labelStyle + '">📅 Dates possibles <span style="font-weight:400;opacity:.7">(une ou plusieurs)</span></label>'
+  +   '<div id="pq-create-dates"></div>'
+  +   '<button type="button" onclick="pqCreerAddDate()" style="margin-top:.35rem;background:rgba(46,102,66,.07);border:1px dashed rgba(46,102,66,.3);color:var(--forest);border-radius:8px;padding:.4rem .75rem;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit">+ Ajouter une date</button>'
   +   '<label style="' + labelStyle + '" for="pq-create-competence">🎯 Compétence nécessaire</label>'
   +   '<select id="pq-create-competence" style="' + inputStyle + '">'
-  +     ['Aucune en particulier','💧 Gestion de l\'eau','⚡ Énergie','🧱 Éco-construction','🌾 Maraîchage & permaculture','♻️ Réemploi & compostage','🌿 Biodiversité','🤝 Animation & facilitation','🌡 Adaptation climatique','🔧 Autre / polyvalent'].map(function(o){return '<option>'+o+'</option>';}).join('')
+  +     ['Aucune en particulier','🔨 Bricolage','🏗 Chantier participatif','💧 Gestion de l\'eau','⚡ Énergie','🧱 Éco-construction','🌾 Maraîchage & permaculture','♻️ Réemploi & compostage','🌿 Biodiversité','🤝 Animation & facilitation','🌡 Adaptation climatique','🔧 Autre / polyvalent'].map(function(o){return '<option>'+o+'</option>';}).join('')
   +   '</select>'
   +   '<label style="' + labelStyle + '" for="pq-create-impact">🌿 Impact visé (facultatif)</label>'
   +   '<input id="pq-create-impact" style="' + inputStyle + '" placeholder="Ex : +8 pts eau · 200 m de haie">'
   +   '<label style="' + labelStyle + '" for="pq-create-materiel">🧰 Matériel nécessaire <span style="font-weight:400;opacity:.7">(un par ligne)</span></label>'
   +   '<textarea id="pq-create-materiel" rows="3" style="' + inputStyle + ';resize:vertical" placeholder="Bêche\nPlants d\'arbustes locaux\nPaillage"></textarea>'
-  +   '<label style="' + labelStyle + '" for="pq-create-etapes">🪜 Étapes <span style="font-weight:400;opacity:.7">(une par ligne)</span></label>'
-  +   '<textarea id="pq-create-etapes" rows="3" style="' + inputStyle + ';resize:vertical" placeholder="Préparer le terrain\nPlanter\nPailler et arroser"></textarea>'
+  +   '<label style="' + labelStyle + '">🪜 Étapes de la quête <span style="font-weight:400;opacity:.7">(détaille et valide chaque étape)</span></label>'
+  +   '<div id="pq-create-etapes-list"></div>'
+  +   '<button type="button" onclick="pqCreerAddEtape()" style="margin-top:.35rem;background:rgba(46,102,66,.07);border:1px dashed rgba(46,102,66,.3);color:var(--forest);border-radius:8px;padding:.4rem .75rem;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit">+ Ajouter une étape</button>'
   +   '<label style="' + labelStyle + '" for="pq-create-preuve">✅ Preuve pour valider la quête</label>'
   +   '<textarea id="pq-create-preuve" rows="2" style="' + inputStyle + ';resize:vertical" placeholder="Ex : photos avant/après + nombre de plants installés">Photos de l\'action réalisée + indicateurs mesurés.</textarea>'
   +   '<label style="' + labelStyle + '">📊 Indicateurs validés par la preuve <span style="font-weight:400;opacity:.7">(la preuve alimente leur suivi)</span></label>'
@@ -366,10 +370,67 @@ function piloteQueteCreerEnsureDom() {
   +   '<div id="pq-create-hint" style="font-size:.7rem;color:var(--terracotta);margin-top:.45rem;min-height:1rem"></div>'
   +   '<div style="display:flex;align-items:center;justify-content:flex-end;gap:.6rem;margin-top:.4rem">'
   +     '<button onclick="piloteQueteCreerFermer()" style="background:none;border:none;color:var(--moss);font-size:.8rem;font-weight:600;cursor:pointer;padding:.5rem .6rem;font-family:inherit">Annuler</button>'
-  +     '<button onclick="piloteQueteCreerSave()" style="background:var(--forest);color:#fff;border:none;border-radius:100px;padding:.55rem 1.3rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit">Créer la quête</button>'
+  +     '<button onclick="piloteQueteCreerSave()" style="background:var(--forest);color:#fff;border:none;border-radius:100px;padding:.55rem 1.3rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit">✅ Valider la quête</button>'
   +   '</div>'
   + '</div>';
   document.body.appendChild(wrap);
+}
+
+/* ─── Dates possibles (multi) ─── */
+function pqCreerAddDate(val) {
+  const list = document.getElementById('pq-create-dates');
+  if (!list) return;
+  const row = document.createElement('div');
+  row.className = 'pq-date-row';
+  row.style.cssText = 'display:flex;gap:.4rem;align-items:center;margin-bottom:.35rem';
+  row.innerHTML =
+      '<input type="date" class="pq-date-input" value="' + (val || '') + '" style="flex:1;padding:.5rem .6rem;border:1px solid rgba(46,102,66,.2);border-radius:8px;font-family:inherit;font-size:.8rem;color:var(--ink)">'
+    + '<button type="button" onclick="this.closest(\'.pq-date-row\').remove()" title="Retirer cette date" style="flex-shrink:0;background:none;border:none;color:var(--moss);opacity:.5;font-size:.85rem;cursor:pointer">🗑️</button>';
+  list.appendChild(row);
+}
+
+/* ─── Étapes détaillées + validation par étape ─── */
+function pqCreerAddEtape(titre, desc, done) {
+  const list = document.getElementById('pq-create-etapes-list');
+  if (!list) return;
+  const esc = (s) => String(s || '').replace(/"/g, '&quot;');
+  const isDone = !!done;
+  const row = document.createElement('div');
+  row.className = 'pq-etape-row';
+  row.dataset.done = isDone ? '1' : '0';
+  row.style.cssText = 'border:1px solid rgba(46,102,66,.15);border-radius:10px;padding:.5rem .6rem;margin-bottom:.45rem;background:' + (isDone ? 'rgba(74,140,92,.08)' : '#fff');
+  row.innerHTML =
+      '<div style="display:flex;gap:.4rem;align-items:center">'
+    +   '<input class="pq-etape-titre" placeholder="Titre de l\'étape" value="' + esc(titre) + '" style="flex:1;min-width:0;padding:.4rem .55rem;border:1px solid rgba(46,102,66,.2);border-radius:8px;font-family:inherit;font-size:.78rem;color:var(--ink)">'
+    +   '<button type="button" class="pq-etape-valider" onclick="pqCreerToggleEtape(this)" style="flex-shrink:0;border:1px solid ' + (isDone ? 'var(--forest)' : 'rgba(46,102,66,.25)') + ';background:' + (isDone ? 'var(--forest)' : '#fff') + ';color:' + (isDone ? '#fff' : 'var(--moss)') + ';border-radius:100px;padding:.32rem .65rem;font-size:.68rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">' + (isDone ? '✓ Validée' : 'Valider') + '</button>'
+    +   '<button type="button" onclick="this.closest(\'.pq-etape-row\').remove()" title="Supprimer l\'étape" style="flex-shrink:0;background:none;border:none;color:var(--moss);opacity:.5;font-size:.85rem;cursor:pointer">🗑️</button>'
+    + '</div>'
+    + '<input class="pq-etape-desc" placeholder="Détail / consigne (facultatif)" value="' + esc(desc) + '" style="width:100%;box-sizing:border-box;margin-top:.35rem;padding:.35rem .55rem;border:1px solid rgba(46,102,66,.15);border-radius:8px;font-family:inherit;font-size:.72rem;color:var(--moss)">';
+  list.appendChild(row);
+}
+
+// Valide / annule la validation d'une étape (toggle).
+function pqCreerToggleEtape(btn) {
+  const row = btn.closest('.pq-etape-row');
+  if (!row) return;
+  const done = row.dataset.done === '1';
+  row.dataset.done = done ? '0' : '1';
+  if (done) {
+    btn.textContent = 'Valider'; btn.style.background = '#fff'; btn.style.color = 'var(--moss)'; btn.style.borderColor = 'rgba(46,102,66,.25)';
+    row.style.background = '#fff';
+  } else {
+    btn.textContent = '✓ Validée'; btn.style.background = 'var(--forest)'; btn.style.color = '#fff'; btn.style.borderColor = 'var(--forest)';
+    row.style.background = 'rgba(74,140,92,.08)';
+  }
+}
+
+// Peuple le select « Espace concerné » depuis les espaces du lieu.
+function pqCreerRenderEspaces(selIdx) {
+  const sel = document.getElementById('pq-create-espace');
+  if (!sel) return;
+  const esps = ((typeof myLieuData !== 'undefined' && myLieuData && myLieuData.espacesData) || (typeof ficheEspaces !== 'undefined' ? ficheEspaces : []) || []);
+  sel.innerHTML = '<option value="">— Aucun / tout le lieu —</option>'
+    + esps.map((e, i) => '<option value="' + i + '"' + (String(selIdx) === String(i) ? ' selected' : '') + '>' + String(e.nom || ('Espace ' + (i + 1))).replace(/[<>]/g, '') + '</option>').join('');
 }
 
 function piloteQueteCreerOuvrir() {
@@ -385,6 +446,15 @@ function piloteQueteCreerOuvrir() {
     b.style.background = 'transparent'; b.style.borderColor = col + '55'; b.style.fontWeight = '600';
   });
   const hint = document.getElementById('pq-create-hint'); if (hint) hint.textContent = '';
+  // Dates : repart d'une seule ligne vide.
+  const datesBox = document.getElementById('pq-create-dates'); if (datesBox) datesBox.innerHTML = '';
+  if (typeof pqCreerAddDate === 'function') pqCreerAddDate();
+  // Étapes : liste vide + une première étape à remplir.
+  const etapesBox = document.getElementById('pq-create-etapes-list'); if (etapesBox) etapesBox.innerHTML = '';
+  if (typeof pqCreerAddEtape === 'function') pqCreerAddEtape();
+  // Espace : pré-sélectionne celui du flux guidé s'il existe.
+  const _preEsp = (typeof window !== 'undefined' && window._creerQueteEspIdx != null) ? window._creerQueteEspIdx : '';
+  if (typeof pqCreerRenderEspaces === 'function') pqCreerRenderEspaces(_preEsp);
   document.getElementById('pq-create-modal').style.display = 'block';
   setTimeout(() => { const t = document.getElementById('pq-create-titre'); if (t) t.focus(); }, 60);
 }
@@ -418,6 +488,23 @@ function piloteQueteCreerSave() {
   const lignes = (id) => val(id).split('\n').map(l => l.trim()).filter(Boolean);
   const cmpEl = document.getElementById('pq-create-competence');
   const competence = (cmpEl && cmpEl.selectedIndex > 0) ? cmpEl.value : '';
+  // Dates possibles (multi) → dateISO = première date pour l'agenda/suivi.
+  const datesISO = Array.from(document.querySelectorAll('#pq-create-dates .pq-date-input')).map(i => i.value).filter(Boolean);
+  // Étapes détaillées (titre + desc + validée).
+  const plan = Array.from(document.querySelectorAll('#pq-create-etapes-list .pq-etape-row')).map(r => ({
+    ic: '🪜',
+    titre: ((r.querySelector('.pq-etape-titre') || {}).value || '').trim(),
+    desc:  ((r.querySelector('.pq-etape-desc')  || {}).value || '').trim(),
+    done:  r.dataset.done === '1'
+  })).filter(s => s.titre);
+  // Espace concerné (select) ; repli sur le flux guidé.
+  const espSel = document.getElementById('pq-create-espace');
+  let espIdx = (espSel && espSel.value !== '') ? parseInt(espSel.value, 10) : null;
+  if (espIdx == null && typeof window !== 'undefined' && window._creerQueteEspIdx != null) espIdx = window._creerQueteEspIdx;
+  const _esps = ((typeof myLieuData !== 'undefined' && myLieuData && myLieuData.espacesData) || (typeof ficheEspaces !== 'undefined' ? ficheEspaces : []) || []);
+  const espNom = (espIdx != null && _esps[espIdx]) ? _esps[espIdx].nom : null;
+  // Montant de graines exprimé par demi-journée et par personne.
+  const grainesUnite = parseInt(val('pq-create-graines'), 10) || 50;
   const q = {
     id: 'q-' + (window.store ? store.uuid() : Date.now().toString(36)),
     titre: titre,
@@ -425,16 +512,19 @@ function piloteQueteCreerSave() {
     desc: val('pq-create-desc'),
     duree: val('pq-create-duree') || '-',
     nb: val('pq-create-nb') || '-',
-    graines: parseInt(val('pq-create-graines'), 10) || 50,
-    dateISO: val('pq-create-date') || null,
+    graines: grainesUnite,
+    grainesParDemiJour: grainesUnite,
+    dateISO: datesISO[0] || null,
+    datesISO: datesISO,
     competence: competence,
     impact: val('pq-create-impact'),
     materiel: lignes('pq-create-materiel'),
-    plan: lignes('pq-create-etapes').map(t => ({ ic: '🪜', titre: t, desc: '' })),
+    plan: plan,
     preuve: val('pq-create-preuve') || 'Photos de l\'action réalisée + indicateurs mesurés.',
     icis: Array.from(document.querySelectorAll('#pq-create-icis [data-sel="1"]')).map(b => b.getAttribute('data-ici')),
-    // Rattachement à l'espace depuis lequel la quête a été créée (flux guidé).
-    espIdx: (typeof window !== 'undefined' && window._creerQueteEspIdx != null) ? window._creerQueteEspIdx : null,
+    // Rattachement à l'espace (select, sinon flux guidé).
+    espIdx: espIdx,
+    espNom: espNom,
     source: null, sourceIc: '⚡', custom: true
   };
   PILOTE_QUETES_DEMO.push(q);
@@ -649,7 +739,7 @@ function renderPiloteQuetes() {
         <div class="pq-card-meta">
           <span>⏱ ${q.duree}</span>
           <span>👥 ${q.nb}</span>
-          <span>🌱 ${q.graines} graines</span>
+          <span>🌱 ${q.graines} graines${q.grainesParDemiJour ? ' /½j·pers' : ''}</span>
           ${di ? `<span style="color:${di.urgent ? 'var(--amber)' : 'var(--moss)'};font-weight:${di.urgent ? '700' : '400'}">📅 ${di.rel}</span>` : ''}
           <span style="color:var(--fern);font-weight:600">${(q.impact || '').split('·')[0].trim()}</span>
         </div>
