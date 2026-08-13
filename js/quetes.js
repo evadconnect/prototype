@@ -321,19 +321,18 @@ function piloteQueteCreerEnsureDom() {
   if (document.getElementById('pq-create-modal')) return;
   const wrap = document.createElement('div');
   wrap.id = 'pq-create-modal';
-  wrap.style.cssText = 'display:none;position:fixed;inset:0;z-index:10030;font-family:\'Satoshi\',sans-serif';
-  const inputStyle = 'width:100%;padding:.55rem .7rem;border-radius:10px;border:1px solid rgba(46,102,66,.2);font-family:inherit;font-size:.82rem;color:var(--ink);background:#fff';
+  wrap.style.cssText = 'display:none;position:fixed;inset:0;z-index:10030;font-family:\'Satoshi\',sans-serif;background:var(--paper);overflow-y:auto';
+  const inputStyle = 'width:100%;padding:.55rem .7rem;border-radius:10px;border:1px solid rgba(46,102,66,.2);font-family:inherit;font-size:.82rem;color:var(--ink);background:#fff;box-sizing:border-box';
   const labelStyle = 'display:block;font-size:.72rem;font-weight:700;color:var(--moss);margin:.75rem 0 .3rem';
   wrap.innerHTML =
-    '<div style="position:absolute;inset:0;background:rgba(13,43,34,.6);backdrop-filter:blur(4px)" onclick="piloteQueteCreerFermer()"></div>'
-  + '<div role="dialog" aria-label="Nouvelle quête" style="position:relative;max-width:460px;width:calc(100% - 2rem);margin:5vh auto 0;max-height:88vh;overflow-y:auto;background:#fff;border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.32);padding:1.3rem 1.4rem 1.4rem">'
-  +   '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem">'
-  +     '<div>'
-  +       '<div id="pq-create-title" style="font-size:1.05rem;font-weight:800;color:var(--ink)">⚡ Nouvelle quête</div>'
-  +       '<div style="font-size:.78rem;line-height:1.5;color:var(--moss);margin-top:.3rem">Une action concrète sur ton lieu. Une fois publiée, les bâtisseurs pourront la rejoindre.</div>'
-  +     '</div>'
-  +     '<button onclick="piloteQueteCreerFermer()" aria-label="Fermer" style="flex-shrink:0;background:none;border:none;font-size:1.2rem;line-height:1;color:var(--moss);opacity:.5;cursor:pointer">✕</button>'
-  +   '</div>'
+    // Barre sticky (comme la fiche quête) : « ← Retour » + titre.
+    '<div style="position:sticky;top:0;z-index:2;background:rgba(233,242,233,.96);backdrop-filter:blur(6px);border-bottom:1px solid rgba(46,102,66,.12);padding:.9rem 1.2rem;display:flex;align-items:center;gap:1rem">'
+  +   '<button onclick="piloteQueteCreerFermer()" style="flex-shrink:0;font-size:.78rem;font-weight:700;padding:.42rem .95rem;border:1px solid rgba(46,102,66,.2);border-radius:100px;background:#fff;color:var(--forest);cursor:pointer;font-family:inherit">← Retour</button>'
+  +   '<div id="pq-create-title" style="font-size:1rem;font-weight:800;color:var(--ink)">⚡ Nouvelle quête</div>'
+  + '</div>'
+  // Colonne de contenu centrée.
+  + '<div style="max-width:640px;margin:0 auto;padding:1.3rem 1.4rem 3rem">'
+  +   '<div style="font-size:.78rem;line-height:1.5;color:var(--moss);margin-bottom:.5rem">Une action concrète sur ton lieu. Une fois publiée, les bâtisseurs pourront la rejoindre.</div>'
   +   '<label style="' + labelStyle + '" for="pq-create-titre">Titre de la quête *</label>'
   +   '<input id="pq-create-titre" style="' + inputStyle + '" placeholder="Ex : Planter la haie champêtre du verger">'
   +   '<label style="' + labelStyle + '" for="pq-create-desc">📝 Description</label>'
