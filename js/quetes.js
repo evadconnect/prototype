@@ -694,7 +694,7 @@ function renderPiloteQuetes() {
       <div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#8a4a1a;margin-bottom:.5rem">🎯 À traiter</div>
       <div style="display:flex;flex-wrap:wrap;gap:.4rem;align-items:center">
         ${totPreuves ? `<button onclick="document.getElementById('lqf-a-traiter').click()" style="${_chip('rgba(200,115,42,.12)', 'rgba(200,115,42,.3)', '#8a4a1a')}">🕓 ${totPreuves} preuve${totPreuves > 1 ? 's' : ''} à valider →</button>` : ''}
-        ${totAPublier ? `<button onclick="piloteQuetesPublierToutes()" style="${_chip('rgba(74,140,92,.12)', 'rgba(74,140,92,.3)', 'var(--forest)')}">🟢 ${totAPublier} à publier · Tout publier →</button>` : ''}
+        ${totAPublier ? `<button onclick="document.getElementById('lqf-a-publier').click()" style="${_chip('rgba(74,140,92,.12)', 'rgba(74,140,92,.3)', 'var(--forest)')}">🟢 ${totAPublier} à publier →</button>` : ''}
         ${totInscrits ? `<span style="font-size:.66rem;color:var(--moss);font-weight:600">👋 ${totInscrits} inscrit${totInscrits > 1 ? 's' : ''}</span>` : ''}
       </div>
     </div>` : '';
