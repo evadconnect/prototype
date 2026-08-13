@@ -873,7 +873,6 @@ function lieuRenderHero() {
     const phaseLbls = {idee:'💭 Idée',conception:'📐 Conception',chantier:'🏗 Chantier',operationnel:'🌿 Opérationnel'};
     heroBadges.innerHTML = `
       <span class="acteur-badge" style="background:rgba(74,140,92,0.28);color:var(--sage);border:1px solid rgba(74,140,92,0.35)">${icon} ${typeLbl}</span>
-      ${loc ? `<span class="acteur-badge" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.65);border:1px solid rgba(255,255,255,0.12)">📍 ${loc}</span>` : ''}
       ${cData.phase ? `<span class="acteur-badge" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1)">${phaseLbls[cData.phase]||cData.phase}</span>` : ''}
     `;
   }
@@ -1128,6 +1127,58 @@ function lieuRenderQuetes() {
   box.innerHTML = html;
 }
 
+// Onglet « Marché » de la fiche lieu : offres (biens/services payables en
+// graines) publiées PAR LE LIEU AFFICHÉ. Lues via mktAllOffres() (store →
+// Supabase, offres actives + en stock), filtrées sur le lieu vendeur. Clic →
+// modale d'achat commune du Marketplace (mktOpenModal), donc même flux d'escrow.
+function lieuRenderMarche() {
+  const box = document.getElementById('lieu-marche-list');
+  if (!box) return;
+
+  const _lieuId  = (typeof cData !== 'undefined' && cData && cData.id) || null;
+  const _lieuNom = (typeof cData !== 'undefined' && cData && cData.nom) || '';
+
+  let offres = (typeof mktAllOffres === 'function') ? mktAllOffres() : [];
+  // Vendeur = seller_id (= lieu_id de l'offre). Repli sur le nom pour un lieu
+  // sans id (brouillon = le mien).
+  offres = offres.filter(o => _lieuId ? (o.seller_id === _lieuId) : (o.lieu === _lieuNom));
+
+  if (!offres.length) {
+    box.innerHTML = `<div class="acteur-section-title">🛖 Marché du lieu</div>
+      <div style="padding:2rem 1rem;text-align:center;border:1.5px dashed rgba(46,102,66,.18);border-radius:var(--r-lg)">
+        <div style="font-size:1.4rem;margin-bottom:.5rem">🛖</div>
+        <div style="font-size:.75rem;font-weight:600;color:var(--ink);margin-bottom:.25rem">Aucune offre en vente pour l'instant</div>
+        <div style="font-size:.65rem;color:var(--moss);opacity:.6">Le Pilote propose ses biens et services payables en graines depuis son tableau de bord (onglet Marché).</div>
+      </div>`;
+    return;
+  }
+
+  const _bal = (typeof evadGrainesDispo === 'function') ? evadGrainesDispo() : 0;
+
+  const cards = offres.map(o => {
+    const canAfford = _bal >= (+o.prix || 0);
+    const stockHtml = (o.stock != null && o.stock <= 3)
+      ? `<span style="font-size:.6rem;color:var(--terracotta);font-weight:600">⚠ Plus que ${o.stock}</span>` : '';
+    return `
+    <div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-lg);padding:.85rem 1rem;display:flex;align-items:center;gap:.8rem;cursor:pointer;transition:box-shadow .15s" onclick="mktOpenModal('${o.id}')" onmouseover="this.style.boxShadow='0 4px 14px rgba(46,102,66,.1)'" onmouseout="this.style.boxShadow=''">
+      <div style="width:44px;height:44px;border-radius:10px;background:${o.bg};display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0">${o.emoji}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.58rem;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.1rem">${(o.cat||'').charAt(0).toUpperCase()+(o.cat||'').slice(1)}</div>
+        <div style="font-size:.8rem;font-weight:700;color:var(--ink);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.titre}</div>
+        <div style="font-size:.65rem;color:var(--moss);opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.desc || ''}</div>
+        ${stockHtml}
+      </div>
+      <div style="flex-shrink:0;text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:.35rem">
+        <div style="font-family:'Satoshi',sans-serif;font-size:.95rem;font-weight:900;color:var(--amber)">${(+o.prix||0) > 0 ? '🪙 '+o.prix : '🎁 Gratuit'}</div>
+        <button class="btn btn-primary" style="font-size:.68rem;padding:.35rem .8rem" onclick="event.stopPropagation();mktOpenModal('${o.id}')">${(+o.prix||0) === 0 ? 'Réserver →' : 'Échanger →'}</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  box.innerHTML = `<div class="acteur-section-title">🛖 Marché du lieu · <span style="font-weight:400;opacity:.65">${offres.length} offre${offres.length > 1 ? 's' : ''} en vente</span></div>
+    <div style="display:flex;flex-direction:column;gap:.6rem">${cards}</div>`;
+}
+
 function lieuRenderEspaces() {
   const box = document.getElementById('lieu-espaces-content');
   if (!box) return;
@@ -1276,6 +1327,7 @@ function lieuTab(id, btn) {
   document.getElementById('lieu-panel-' + id).classList.add('active');
   if (id === 'ecosysteme') lieuRenderMindmap();
   if (id === 'impact') lieuRenderImpact();
+  if (id === 'marche') lieuRenderMarche();
 }
 
 function lieuMmW() { return document.getElementById('lieu-mm-nodes').parentElement.offsetWidth; }
