@@ -1210,6 +1210,23 @@ function lieuRenderEspaces() {
       </div>
     </div>`;
 
+  // ── Quêtes ouvertes du lieu (fusion Espaces × Quêtes) ──
+  const _lieuId = (typeof cData !== 'undefined' && cData && cData.id) || null;
+  const _myId   = (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.id) || null;
+  let _qRows = [];
+  if (_lieuId && window.store) _qRows = store.where('quetes', r => r.lieu_id === _lieuId);
+  else if (typeof PILOTE_QUETES_DEMO !== 'undefined') _qRows = PILOTE_QUETES_DEMO.slice();
+  const lieuQuetes = _qRows.filter(q => q.statut === 'ouverte');
+  // Ligne de quête cliquable → ouvre la fiche quête.
+  const queteRow = (q) => `<div onclick="openLieuQueteFiche('${q.id}')" style="display:flex;align-items:center;gap:.55rem;padding:.5rem .65rem;border:1px solid rgba(200,140,42,.22);border-left:3px solid var(--amber);border-radius:var(--r);background:rgba(240,200,74,.05);cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 3px 10px rgba(200,140,42,.15)'" onmouseout="this.style.boxShadow=''">
+      <span style="font-size:1rem;flex-shrink:0">${q.sourceIc || '⚡'}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.72rem;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${q.titre || 'Quête'}</div>
+        <div style="font-size:.6rem;color:var(--moss);opacity:.7">${[q.duree, q.nb, ((q.graines || 0) + ' graines')].filter(x => x && x !== '-').join(' · ')}</div>
+      </div>
+      <span style="font-size:.55rem;font-weight:700;color:var(--fern);background:rgba(74,140,92,.1);border-radius:100px;padding:.14rem .5rem;flex-shrink:0;white-space:nowrap">+${q.graines || 0} 🌱</span>
+    </div>`;
+
   const cards = espaces.map((esp, espIdx) => {
     const meta = ESPS.find(e => e.id === esp.eid) || {};
     const col  = meta.c  || '#4a8c5c';
@@ -1282,6 +1299,14 @@ function lieuRenderEspaces() {
       <!-- Card body -->
       <div style="padding:.85rem 1.1rem;display:flex;flex-direction:column;gap:.75rem">
 
+        ${(() => {
+          const _eq = lieuQuetes.filter(q => q.espNom && esp.nom && q.espNom === esp.nom);
+          return _eq.length ? `<div>
+            <div style="font-size:.58rem;font-weight:700;color:var(--amber);opacity:.9;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.35rem">⚡ Quêtes ouvertes · ${_eq.length}</div>
+            <div style="display:flex;flex-direction:column;gap:.4rem">${_eq.map(queteRow).join('')}</div>
+          </div>` : '';
+        })()}
+
         ${fnChips ? `<div>
           <div style="font-size:.58rem;font-weight:700;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.3rem">Fonctions</div>
           <div style="display:flex;flex-wrap:wrap;gap:.25rem">${fnChips}</div>
@@ -1318,10 +1343,20 @@ function lieuRenderEspaces() {
     </div>`;
   }).join('');
 
+  // Quêtes non rattachées à un espace : listées à part sous les cartes.
+  const _attached = new Set();
+  espaces.forEach(esp => lieuQuetes.filter(q => q.espNom && esp.nom && q.espNom === esp.nom).forEach(q => _attached.add(q.id)));
+  const _autres = lieuQuetes.filter(q => !_attached.has(q.id));
+  const autresHtml = _autres.length ? `
+    <div style="margin-top:.4rem">
+      <div style="font-size:.72rem;font-weight:800;color:var(--ink);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.6rem">⚡ Autres quêtes du lieu · ${_autres.length}</div>
+      <div style="display:flex;flex-direction:column;gap:.4rem">${_autres.map(queteRow).join('')}</div>
+    </div>` : '';
+
   // La rentabilité (chiffres financiers) reste PRIVÉE au porteur : elle n'est
   // PAS affichée ici (fiche complète, visible par tous), mais dans la création
   // de fiche et le tableau de bord Pilote.
-  box.innerHTML = header + cards;
+  box.innerHTML = header + cards + autresHtml;
 }
 
 function closeLieuModal() {
