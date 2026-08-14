@@ -5950,7 +5950,7 @@ function creerGenererQuetes(){
 function creerQueteNouvelleEsp(idx){
   window._creerQueteEspIdx = idx;
   window._creerActiveEsp = idx;
-  if (creerIsGuided()) { creerOpenPanel('creer', idx); return; }
+  // Toujours le formulaire pleine page (même format partout, y compris en guidé).
   if (typeof piloteQueteCreerOuvrir === 'function') piloteQueteCreerOuvrir();
 }
 

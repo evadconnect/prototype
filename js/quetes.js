@@ -427,10 +427,18 @@ function pqCreerToggleEtape(btn) {
 }
 
 // Peuple le select « Espace concerné » depuis les espaces du lieu.
+// Source des espaces : lieu publié (myLieuData), sinon éditeur (ficheEspaces),
+// sinon assistant de création guidé (cData.espacesData).
+function _pqEspacesSource() {
+  if (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.espacesData && myLieuData.espacesData.length) return myLieuData.espacesData;
+  if (typeof ficheEspaces !== 'undefined' && ficheEspaces && ficheEspaces.length) return ficheEspaces;
+  if (typeof cData !== 'undefined' && cData && cData.espacesData && cData.espacesData.length) return cData.espacesData;
+  return [];
+}
 function pqCreerRenderEspaces(selIdx) {
   const sel = document.getElementById('pq-create-espace');
   if (!sel) return;
-  const esps = ((typeof myLieuData !== 'undefined' && myLieuData && myLieuData.espacesData) || (typeof ficheEspaces !== 'undefined' ? ficheEspaces : []) || []);
+  const esps = _pqEspacesSource();
   sel.innerHTML = '<option value="">— Aucun / tout le lieu —</option>'
     + esps.map((e, i) => '<option value="' + i + '"' + (String(selIdx) === String(i) ? ' selected' : '') + '>' + String(e.nom || ('Espace ' + (i + 1))).replace(/[<>]/g, '') + '</option>').join('');
 }
@@ -543,7 +551,7 @@ function piloteQueteCreerSave() {
   const espSel = document.getElementById('pq-create-espace');
   let espIdx = (espSel && espSel.value !== '') ? parseInt(espSel.value, 10) : null;
   if (espIdx == null && typeof window !== 'undefined' && window._creerQueteEspIdx != null) espIdx = window._creerQueteEspIdx;
-  const _esps = ((typeof myLieuData !== 'undefined' && myLieuData && myLieuData.espacesData) || (typeof ficheEspaces !== 'undefined' ? ficheEspaces : []) || []);
+  const _esps = (typeof _pqEspacesSource === 'function') ? _pqEspacesSource() : [];
   const espNom = (espIdx != null && _esps[espIdx]) ? _esps[espIdx].nom : null;
   // Montant de graines exprimé par demi-journée et par personne.
   const grainesUnite = parseInt(val('pq-create-graines'), 10) || 50;
@@ -586,8 +594,10 @@ function piloteQueteCreerSave() {
   const wasEdit = !!editQ;
   piloteQueteCreerFermer();
   if (typeof renderPiloteQuetes === 'function') renderPiloteQuetes();
-  // Reflète aussi la quête dans le pane Quêtes du wizard de création.
+  // Reflète aussi la quête dans l'assistant de création (guidé comme libre).
   if (typeof creerStep3RefreshQuetes === 'function') creerStep3RefreshQuetes();
+  if (typeof creerRefreshSidebar === 'function') { try { creerRefreshSidebar(); } catch (e) {} }
+  if (typeof creerMapRevealRefresh === 'function') { try { creerMapRevealRefresh(); } catch (e) {} }
   if (typeof mmBubble === 'function') mmBubble(wasEdit ? '💾 Quête mise à jour' : '⚡ Quête créée · vérifie-la puis publie-la pour la rendre visible');
   return true;
 }
