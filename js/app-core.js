@@ -9131,6 +9131,19 @@ function qdRemoveStep(i) {
   if ((q.etape_actuelle || 1) > q.plan.length + 1) q.etape_actuelle = q.plan.length + 1;
   qdRerender();
 }
+// Ajoute / supprime un élément de matériel (mode édition).
+function qdAddMat() {
+  const q = qdQuest(); if (!q) return;
+  if (!Array.isArray(q.materiel)) q.materiel = [];
+  q.materiel.push('Nouvel élément');
+  qdRerender();
+}
+function qdRemoveMat(i) {
+  const q = qdQuest(); if (!q || !Array.isArray(q.materiel)) return;
+  q.materiel.splice(i, 1);
+  if (Array.isArray(q.materielChecked)) q.materielChecked.splice(i, 1);
+  qdRerender();
+}
 
 // Édition ciblée par section ('infos' | 'materiel' | 'etapes') au lieu d'un mode global.
 function qdEditSection(sec) {
@@ -9139,6 +9152,8 @@ function qdEditSection(sec) {
   _qdEditSection = (_qdEditSection === sec) ? null : sec;
   // À l'entrée en édition des étapes, matérialise un plan éditable si absent.
   if (_qdEditSection === 'etapes' && typeof _qdEnsurePlan === 'function') _qdEnsurePlan(q);
+  // À l'entrée en édition du matériel, garantit un tableau (pour l'ajout).
+  if (_qdEditSection === 'materiel' && !Array.isArray(q.materiel)) q.materiel = [];
   qdRerender();
 }
 function qdSaveSection() {
@@ -9501,26 +9516,32 @@ function renderQueteDetail() {
     })()}
 
     <!-- Matériel nécessaire (checklist · Bibliothèque) · replié par défaut -->
-    ${(q.materiel && q.materiel.length) ? (() => {
+    ${(() => {
+      // Toujours affichée (présentation identique pour toutes les quêtes).
+      const _mat = Array.isArray(q.materiel) ? q.materiel : [];
       const checked = q.materielChecked || (q.materielChecked = []);
-      const nb = q.materiel.filter((_, i) => checked[i]).length;
-      const rows = q.materiel.map((m, i) => EDmat
-        ? `<div style="display:flex;align-items:center;gap:.6rem;padding:.42rem .2rem;border-bottom:1px solid rgba(46,102,66,.05)"><span style="opacity:.5">🔩</span><span style="font-size:.74rem;color:var(--ink);flex:1">${edArr(EDmat, 'materiel', i, m)}</span></div>`
+      const nb = _mat.filter((_, i) => checked[i]).length;
+      const rows = _mat.map((m, i) => EDmat
+        ? `<div style="display:flex;align-items:center;gap:.6rem;padding:.42rem .2rem;border-bottom:1px solid rgba(46,102,66,.05)"><span style="opacity:.5">🔩</span><span style="font-size:.74rem;color:var(--ink);flex:1">${edArr(EDmat, 'materiel', i, m)}</span><button onclick="qdRemoveMat(${i})" title="Supprimer" style="background:none;border:none;color:var(--moss);opacity:.5;font-size:.8rem;cursor:pointer">🗑️</button></div>`
         : `<label style="display:flex;align-items:center;gap:.6rem;padding:.42rem .2rem;cursor:pointer;border-bottom:1px solid rgba(46,102,66,.05)">
           <input type="checkbox" ${checked[i] ? 'checked' : ''} onchange="qdToggleMat(${i}, this)" style="width:16px;height:16px;accent-color:var(--forest);cursor:pointer;flex-shrink:0">
           <span style="font-size:.74rem;color:${checked[i] ? 'var(--moss)' : 'var(--ink)'};${checked[i] ? 'text-decoration:line-through;opacity:.6' : ''}">${m}</span>
-        </label>`).join('');
+        </label>`).join('')
+        + (EDmat ? `<button onclick="qdAddMat()" style="width:100%;margin-top:.35rem;background:rgba(46,102,66,.07);border:1px dashed rgba(46,102,66,.3);color:var(--forest);border-radius:8px;padding:.45rem;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit">+ Ajouter du matériel</button>` : '');
+      const body = _mat.length ? `<div style="display:flex;flex-direction:column;gap:.1rem">${rows}</div>`
+        : (EDmat ? `<div style="display:flex;flex-direction:column;gap:.1rem">${rows}</div>`
+          : `<div style="font-size:.7rem;color:var(--moss);opacity:.55;padding:.2rem 0">Aucun matériel indiqué${currentRole === 'pilote' ? ' — ✏️ pour en ajouter' : ''}</div>`);
       return `<div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-lg);padding:1rem 1.1rem">
       <div onclick="qdToggleSection('materiel')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;${matOpen?'margin-bottom:.6rem':''}">
-        <div style="font-size:.72rem;font-weight:600;color:var(--ink)">🧰 Le matériel <span style="font-weight:400;opacity:.5">· ${q.materiel.length} élément${q.materiel.length>1?'s':''}</span></div>
+        <div style="font-size:.72rem;font-weight:600;color:var(--ink)">🧰 Le matériel <span style="font-weight:400;opacity:.5">· ${_mat.length} élément${_mat.length>1?'s':''}</span></div>
         <div style="display:flex;align-items:center;gap:.55rem">
-          <span id="qd-mat-count" style="font-size:.62rem;font-weight:700;color:${nb===q.materiel.length?'var(--fern)':'var(--moss)'}">${nb===q.materiel.length?'🎉 Tout est prêt':nb+'/'+q.materiel.length}</span>
+          ${_mat.length ? `<span id="qd-mat-count" style="font-size:.62rem;font-weight:700;color:${nb===_mat.length?'var(--fern)':'var(--moss)'}">${nb===_mat.length?'🎉 Tout est prêt':nb+'/'+_mat.length}</span>` : ''}
           ${secCtrl('materiel', EDmat)}
           <span style="font-size:.7rem;color:var(--moss);opacity:.6">${matOpen?'▾':'▸'}</span>
         </div>
       </div>
-      ${matOpen ? `<div style="display:flex;flex-direction:column;gap:.1rem">${rows}</div>` : ''}
-    </div>`; })() : ''}
+      ${matOpen ? body : ''}
+    </div>`; })()}
 
     <!-- Les étapes (le plan) -->
     ${(() => {
