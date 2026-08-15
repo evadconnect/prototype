@@ -24,25 +24,38 @@
 </style>
 </head>
 <body>
+  <!-- 1) Connexion admin -->
   <div class="card">
-    <h1>🌱 Création des comptes bêta</h1>
-    <p class="sub">Crée les comptes des inscrits passés à <b>« approuvé »</b> dans Supabase, et leur envoie leurs identifiants par email.</p>
-
+    <h1>🔑 Connexion admin</h1>
+    <p class="sub">Colle le secret admin ci-dessous : il est mémorisé pour toutes les actions de cette page (création, gestion, suppression).</p>
     <label for="secret">Secret admin</label>
     <input id="secret" type="password" placeholder="Colle le secret admin" autocomplete="off">
+  </div>
 
+  <!-- 2) Création de compte -->
+  <div class="card" style="margin-top:1.2rem">
+    <h1>➕ Création de compte</h1>
+    <p class="sub">Crée les comptes des inscrits passés à <b>« approuvé »</b> dans Supabase, et leur envoie leurs identifiants par email.</p>
     <button id="go" onclick="run()">Créer les comptes approuvés</button>
     <p class="hint">Rappel : d'abord mettre <code>statut = approuvé</code> sur les bonnes lignes dans Supabase (Table Editor → inscription_beta). Les lignes déjà traitées (<code>compte_créé</code>) sont ignorées.</p>
-
     <div id="out"></div>
   </div>
 
+  <!-- 3) Gestion de compte -->
   <div class="card" style="margin-top:1.2rem">
-    <h1>👥 Comptes &amp; onboarding</h1>
-    <p class="sub">Liste des comptes bêta avec l'état de leur fiche par profil. « Fiche faite » = l'utilisateur arrive directement au tableau de bord (plus d'onboarding).</p>
+    <h1>⚙️ Gestion de compte</h1>
+    <p class="sub">État des fiches par profil. « Fiche faite » (✓) = l'utilisateur arrive directement au tableau de bord (plus d'onboarding).</p>
     <button id="load" onclick="loadUsers()">Afficher les comptes</button>
-    <p class="hint">Clique une puce <b>✓ (fiche faite)</b> pour relancer l'onboarding de <b>ce profil-là</b> ; le petit <b>✕</b> à côté d'un profil <b>retire cet accès</b> (supprime sa fiche, garde les autres profils) ; « ↺ Onboarding (tout) » relance tous ses profils. « 🗑 Supprimer » efface définitivement le compte (authentification + fiches pilote/bâtisseur/semeur). Nota : un <b>Pilote</b> dont la fiche lieu existe déjà en base sera automatiquement re-marqué « fiche faite » à sa connexion (rattrapage anti-doublon) : pour lui, supprime aussi sa fiche dans <code>fiche_pilote</code> si tu veux vraiment le faire repartir de zéro.</p>
+    <p class="hint">Clique une puce <b>✓</b> pour relancer l'onboarding de <b>ce profil-là</b> ; le petit <b>✕</b> à côté d'un profil <b>retire cet accès</b> (supprime sa fiche, garde les autres profils) ; « ↺ Onboarding (tout) » relance tous ses profils. Nota : un <b>Pilote</b> dont la fiche lieu existe déjà en base sera automatiquement re-marqué « fiche faite » à sa connexion — pour le faire repartir de zéro, retire son accès pilote (✕) ou supprime sa fiche.</p>
     <div id="users-out" style="margin-top:1rem;display:none"></div>
+  </div>
+
+  <!-- 4) Suppression de compte -->
+  <div class="card" style="margin-top:1.2rem">
+    <h1>🗑 Suppression de compte</h1>
+    <p class="sub">Efface <b>définitivement</b> un compte : authentification + toutes ses données (fiches, quêtes, graines…). Action irréversible.</p>
+    <button id="load-del" onclick="loadUsers()">Afficher les comptes</button>
+    <div id="users-del-out" style="margin-top:1rem;display:none"></div>
   </div>
 
 <script>
@@ -101,12 +114,53 @@
     return s;
   }
 
+  const esc = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const loginLbl = (u) => u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString('fr-FR') : 'jamais';
+  const identite = (u) => '<b style="font-size:.85rem">' + esc(u.email) + '</b>'
+    + '<div style="font-size:.72rem;color:#3d6b5a">' + (esc((u.prenom + ' ' + u.nom).trim()) || '&nbsp;') + ' · dernière connexion : ' + loginLbl(u) + '</div>';
+
+  // Ligne « Gestion » : profils (↺ onboarding / ✕ retirer) + relance globale.
+  function gestionRow(u) {
+    const badges = (u.roles.length ? u.roles : ['?']).map(r => {
+      const done = u.fiches_faites.indexOf(r) !== -1;
+      const base = 'font-size:.72rem;padding:.1rem .45rem;border-radius:100px;margin-right:.25rem;white-space:nowrap;'
+        + (done ? 'background:rgba(10,122,75,.12);color:#0a7a4b;border:1px solid rgba(10,122,75,.3)'
+                : 'background:rgba(0,0,0,.05);color:#666;border:1px solid rgba(0,0,0,.12)');
+      const label = (ROLE_IC[r] || '👤') + ' ' + r + ' ' + (done ? '✓' : '○');
+      if (r === '?') return '<span style="' + base + '">' + label + '</span>';
+      const puce = done
+        ? '<button onclick="resetOnboarding(\'' + u.id + '\',\'' + u.email + '\',this,\'' + r + '\')" title="Relancer l\'onboarding du profil ' + r + '" style="cursor:pointer;width:auto;margin:0;' + base + '">' + label + ' ↺</button>'
+        : '<span title="' + r + ' : verra l\'onboarding" style="' + base + '">' + label + '</span>';
+      const removeBtn = '<button onclick="removeRole(\'' + u.id + '\',\'' + u.email + '\',\'' + r + '\',this)" title="Retirer l\'accès ' + r + '" style="cursor:pointer;width:auto;margin:0;padding:.1rem .35rem;border-radius:100px;font-size:.72rem;background:#fff;color:#b02a2a;border:1px solid rgba(176,42,42,.35)">✕</button>';
+      return '<span style="display:inline-flex;align-items:center;gap:.15rem;margin-right:.35rem;white-space:nowrap">' + puce + removeBtn + '</span>';
+    }).join('');
+    const canReset = u.fiches_faites.length > 0;
+    return '<div class="row" style="flex-wrap:wrap;align-items:center">'
+      + '<div style="flex:1;min-width:180px">' + identite(u) + '</div>'
+      + '<div>' + badges + '</div>'
+      + (canReset
+          ? '<button onclick="resetOnboarding(\'' + u.id + '\',\'' + u.email + '\',this)" style="margin:0;width:auto;padding:.35rem .7rem;font-size:.72rem;background:#fff;color:#a06010;border:1px solid rgba(160,96,16,.4)">↺ Onboarding (tout)</button>'
+          : '')
+      + '</div>';
+  }
+
+  // Ligne « Suppression » : identité + bouton supprimer uniquement.
+  function suppressionRow(u) {
+    return '<div class="row" style="flex-wrap:wrap;align-items:center">'
+      + '<div style="flex:1;min-width:180px">' + identite(u) + '</div>'
+      + '<button onclick="deleteUser(\'' + u.id + '\',\'' + u.email + '\',this)" style="margin:0;width:auto;padding:.35rem .8rem;font-size:.72rem;background:#fff;color:#b02a2a;border:1px solid rgba(176,42,42,.4)">🗑 Supprimer</button>'
+      + '</div>';
+  }
+
+  // Charge la liste et remplit LES DEUX sections (gestion + suppression).
   async function loadUsers() {
     const secret = adminSecret(); if (!secret) return;
-    const btn = document.getElementById('load');
-    const out = document.getElementById('users-out');
-    btn.disabled = true; btn.textContent = 'Chargement…';
-    out.style.display = 'block'; out.textContent = 'Patiente…';
+    const gest = document.getElementById('users-out');
+    const del = document.getElementById('users-del-out');
+    const bg = document.getElementById('load'), bd = document.getElementById('load-del');
+    [bg, bd].forEach(b => { if (b) { b.disabled = true; b.textContent = 'Chargement…'; } });
+    gest.style.display = 'block'; gest.textContent = 'Patiente…';
+    del.style.display = 'block'; del.textContent = 'Patiente…';
     try {
       const res = await fetch(ADMIN_USERS_ENDPOINT, {
         method: 'POST',
@@ -114,47 +168,18 @@
         body: JSON.stringify({ action: 'list' }),
       });
       const data = await res.json();
-      if (!res.ok) { out.innerHTML = '<span class="ko">Erreur : ' + (data.error || res.status) + '</span>'; return; }
-      // Masque les comptes déjà supprimés dans cette session : la liste d'auth
-      // peut rester en cache/latence quelques secondes après la suppression.
+      if (!res.ok) { const m = '<span class="ko">Erreur : ' + (data.error || res.status) + '</span>'; gest.innerHTML = m; del.innerHTML = m; return; }
+      // Masque les comptes supprimés dans cette session (cache/latence auth).
       const liste = (data.users || []).filter(u => !_deletedIds.has(u.id));
-      if (!liste.length) { out.innerHTML = 'Aucun compte.'; return; }
-      let html = '<b>' + liste.length + ' compte(s)</b>';
-      liste.forEach(u => {
-        // Badges par profil : ✓ fiche faite (→ tableau de bord) / ○ onboarding à venir.
-        // Une puce « fiche faite » (✓) est cliquable → relance l'onboarding de CE profil.
-        const badges = (u.roles.length ? u.roles : ['?']).map(r => {
-          const done = u.fiches_faites.indexOf(r) !== -1;
-          const base = 'font-size:.72rem;padding:.1rem .45rem;border-radius:100px;margin-right:.25rem;white-space:nowrap;'
-            + (done ? 'background:rgba(10,122,75,.12);color:#0a7a4b;border:1px solid rgba(10,122,75,.3)'
-                    : 'background:rgba(0,0,0,.05);color:#666;border:1px solid rgba(0,0,0,.12)');
-          const label = (ROLE_IC[r] || '👤') + ' ' + r + ' ' + (done ? '✓' : '○');
-          if (r === '?') return '<span style="' + base + '">' + label + '</span>';
-          // Puce du profil (cliquable = relance l'onboarding si fiche faite) + un
-          // petit ✕ pour RETIRER l'accès à ce profil (supprime sa fiche).
-          const puce = done
-            ? '<button onclick="resetOnboarding(\'' + u.id + '\',\'' + u.email + '\',this,\'' + r + '\')" title="Relancer l\'onboarding du profil ' + r + '" style="cursor:pointer;width:auto;margin:0;' + base + '">' + label + ' ↺</button>'
-            : '<span title="' + r + ' : verra l\'onboarding" style="' + base + '">' + label + '</span>';
-          const removeBtn = '<button onclick="removeRole(\'' + u.id + '\',\'' + u.email + '\',\'' + r + '\',this)" title="Retirer l\'accès ' + r + '" style="cursor:pointer;width:auto;margin:0;padding:.1rem .35rem;border-radius:100px;font-size:.72rem;background:#fff;color:#b02a2a;border:1px solid rgba(176,42,42,.35)">✕</button>';
-          return '<span style="display:inline-flex;align-items:center;gap:.15rem;margin-right:.35rem;white-space:nowrap">' + puce + removeBtn + '</span>';
-        }).join('');
-        const canReset = u.fiches_faites.length > 0;
-        const dernierLogin = u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString('fr-FR') : 'jamais';
-        html += '<div class="row" style="flex-wrap:wrap;align-items:center">'
-          + '<div style="flex:1;min-width:180px"><b style="font-size:.85rem">' + u.email + '</b>'
-          + '<div style="font-size:.72rem;color:#3d6b5a">' + ((u.prenom + ' ' + u.nom).trim() || '&nbsp;') + ' · dernière connexion : ' + dernierLogin + '</div></div>'
-          + '<div>' + badges + '</div>'
-          + (canReset
-              ? '<button onclick="resetOnboarding(\'' + u.id + '\',\'' + u.email + '\',this)" style="margin:0;width:auto;padding:.35rem .7rem;font-size:.72rem;background:#fff;color:#a06010;border:1px solid rgba(160,96,16,.4)">↺ Onboarding (tout)</button>'
-              : '')
-          + '<button onclick="deleteUser(\'' + u.id + '\',\'' + u.email + '\',this)" style="margin:0 0 0 .4rem;width:auto;padding:.35rem .7rem;font-size:.72rem;background:#fff;color:#b02a2a;border:1px solid rgba(176,42,42,.4)">🗑 Supprimer</button>'
-          + '</div>';
-      });
-      out.innerHTML = html;
+      if (!liste.length) { gest.innerHTML = 'Aucun compte.'; del.innerHTML = 'Aucun compte.'; return; }
+      const tete = '<b>' + liste.length + ' compte(s)</b>';
+      gest.innerHTML = tete + liste.map(gestionRow).join('');
+      del.innerHTML = tete + liste.map(suppressionRow).join('');
     } catch (e) {
-      out.innerHTML = '<span class="ko">Erreur réseau : ' + e + '</span>';
+      const m = '<span class="ko">Erreur réseau : ' + e + '</span>';
+      gest.innerHTML = m; del.innerHTML = m;
     } finally {
-      btn.disabled = false; btn.textContent = 'Afficher les comptes';
+      [bg, bd].forEach(b => { if (b) { b.disabled = false; b.textContent = 'Afficher les comptes'; } });
     }
   }
 
