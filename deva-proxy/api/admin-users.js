@@ -161,7 +161,14 @@ export default async function handler(req, res) {
       }
 
       // 2) Supprime le compte d'authentification (hard delete).
-      const delRes = await sb('/auth/v1/admin/users/' + encodeURIComponent(userId), { method: 'DELETE' });
+      //    IMPORTANT : GoTrue attend un CORPS JSON sur ce DELETE (comme le fait
+      //    supabase-js). Un DELETE avec Content-Type: application/json mais sans
+      //    corps fait échouer le parse côté serveur → la suppression « ne faisait
+      //    rien ». On envoie donc { should_soft_delete: false } (hard delete).
+      const delRes = await sb('/auth/v1/admin/users/' + encodeURIComponent(userId), {
+        method: 'DELETE',
+        body: JSON.stringify({ should_soft_delete: false }),
+      });
       if (!delRes.ok) {
         let detail; try { detail = await delRes.json(); } catch (e) { detail = null; }
         return res.status(500).json({ error: 'Suppression du compte impossible', http: delRes.status, detail, purge });
