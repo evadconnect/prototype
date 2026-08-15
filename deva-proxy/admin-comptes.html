@@ -41,7 +41,7 @@
     <h1>👥 Comptes &amp; onboarding</h1>
     <p class="sub">Liste des comptes bêta avec l'état de leur fiche par profil. « Fiche faite » = l'utilisateur arrive directement au tableau de bord (plus d'onboarding).</p>
     <button id="load" onclick="loadUsers()">Afficher les comptes</button>
-    <p class="hint">Clique une puce <b>✓ (fiche faite)</b> pour relancer l'onboarding de <b>ce profil-là</b> ; « ↺ Onboarding (tout) » relance tous ses profils. « 🗑 Supprimer » efface définitivement le compte (authentification + fiches pilote/bâtisseur/semeur). Nota : un <b>Pilote</b> dont la fiche lieu existe déjà en base sera automatiquement re-marqué « fiche faite » à sa connexion (rattrapage anti-doublon) : pour lui, supprime aussi sa fiche dans <code>fiche_pilote</code> si tu veux vraiment le faire repartir de zéro.</p>
+    <p class="hint">Clique une puce <b>✓ (fiche faite)</b> pour relancer l'onboarding de <b>ce profil-là</b> ; le petit <b>✕</b> à côté d'un profil <b>retire cet accès</b> (supprime sa fiche, garde les autres profils) ; « ↺ Onboarding (tout) » relance tous ses profils. « 🗑 Supprimer » efface définitivement le compte (authentification + fiches pilote/bâtisseur/semeur). Nota : un <b>Pilote</b> dont la fiche lieu existe déjà en base sera automatiquement re-marqué « fiche faite » à sa connexion (rattrapage anti-doublon) : pour lui, supprime aussi sa fiche dans <code>fiche_pilote</code> si tu veux vraiment le faire repartir de zéro.</p>
     <div id="users-out" style="margin-top:1rem;display:none"></div>
   </div>
 
@@ -129,12 +129,14 @@
             + (done ? 'background:rgba(10,122,75,.12);color:#0a7a4b;border:1px solid rgba(10,122,75,.3)'
                     : 'background:rgba(0,0,0,.05);color:#666;border:1px solid rgba(0,0,0,.12)');
           const label = (ROLE_IC[r] || '👤') + ' ' + r + ' ' + (done ? '✓' : '○');
-          if (done && r !== '?') {
-            return '<button onclick="resetOnboarding(\'' + u.id + '\',\'' + u.email + '\',this,\'' + r + '\')"'
-              + ' title="Relancer l\'onboarding du profil ' + r + '"'
-              + ' style="cursor:pointer;width:auto;margin:0 .25rem 0 0;' + base + '">' + label + ' ↺</button>';
-          }
-          return '<span title="' + r + (done ? ' : fiche faite' : ' : verra l\'onboarding') + '" style="' + base + '">' + label + '</span>';
+          if (r === '?') return '<span style="' + base + '">' + label + '</span>';
+          // Puce du profil (cliquable = relance l'onboarding si fiche faite) + un
+          // petit ✕ pour RETIRER l'accès à ce profil (supprime sa fiche).
+          const puce = done
+            ? '<button onclick="resetOnboarding(\'' + u.id + '\',\'' + u.email + '\',this,\'' + r + '\')" title="Relancer l\'onboarding du profil ' + r + '" style="cursor:pointer;width:auto;margin:0;' + base + '">' + label + ' ↺</button>'
+            : '<span title="' + r + ' : verra l\'onboarding" style="' + base + '">' + label + '</span>';
+          const removeBtn = '<button onclick="removeRole(\'' + u.id + '\',\'' + u.email + '\',\'' + r + '\',this)" title="Retirer l\'accès ' + r + '" style="cursor:pointer;width:auto;margin:0;padding:.1rem .35rem;border-radius:100px;font-size:.72rem;background:#fff;color:#b02a2a;border:1px solid rgba(176,42,42,.35)">✕</button>';
+          return '<span style="display:inline-flex;align-items:center;gap:.15rem;margin-right:.35rem;white-space:nowrap">' + puce + removeBtn + '</span>';
         }).join('');
         const canReset = u.fiches_faites.length > 0;
         const dernierLogin = u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString('fr-FR') : 'jamais';
@@ -176,6 +178,25 @@
     } catch (e) {
       alert('Erreur réseau : ' + e);
       btn.disabled = false; btn.textContent = label;
+    }
+  }
+
+  async function removeRole(userId, email, role, btn) {
+    const secret = adminSecret(); if (!secret) return;
+    if (!confirm('Retirer l\'accès « ' + role + ' » de « ' + email + ' » ?\nSon profil ' + role + ' et ses données seront supprimés. Les autres profils du compte sont conservés.')) return;
+    btn.disabled = true; btn.textContent = '…';
+    try {
+      const res = await fetch(ADMIN_USERS_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+        body: JSON.stringify({ action: 'remove_role', user_id: userId, role: role }),
+      });
+      const data = await res.json();
+      if (!res.ok) { alert('Erreur : ' + (data.error || res.status)); btn.disabled = false; btn.textContent = '✕'; return; }
+      loadUsers();
+    } catch (e) {
+      alert('Erreur réseau : ' + e);
+      btn.disabled = false; btn.textContent = '✕';
     }
   }
 

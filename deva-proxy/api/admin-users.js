@@ -105,6 +105,39 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, email: user.email, role: role || null });
     }
 
+    if (action === 'remove_role') {
+      const userId = String(body.user_id || '').trim();
+      const role = String(body.role || '').trim();
+      if (!userId) return res.status(400).json({ error: 'user_id manquant' });
+      if (!role) return res.status(400).json({ error: 'role manquant' });
+
+      const getRes = await sb('/auth/v1/admin/users/' + encodeURIComponent(userId));
+      const user = await getRes.json();
+      if (!getRes.ok) return res.status(500).json({ error: 'Compte introuvable', http: getRes.status, detail: user });
+
+      const meta = Object.assign({}, user.user_metadata || {});
+      const curRoles = Array.isArray(meta.roles) ? meta.roles : (meta.role ? [meta.role] : []);
+      const roles = curRoles.filter((r) => r !== role);
+      const fiches = (Array.isArray(meta.fiches_faites) ? meta.fiches_faites : []).filter((r) => r !== role);
+      meta.roles = roles;
+      meta.fiches_faites = fiches.length ? fiches : null;
+      if (meta.role === role) meta.role = roles[0] || null;   // compat ancien champ « role »
+
+      const putRes = await sb('/auth/v1/admin/users/' + encodeURIComponent(userId), {
+        method: 'PUT',
+        body: JSON.stringify({ user_metadata: meta }),
+      });
+      const updated = await putRes.json();
+      if (!putRes.ok) return res.status(500).json({ error: 'Mise à jour impossible', http: putRes.status, detail: updated });
+
+      // Supprime la fiche du profil retiré (ses données propres).
+      const table = { pilote: 'fiche_pilote', batisseur: 'fiche_batisseur', semeur: 'fiche_semeur' }[role];
+      if (table) {
+        try { await sb('/rest/v1/' + table + '?user_id=eq.' + encodeURIComponent(userId), { method: 'DELETE', headers: { Prefer: 'return=minimal' } }); } catch (e) {}
+      }
+      return res.status(200).json({ ok: true, email: user.email, role, roles });
+    }
+
     if (action === 'delete_user') {
       const userId = String(body.user_id || '').trim();
       if (!userId) return res.status(400).json({ error: 'user_id manquant' });
