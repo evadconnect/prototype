@@ -1,18 +1,30 @@
 // ── Administration des comptes bêta (fonction serverless Vercel) ──
 //
-// Deux actions, protégées par le secret admin (en-tête x-admin-secret) :
+// Actions, protégées par le secret admin (en-tête x-admin-secret) :
 //   { action: 'list' }                        → liste des comptes avec leurs
 //     profils et l'état « fiche faite » (fiches_faites) par profil.
 //   { action: 'reset_onboarding', user_id }   → retire fiches_faites des
 //     métadonnées du compte → l'utilisateur repassera par l'onboarding.
+//   { action: 'update_email', user_id, email }→ change l'email de connexion.
+//   { action: 'reset_password', user_id }     → génère un nouveau mot de passe
+//     et le renvoie (l'admin le transmet à l'utilisateur).
+//   { action: 'remove_role', user_id, role }  → retire un profil du compte.
+//   { action: 'delete_user', user_id }        → supprime le compte + ses données.
 //
 // SÉCURITÉ : clé SERVICE_ROLE uniquement côté serveur, jamais dans le front.
 // Variables d'environnement (projet Vercel du proxy, déjà en place) :
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ADMIN_SECRET
 
+import { randomBytes } from 'crypto';
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
+
+// Génère un mot de passe lisible de 12 caractères (même logique que create-accounts.js).
+function genPassword() {
+  return randomBytes(12).toString('base64').replace(/[+/=]/g, '').slice(0, 12);
+}
 
 function sb(path, opts = {}) {
   return fetch(SUPABASE_URL + path, {
@@ -103,6 +115,39 @@ export default async function handler(req, res) {
       if (!putRes.ok) return res.status(500).json({ error: 'Mise à jour impossible', http: putRes.status, detail: updated });
 
       return res.status(200).json({ ok: true, email: user.email, role: role || null });
+    }
+
+    if (action === 'update_email') {
+      const userId = String(body.user_id || '').trim();
+      const email = String(body.email || '').trim().toLowerCase();
+      if (!userId) return res.status(400).json({ error: 'user_id manquant' });
+      if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        return res.status(400).json({ error: 'Email invalide' });
+      }
+      // email_confirm: true → l'adresse est confirmée d'office (pas d'email de
+      // validation à cliquer), le compte reste utilisable immédiatement.
+      const putRes = await sb('/auth/v1/admin/users/' + encodeURIComponent(userId), {
+        method: 'PUT',
+        body: JSON.stringify({ email, email_confirm: true }),
+      });
+      const updated = await putRes.json();
+      if (!putRes.ok) return res.status(500).json({ error: 'Changement d\'email impossible', http: putRes.status, detail: updated });
+      return res.status(200).json({ ok: true, email });
+    }
+
+    if (action === 'reset_password') {
+      const userId = String(body.user_id || '').trim();
+      if (!userId) return res.status(400).json({ error: 'user_id manquant' });
+      // Nouveau mot de passe généré côté serveur puis renvoyé à l'admin (qui le
+      // transmet à l'utilisateur). Pas d'email automatique ici.
+      const password = genPassword();
+      const putRes = await sb('/auth/v1/admin/users/' + encodeURIComponent(userId), {
+        method: 'PUT',
+        body: JSON.stringify({ password }),
+      });
+      const updated = await putRes.json();
+      if (!putRes.ok) return res.status(500).json({ error: 'Renouvellement impossible', http: putRes.status, detail: updated });
+      return res.status(200).json({ ok: true, email: updated.email || null, password });
     }
 
     if (action === 'remove_role') {

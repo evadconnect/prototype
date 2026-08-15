@@ -135,11 +135,15 @@
       return '<span style="display:inline-flex;align-items:center;gap:.15rem;margin-right:.35rem;white-space:nowrap">' + puce + removeBtn + '</span>';
     }).join('');
     const canReset = u.fiches_faites.length > 0;
-    return '<div class="row" style="flex-wrap:wrap;align-items:center">'
+    const btnStyle = 'margin:0;width:auto;padding:.35rem .7rem;font-size:.72rem;background:#fff;';
+    const emailBtn = '<button onclick="changeEmail(\'' + u.id + '\',\'' + u.email + '\',this)" title="Changer l\'email de connexion" style="' + btnStyle + 'color:#2a5db0;border:1px solid rgba(42,93,176,.4)">✉️ Email</button>';
+    const pwBtn = '<button onclick="resetPassword(\'' + u.id + '\',\'' + u.email + '\',this)" title="Générer un nouveau mot de passe" style="' + btnStyle + 'color:#7a4ba0;border:1px solid rgba(122,75,160,.4)">🔑 Mot de passe</button>';
+    return '<div class="row" style="flex-wrap:wrap;align-items:center;gap:.35rem">'
       + '<div style="flex:1;min-width:180px">' + identite(u) + '</div>'
       + '<div>' + badges + '</div>'
+      + emailBtn + pwBtn
       + (canReset
-          ? '<button onclick="resetOnboarding(\'' + u.id + '\',\'' + u.email + '\',this)" style="margin:0;width:auto;padding:.35rem .7rem;font-size:.72rem;background:#fff;color:#a06010;border:1px solid rgba(160,96,16,.4)">↺ Onboarding (tout)</button>'
+          ? '<button onclick="resetOnboarding(\'' + u.id + '\',\'' + u.email + '\',this)" style="' + btnStyle + 'color:#a06010;border:1px solid rgba(160,96,16,.4)">↺ Onboarding (tout)</button>'
           : '')
       + '</div>';
   }
@@ -180,6 +184,60 @@
       gest.innerHTML = m; del.innerHTML = m;
     } finally {
       [bg, bd].forEach(b => { if (b) { b.disabled = false; b.textContent = 'Afficher les comptes'; } });
+    }
+  }
+
+  async function changeEmail(userId, email, btn) {
+    const secret = adminSecret(); if (!secret) return;
+    const nouveau = prompt('Nouvel email de connexion pour « ' + email + ' » :', email);
+    if (nouveau === null) return;
+    const clean = nouveau.trim().toLowerCase();
+    if (!clean || clean === email.toLowerCase()) return;
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) { alert('Email invalide.'); return; }
+    if (!confirm('Changer l\'email de connexion :\n' + email + '\n→ ' + clean + ' ?')) return;
+    const label = btn.textContent; btn.disabled = true; btn.textContent = '…';
+    try {
+      const res = await fetch(ADMIN_USERS_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+        body: JSON.stringify({ action: 'update_email', user_id: userId, email: clean }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const det = data.detail ? '\n\nDétail : ' + JSON.stringify(data.detail) : '';
+        alert('Changement impossible : ' + (data.error || res.status) + det);
+        btn.disabled = false; btn.textContent = label; return;
+      }
+      alert('✅ Email mis à jour : ' + clean + '\nL\'utilisateur se connecte désormais avec cette adresse.');
+      loadUsers();
+    } catch (e) {
+      alert('Erreur réseau : ' + e);
+      btn.disabled = false; btn.textContent = label;
+    }
+  }
+
+  async function resetPassword(userId, email, btn) {
+    const secret = adminSecret(); if (!secret) return;
+    if (!confirm('Générer un NOUVEAU mot de passe pour « ' + email + ' » ?\nL\'ancien ne fonctionnera plus. Le nouveau s\'affichera pour que tu le transmettes.')) return;
+    const label = btn.textContent; btn.disabled = true; btn.textContent = '…';
+    try {
+      const res = await fetch(ADMIN_USERS_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+        body: JSON.stringify({ action: 'reset_password', user_id: userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const det = data.detail ? '\n\nDétail : ' + JSON.stringify(data.detail) : '';
+        alert('Renouvellement impossible : ' + (data.error || res.status) + det);
+        btn.disabled = false; btn.textContent = label; return;
+      }
+      // Affiche le nouveau mot de passe de façon persistante (à copier/transmettre).
+      window.prompt('✅ Nouveau mot de passe pour « ' + email + ' »\n(copie-le et transmets-le à l\'utilisateur) :', data.password);
+    } catch (e) {
+      alert('Erreur réseau : ' + e);
+    } finally {
+      btn.disabled = false; btn.textContent = label;
     }
   }
 
