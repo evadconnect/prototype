@@ -71,7 +71,6 @@
     } catch (e) {}
   }
 
-  // ── Suivi des messages lus (par id) pour le compteur de non-lus. ──
   // ── Repère de synchronisation : date du message le plus récent déjà reçu
   //    du serveur. Le rafraîchissement périodique ne redemande que ce qui est
   //    arrivé APRÈS, au lieu de retélécharger toute ma messagerie. ──
@@ -94,6 +93,23 @@
     try { return new Date(t - 120000).toISOString(); } catch (e) { return null; }
   }
 
+  // ── Conversations mises en favori : épinglées en haut de la boîte. ──
+  // Propre à l'appareil, comme les marqueurs « lu » : il n'y a pas encore de
+  // préférences utilisateur côté base.
+  var LS_FAV = 'evad:v1:msg-fav';
+  function favAll() {
+    try { return JSON.parse(global.localStorage.getItem(LS_FAV) || '[]') || []; } catch (e) { return []; }
+  }
+  function favSet(list) {
+    try { global.localStorage.setItem(LS_FAV, JSON.stringify(list.slice(-200))); } catch (e) {}
+  }
+  function favHas(threadId) { return favAll().indexOf(threadId) >= 0; }
+  function favForget(threadId) {
+    var l = favAll(), i = l.indexOf(threadId);
+    if (i >= 0) { l.splice(i, 1); favSet(l); }
+  }
+
+  // ── Suivi des messages lus (par id) pour le compteur de non-lus. ──
   var LS_SEEN = 'evad:v1:msg-seen';
   function seenAll() {
     try { return JSON.parse(global.localStorage.getItem(LS_SEEN) || '[]') || []; } catch (e) { return []; }
@@ -283,7 +299,7 @@
     +     '<div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--fern),var(--moss));display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">💬</div>'
     +     '<div style="flex:1;min-width:0"><div id="evad-msg-title" style="font-size:.86rem;font-weight:800;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>'
     +       '<div id="evad-msg-sub" style="font-size:.64rem;color:var(--moss);opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div></div>'
-    +     '<button onclick="evadDeleteThread()" aria-label="Supprimer la conversation" title="Supprimer la conversation" style="flex-shrink:0;background:none;border:none;font-size:1rem;color:var(--moss);opacity:.5;cursor:pointer;padding:0 .2rem">🗑</button>'
+    +     '<button id="evad-msg-fav" onclick="evadToggleFav()" style="flex-shrink:0;background:none;border:none;font-size:1rem;cursor:pointer;padding:0 .2rem;line-height:1"></button>'
     +     '<button onclick="evadCloseChat()" aria-label="Fermer" style="flex-shrink:0;background:none;border:none;font-size:1.2rem;color:var(--moss);opacity:.55;cursor:pointer">✕</button>'
     +   '</div>'
     +   '<div id="evad-msg-list" style="flex:1;min-height:0;overflow-y:auto;padding:1rem 1.1rem;background:rgba(46,102,66,.03);display:flex;flex-direction:column;gap:.5rem"></div>'
@@ -366,6 +382,7 @@
     var t = document.getElementById('evad-msg-title'); if (t) t.textContent = opts.title || 'Conversation';
     var s = document.getElementById('evad-msg-sub'); if (s) s.textContent = opts.sub || '';
     var back = document.getElementById('evad-msg-back'); if (back) back.style.display = opts.fromInbox ? 'block' : 'none';
+    _syncFavBtn();
     var inbox = document.getElementById('evad-inbox-modal'); if (inbox) inbox.style.display = 'none';
     document.getElementById('evad-msg-modal').style.display = 'block';
     var inp = document.getElementById('evad-msg-input'); if (inp) { inp.value = ''; setTimeout(function () { inp.focus(); }, 80); }
@@ -405,12 +422,40 @@
     _state.threadId = null;
   }
 
+  // ── Favori : épingle la conversation en haut de la boîte de réception. ──
+  // Sans argument : le fil actuellement ouvert.
+  function evadToggleFav(threadId) {
+    threadId = threadId || _state.threadId;
+    if (!threadId) return;
+    var list = favAll(), i = list.indexOf(threadId);
+    if (i >= 0) list.splice(i, 1); else list.push(threadId);
+    favSet(list);
+    _syncFavBtn();
+    if (typeof mmBubble === 'function') mmBubble(i >= 0 ? '☆ Retiré des favoris' : '⭐ Conversation mise en favori');
+    // Boîte ouverte derrière : on la retrie tout de suite.
+    var inbox = document.getElementById('evad-inbox-modal');
+    if (inbox && inbox.style.display === 'block') evadOpenInbox();
+  }
+
+  // Reflète l'état favori sur l'étoile de l'en-tête du fil ouvert.
+  function _syncFavBtn() {
+    var b = document.getElementById('evad-msg-fav');
+    if (!b) return;
+    var on = _state.threadId ? favHas(_state.threadId) : false;
+    b.textContent = on ? '⭐' : '☆';
+    b.style.opacity = on ? '1' : '.5';
+    var label = on ? 'Retirer des favoris' : 'Mettre en favori';
+    b.setAttribute('aria-label', label);
+    b.setAttribute('title', label);
+  }
+
   // Supprime une conversation entière : messages (Supabase + localStorage),
-  // registre du fil et marqueurs « vu ». Par défaut le fil ouvert.
+  // registre du fil, favori et marqueurs « vu ». Par défaut le fil ouvert.
   async function evadDeleteThread(threadId) {
     threadId = threadId || _state.threadId;
     if (!threadId) return;
     if (!global.confirm('Supprimer cette conversation ? Cette action est définitive.')) return;
+    favForget(threadId);
     // Supabase (best effort : la lecture/écriture est publique en bêta).
     if (global.evadSupabase) {
       try { await global.evadSupabase.from('messages').delete().eq('thread_id', threadId); } catch (e) {}
@@ -551,10 +596,15 @@
       return {
         threadId: tid, title: title, otherId: oId, otherRole: oRole,
         quete_id: last.quete_id || r.quete_id || null, lieu_id: last.lieu_id || r.lieu_id || null,
-        snippet: prefix + (last.text || ''), when: last.created_at, unread: unread
+        snippet: prefix + (last.text || ''), when: last.created_at, unread: unread,
+        fav: favHas(tid)
       };
     });
-    rows.sort(function (a, b) { return String(b.when).localeCompare(String(a.when)); });
+    // Favoris en tête, puis du plus récent au plus ancien.
+    rows.sort(function (a, b) {
+      if (a.fav !== b.fav) return a.fav ? -1 : 1;
+      return String(b.when).localeCompare(String(a.when));
+    });
     return rows;
   }
 
@@ -593,13 +643,28 @@
         ? '<span style="flex-shrink:0;min-width:18px;height:18px;padding:0 5px;border-radius:100px;background:#f07030;color:#fff;font-size:.6rem;font-weight:800;display:flex;align-items:center;justify-content:center">' + row.unread + '</span>'
         : '';
       var chip = row.otherRole ? '<span style="font-size:.56rem;color:var(--moss);opacity:.7;background:rgba(46,102,66,.08);border-radius:100px;padding:.05rem .4rem;flex-shrink:0">' + esc(roleLabel(row.otherRole)) + '</span>' : '';
-      return '<div onclick="evadInboxOpen(\'' + esc(row.threadId).replace(/'/g, "\\'") + '\')" style="display:flex;align-items:center;gap:.7rem;padding:.7rem .8rem;border-radius:12px;cursor:pointer;transition:background .12s" onmouseover="this.style.background=\'rgba(46,102,66,.06)\'" onmouseout="this.style.background=\'transparent\'">'
+      // L'identifiant du fil passe par un attribut data- : il peut contenir le
+      // nom de l'interlocuteur (apostrophes, espaces) et casserait un onclick
+      // construit par concaténation de chaînes.
+      var tid = esc(row.threadId);
+      var act = 'flex-shrink:0;background:none;border:none;cursor:pointer;padding:.25rem;line-height:1;font-size:.95rem;border-radius:8px';
+      var actions =
+          '<button data-tid="' + tid + '" onclick="event.stopPropagation();evadToggleFav(this.getAttribute(\'data-tid\'))" '
+        +   'aria-label="' + (row.fav ? 'Retirer des favoris' : 'Mettre en favori') + '" title="' + (row.fav ? 'Retirer des favoris' : 'Mettre en favori') + '" '
+        +   'style="' + act + ';opacity:' + (row.fav ? '1' : '.45') + '">' + (row.fav ? '⭐' : '☆') + '</button>'
+        + '<button data-tid="' + tid + '" onclick="event.stopPropagation();evadDeleteThread(this.getAttribute(\'data-tid\'))" '
+        +   'aria-label="Supprimer la conversation" title="Supprimer la conversation" '
+        +   'style="' + act + ';opacity:.4;color:var(--moss)">🗑</button>';
+      return '<div data-tid="' + tid + '" onclick="evadInboxOpen(this.getAttribute(\'data-tid\'))" style="display:flex;align-items:center;gap:.6rem;padding:.7rem .5rem .7rem .8rem;border-radius:12px;cursor:pointer;transition:background .12s' + (row.fav ? ';background:rgba(240,176,50,.07)' : '') + '" onmouseover="this.style.background=\'rgba(46,102,66,.06)\'" onmouseout="this.style.background=\'' + (row.fav ? 'rgba(240,176,50,.07)' : 'transparent') + '\'">'
         + '<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--fern),var(--moss));color:#fff;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800;flex-shrink:0">' + esc(av) + '</div>'
         + '<div style="flex:1;min-width:0">'
         +   '<div style="display:flex;align-items:center;gap:.4rem"><span style="font-size:.82rem;font-weight:' + (row.unread ? '800' : '600') + ';color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(row.title) + '</span>' + chip + '</div>'
         +   '<div style="font-size:.68rem;color:var(--moss);opacity:' + (row.unread ? '.9' : '.6') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:.1rem">' + esc(row.snippet) + '</div>'
         + '</div>'
-        + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;flex-shrink:0"><span style="font-size:.55rem;color:var(--moss);opacity:.55">' + esc(relTime(row.when)) + '</span>' + badge + '</div>'
+        + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:.15rem;flex-shrink:0">'
+        +   '<span style="font-size:.55rem;color:var(--moss);opacity:.55">' + esc(relTime(row.when)) + '</span>'
+        +   '<div style="display:flex;align-items:center;gap:.1rem">' + badge + actions + '</div>'
+        + '</div>'
         + '</div>';
     }).join('');
   }
@@ -617,7 +682,7 @@
     // l'utilisateur attend une liste juste (et le cache local se reconstitue).
     var rows = await evadLoadInbox();
     _inboxRows = {}; rows.forEach(function (r) { _inboxRows[r.threadId] = r; });
-    _inboxSig = rows.map(function (r) { return r.threadId + '|' + r.when + '|' + r.unread; }).join('#');
+    _inboxSig = rows.map(function (r) { return r.threadId + '|' + r.when + '|' + r.unread + '|' + (r.fav ? 1 : 0); }).join('#');
     renderInbox(rows);
   }
   function evadCloseInbox() {
@@ -679,7 +744,7 @@
     var inbox = document.getElementById('evad-inbox-modal');
     if (inbox && inbox.style.display === 'block') {
       var rows = await evadLoadInbox(opts);
-      var sig = rows.map(function (r) { return r.threadId + '|' + r.when + '|' + r.unread; }).join('#');
+      var sig = rows.map(function (r) { return r.threadId + '|' + r.when + '|' + r.unread + '|' + (r.fav ? 1 : 0); }).join('#');
       if (sig !== _inboxSig) {
         _inboxSig = sig;
         _inboxRows = {}; rows.forEach(function (r) { _inboxRows[r.threadId] = r; });
@@ -754,6 +819,7 @@
   global.evadOpenChat = evadOpenChat;
   global.evadCloseChat = evadCloseChat;
   global.evadDeleteThread = evadDeleteThread;
+  global.evadToggleFav = evadToggleFav;
   global.evadSendChat = evadSendChat;
   global.evadLoadOlder = evadLoadOlder;
   global.evadChatThreadQuete = evadChatThreadQuete;
