@@ -212,7 +212,13 @@
         body: JSON.stringify({ action: 'delete_user', user_id: userId }),
       });
       const data = await res.json();
-      if (!res.ok) { alert('Erreur : ' + (data.error || res.status)); btn.disabled = false; btn.textContent = '🗑 Supprimer'; return; }
+      if (!res.ok) {
+        // Affiche le détail (contrainte FK, code HTTP…) pour diagnostiquer.
+        const det = data.detail ? '\n\nDétail : ' + JSON.stringify(data.detail) : '';
+        alert('Suppression impossible : ' + (data.error || res.status) + det);
+        console.error('delete_user', data);
+        btn.disabled = false; btn.textContent = '🗑 Supprimer'; return;
+      }
       // Mémorise l'id supprimé : il sera filtré à chaque rendu, même si la liste
       // d'auth le renvoie encore (cache/latence juste après la suppression).
       _deletedIds.add(userId);

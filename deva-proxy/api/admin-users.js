@@ -142,20 +142,31 @@ export default async function handler(req, res) {
       const userId = String(body.user_id || '').trim();
       if (!userId) return res.status(400).json({ error: 'user_id manquant' });
 
-      // 1) Supprime les fiches du compte (best effort : la cascade auth ne couvre
-      //    pas toutes les tables selon leur contrainte user_id).
+      // 1) Supprime TOUTES les données liées au compte AVANT de supprimer le
+      //    compte : une seule contrainte FK non-cascade (référençant auth.users)
+      //    suffirait à faire échouer la suppression du compte. On couvre large.
       const flt = '?user_id=eq.' + encodeURIComponent(userId);
-      for (const t of ['fiche_pilote', 'fiche_batisseur', 'fiche_semeur', 'fiches_brouillons']) {
-        try { await sb('/rest/v1/' + t + flt, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }); } catch (e) {}
+      const tables = [
+        'lieu_quetes', 'lieu_solutions', 'lieu_indicateurs',
+        'quete_preuves', 'quete_candidatures', 'financements',
+        'graines_tx', 'mkt_transactions', 'offres_mkt',
+        'fiche_pilote', 'fiche_batisseur', 'fiche_semeur', 'fiches_brouillons',
+      ];
+      const purge = [];
+      for (const t of tables) {
+        try {
+          const r = await sb('/rest/v1/' + t + flt, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
+          if (!r.ok && r.status !== 404) { let d; try { d = await r.json(); } catch (e) {} purge.push({ table: t, http: r.status, detail: d }); }
+        } catch (e) { purge.push({ table: t, error: String(e) }); }
       }
 
-      // 2) Supprime le compte d'authentification.
+      // 2) Supprime le compte d'authentification (hard delete).
       const delRes = await sb('/auth/v1/admin/users/' + encodeURIComponent(userId), { method: 'DELETE' });
       if (!delRes.ok) {
         let detail; try { detail = await delRes.json(); } catch (e) { detail = null; }
-        return res.status(500).json({ error: 'Suppression du compte impossible', http: delRes.status, detail });
+        return res.status(500).json({ error: 'Suppression du compte impossible', http: delRes.status, detail, purge });
       }
-      return res.status(200).json({ ok: true, deleted: userId });
+      return res.status(200).json({ ok: true, deleted: userId, purge });
     }
 
     return res.status(400).json({ error: 'Action inconnue : ' + action });
