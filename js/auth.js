@@ -80,6 +80,79 @@ async function homeLoginSubmit(){
   }, btn, 'Se connecter');
 }
 
+// ── Mot de passe oublié : envoi de l'email de réinitialisation Supabase ──
+async function homeForgotPassword(){
+  const email = (document.getElementById('home-email').value || '').trim();
+  const errEl = document.getElementById('home-login-error');
+  const show = function (msg, ok) {
+    if (!errEl) return;
+    errEl.textContent = msg;
+    errEl.style.color = ok ? '#018262' : '#a83232';
+    errEl.style.display = 'block';
+  };
+  if (!email) return show('Saisis d\'abord ton adresse email ci-dessus, puis clique sur « Mot de passe oublié ».');
+  const client = window.evadSupabase;
+  if (!client) return show('Connexion indisponible, réessaie dans un instant.');
+  const btn = document.getElementById('home-forgot-btn');
+  if (btn) { btn.disabled = true; btn.style.opacity = '.6'; }
+  try {
+    const r = await client.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname });
+    if (r.error) throw r.error;
+    show('📩 Email de réinitialisation envoyé à ' + email + '. Vérifie ta boîte (et les spams).', true);
+  } catch (e) {
+    show(e.message || 'Impossible d\'envoyer l\'email pour l\'instant.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+  }
+}
+
+// ── Retour depuis l'email : Supabase émet PASSWORD_RECOVERY → on propose de
+//    définir un nouveau mot de passe (petit formulaire en surimpression). ──
+function evadShowResetForm(){
+  let w = document.getElementById('evad-reset-modal');
+  if (w) { w.style.display = 'flex'; return; }
+  w = document.createElement('div');
+  w.id = 'evad-reset-modal';
+  w.style.cssText = "position:fixed;inset:0;z-index:100060;display:flex;align-items:center;justify-content:center;background:rgba(13,43,34,.55);backdrop-filter:blur(4px);font-family:'Satoshi',sans-serif";
+  w.innerHTML =
+      '<div style="background:#fff;border-radius:20px;padding:1.6rem 1.5rem;max-width:380px;width:calc(100% - 2rem);box-shadow:0 24px 60px rgba(0,0,0,.32)">'
+    +   '<div style="font-size:1.05rem;font-weight:800;color:#0d2b22;margin-bottom:.3rem">🔑 Nouveau mot de passe</div>'
+    +   '<div style="font-size:.78rem;color:#3d6b5a;margin-bottom:1rem">Choisis un nouveau mot de passe (6 caractères minimum).</div>'
+    +   '<input id="evad-reset-pw" type="password" placeholder="Nouveau mot de passe" autocomplete="new-password" onkeydown="if(event.key===\'Enter\')evadDoPasswordReset()" style="width:100%;box-sizing:border-box;padding:.8rem 1rem;border:1.5px solid rgba(1,130,98,.2);border-radius:.7rem;font-size:.9rem;color:#0d2b22;outline:none">'
+    +   '<div id="evad-reset-error" style="display:none;font-size:.75rem;margin-top:.55rem"></div>'
+    +   '<button onclick="evadDoPasswordReset()" style="width:100%;margin-top:.9rem;padding:.85rem;border:none;border-radius:100px;background:#018262;color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit">Valider</button>'
+    + '</div>';
+  document.body.appendChild(w);
+  setTimeout(function () { const i = document.getElementById('evad-reset-pw'); if (i) i.focus(); }, 80);
+}
+async function evadDoPasswordReset(){
+  const pw = (document.getElementById('evad-reset-pw').value || '');
+  const errEl = document.getElementById('evad-reset-error');
+  const show = function (msg, ok) { if (errEl) { errEl.textContent = msg; errEl.style.color = ok ? '#018262' : '#a83232'; errEl.style.display = 'block'; } };
+  if (pw.length < 6) return show('6 caractères minimum.');
+  const client = window.evadSupabase;
+  if (!client) return show('Connexion indisponible.');
+  try {
+    const r = await client.auth.updateUser({ password: pw });
+    if (r.error) throw r.error;
+    show('✅ Mot de passe mis à jour. Tu peux te reconnecter.', true);
+    setTimeout(function () { const m = document.getElementById('evad-reset-modal'); if (m) m.style.display = 'none'; }, 1600);
+  } catch (e) { show(e.message || 'Échec de la mise à jour.'); }
+}
+// Branche l'écoute de l'événement de récupération dès que Supabase est prêt.
+(function hookRecovery(){
+  try {
+    if (window.evadSupabase && window.evadSupabase.auth && !window.__evadResetHooked) {
+      window.__evadResetHooked = true;
+      window.evadSupabase.auth.onAuthStateChange(function (event) {
+        if (event === 'PASSWORD_RECOVERY') evadShowResetForm();
+      });
+      return;
+    }
+  } catch (e) {}
+  setTimeout(hookRecovery, 400);
+})();
+
 // ── Multi-profil : profils autorisés du compte + sélecteur + switcher ──
 const EVAD_ROLE_META = {
   pilote:    { ic:'🏡', name:"Pilote d'impact",    desc:"Coordonner un lieu durable." },
