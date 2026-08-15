@@ -38,6 +38,7 @@ function _reseauRowToPost(row){
     id: row.id,
     profile: row.profile,
     author: row.author,
+    author_id: row.author_id || null,
     lieu: row.lieu,
     time: reseauRelTime(row.created_at),
     type: row.type,
@@ -47,6 +48,40 @@ function _reseauRowToPost(row){
     quest: row.quest || null,
     img: row.img || null
   };
+}
+
+// Id de fiche de l'auteur d'un post : c'est lui qui sert à ouvrir la
+// conversation. Les posts publiés avant l'ajout de la colonne author_id n'en
+// ont pas : on retrouve alors la fiche par son nom dans le store.
+function _reseauAuthorId(p){
+  if(p.author_id) return p.author_id;
+  const nom = (p.author || '').trim();
+  if(!nom || !window.store) return null;
+  try {
+    if(p.profile === 'batisseur'){
+      const m = store.all('batisseurs').find(r =>
+        ((r.prenom || '') + ' ' + (r.nom || '')).trim() === nom || (r.prenom || '').trim() === nom);
+      return m ? m.id : null;
+    }
+    if(p.profile === 'semeur'){
+      const m = store.all('semeurs').find(r => (r.nom || '').trim() === nom);
+      return m ? m.id : null;
+    }
+    const m = store.all('lieux').find(r => (r.nom || '').trim() === nom);
+    return m ? m.id : null;
+  } catch(e){ return null; }
+}
+
+// Insertion d'un post, tolérante à la colonne author_id manquante (tant que
+// supabase-reseau-author-id.sql n'a pas été exécuté sur le projet).
+async function _reseauInsertPost(row){
+  let r = await window.evadSupabase.from('reseau_posts').insert(row).select().single();
+  if(r.error && row.author_id && /author_id/.test(r.error.message || '')){
+    const fallback = Object.assign({}, row);
+    delete fallback.author_id;
+    r = await window.evadSupabase.from('reseau_posts').insert(fallback).select().single();
+  }
+  return r;
 }
 
 // Charge les posts existants depuis Supabase et remplace le fil local.
@@ -195,8 +230,14 @@ async function reseauPublish(){
   if(!titre && !message){ mmBubble('✍️ Ajoute au moins un titre ou un message'); return; }
   const role = (typeof currentRole !== 'undefined' && currentRole) ? currentRole : 'pilote';
   const isQuete = reseauFormType === 'quete';
+  // Auteur réel : sans lui, tous les posts s'affichaient « Toi » et le bouton
+  // « Échanger » ouvrait la même conversation pour toute la communauté.
+  const meChat = (typeof evadChatMe === 'function') ? evadChatMe() : null;
   const post = {
-    profile: role, author: 'Toi', lieu: lieu || '-', time: 'à l\'instant',
+    profile: role,
+    author: (meChat && meChat.nom) || 'Toi',
+    author_id: (meChat && meChat.id) || null,
+    lieu: lieu || '-', time: 'à l\'instant',
     type: isQuete ? 'quete' : 'rencontre', regen: reseauFormRegen,
     text: message || titre,
     cta: isQuete ? 'Rejoindre la quête' : 'Proposer un créneau',
@@ -224,11 +265,11 @@ async function reseauPublish(){
       catch(e){ console.error('Upload photo réseau échoué :', e); } // on continue sans image plutôt que bloquer le post
     }
     const row = {
-      profile: post.profile, author: post.author, lieu: post.lieu,
+      profile: post.profile, author: post.author, author_id: post.author_id || null, lieu: post.lieu,
       type: post.type, regen: post.regen, text: post.text, cta: post.cta,
       quest: post.quest || null, img: imgUrl
     };
-    const { data, error } = await window.evadSupabase.from('reseau_posts').insert(row).select().single();
+    const { data, error } = await _reseauInsertPost(row);
     if(error) throw error;
     // Remplace le post optimiste par la version confirmée (id réel + image définitive).
     const idx = RESEAU_POSTS.indexOf(post);
@@ -246,11 +287,11 @@ async function reseauPersistPost(post){
   if(!window.evadSupabase) return;
   try {
     const row = {
-      profile: post.profile, author: post.author, lieu: post.lieu,
+      profile: post.profile, author: post.author, author_id: post.author_id || null, lieu: post.lieu,
       type: post.type, regen: post.regen, text: post.text, cta: post.cta,
       quest: post.quest || null, img: post.img || null
     };
-    const { data, error } = await window.evadSupabase.from('reseau_posts').insert(row).select().single();
+    const { data, error } = await _reseauInsertPost(row);
     if(error) throw error;
     // Remplace la version optimiste par la ligne confirmée (id + horodatage réels).
     const idx = RESEAU_POSTS.indexOf(post);
@@ -280,11 +321,16 @@ function renderReseau(){
     (reseauRegenFilter==='tout' || p.regen===reseauRegenFilter) &&
     (!reseauProx || RESEAU_NEAR.includes(p.lieu))
   );
+  // Mes identifiants : sert à ne pas proposer « Échanger » sur mes propres posts.
+  const myIds = (typeof evadChatMe === 'function') ? (evadChatMe().ids || []) : [];
+  const rq = s => String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   const typeChip = t => t==='quete'
     ? '<span style="font-size:.62rem;font-weight:700;color:#a06c00;background:rgba(240,176,50,.16);border-radius:100px;padding:.18rem .55rem">⚡ Quête</span>'
     : '<span style="font-size:.62rem;font-weight:700;color:#2563a8;background:rgba(59,130,180,.14);border-radius:100px;padding:.18rem .55rem">🤝 Rencontre</span>';
   feed.innerHTML = posts.map(p=>{
     const pr = RESEAU_PROFILS[p.profile];
+    const authorId = _reseauAuthorId(p);
+    const authorIsMe = authorId && myIds.indexOf(authorId) >= 0;
     const questCard = p.quest ? `
       <div style="border:1px solid rgba(240,176,50,.3);background:rgba(240,176,50,.06);border-radius:12px;padding:.7rem .85rem;margin:.7rem 0;display:flex;align-items:center;gap:.7rem">
         <div style="font-size:1.3rem">⚡</div>
@@ -320,7 +366,7 @@ function renderReseau(){
       <div style="font-size:.8rem;color:var(--ink);line-height:1.5">${p.text}</div>
       ${questCard}${imgCard}${matchBox}
       <div style="display:flex;align-items:center;gap:.6rem;margin-top:.8rem;padding-top:.7rem;border-top:1px solid rgba(46,102,66,.08)">
-        <button onclick="evadStartChat({id:'user:${(p.author||'').replace(/'/g,"\\'")}',nom:'${(p.author||'').replace(/'/g,"\\'")}',role:'${p.profile||''}',lieu_id:'${(p.lieu||'').replace(/'/g,"\\'")}'})" style="background:white;border:1px solid rgba(46,102,66,.25);color:var(--forest);border-radius:100px;padding:.4rem .9rem;font-size:.72rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:.35rem">💬 Échanger</button>
+        ${authorIsMe ? '' : `<button onclick="evadStartChat({id:'${rq(authorId)}',nom:'${rq(p.author)}',role:'${rq(p.profile)}'})" style="background:white;border:1px solid rgba(46,102,66,.25);color:var(--forest);border-radius:100px;padding:.4rem .9rem;font-size:.72rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:.35rem">💬 Échanger</button>`}
         <button onclick="evadGoLieu('${(p.author||'').replace(/'/g,"\\'")}','${(p.lieu||'').replace(/'/g,"\\'")}')" style="background:white;border:1px solid rgba(46,102,66,.25);color:var(--forest);border-radius:100px;padding:.4rem .9rem;font-size:.72rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:.35rem">🗺 Voir le lieu</button>
         <button onclick="${p.type === 'quete' && p.quest
           ? `reseauJoinQuete('${String(p.quest.id || '').replace(/'/g, "\\'")}','${String(p.quest.titre || '').replace(/'/g, "\\'")}')`

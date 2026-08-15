@@ -4,6 +4,10 @@
    - Repli : localStorage (fonctionne hors-ligne / avant exécution du SQL),
      sans temps réel mais sans perte de la conversation locale.
    Ouverture : evadOpenChat(threadId, { title, sub, quete_id, lieu_id, dest_id }).
+
+   Identité (voir evadChatMe plus bas) : un membre est TOUJOURS désigné par
+   l'id stable de sa fiche Supabase, jamais par son nom. Les appelants
+   (evadMsgBtn / evadStartChat) doivent donc passer { id: <id de la fiche> }.
 */
 (function (global) {
   'use strict';
@@ -82,27 +86,109 @@
     } catch (e) {}
   }
 
-  // Identité de l'utilisateur courant (selon son rôle).
+  // ── Identité : UN seul format d'identifiant, partagé par les deux côtés ──
+  // Règle : un membre est désigné par l'id STABLE de sa fiche (l'uuid
+  // Supabase), que cet id soit lu depuis « moi » (evadChatMe) ou depuis la
+  // fiche de quelqu'un d'autre (evadMsgBtn / evadStartChat).
+  // Avant ce correctif, « moi » valait l'uuid mais les autres m'écrivaient à
+  // « bat:<mon nom> » : les deux côtés ne calculaient pas le même thread_id,
+  // le destinataire ne voyait jamais le message et son badge restait à zéro.
+  //
   // NB : currentRole / myLieuData / batFicheData / semFicheData sont des
   // bindings lexicaux de haut niveau (let dans app-core), PAS des propriétés
-  // de window — on les lit par nom nu, pas via global.
+  // de window — on les lit par nom nu, pas via global. Un `let` pas encore
+  // initialisé fait lever `typeof` (zone morte temporelle), d'où les try.
+  function _myRole() { try { return (typeof currentRole !== 'undefined' && currentRole) ? currentRole : 'batisseur'; } catch (e) { return 'batisseur'; } }
+  function _myLieu() { try { return (typeof myLieuData !== 'undefined' && myLieuData) ? myLieuData : null; } catch (e) { return null; } }
+  function _myBat()  { try { return (typeof batFicheData !== 'undefined' && batFicheData) ? batFicheData : null; } catch (e) { return null; } }
+  function _mySem()  { try { return (typeof semFicheData !== 'undefined' && semFicheData) ? semFicheData : null; } catch (e) { return null; } }
+  function _lsGet(k) { try { return global.localStorage.getItem(k) || null; } catch (e) { return null; } }
+
+  // Noms génériques : ils désignaient tout le monde à la fois dans l'ancien
+  // format « bat:<nom> ». On ne les reprend jamais comme identité, sinon deux
+  // inconnus partageraient la même boîte de réception.
+  var GENERIC_NAMES = {
+    'toi': 1, 'moi': 1, 'membre': 1, 'pilote': 1, 'semeur': 1, 'financeur': 1,
+    'batisseur': 1, 'bâtisseur': 1, 'ce lieu': 1, 'lieu': 1, 'conversation': 1,
+    "bâtisseur d'impact": 1, 'contact organisation': 1
+  };
+
+  // Identifiant d'un interlocuteur : l'id de sa fiche. Repli sur son nom
+  // uniquement pour les fiches de démonstration, qui n'ont pas d'id.
+  function _peerId(target) {
+    target = target || {};
+    var id = (target.id == null ? '' : String(target.id)).trim();
+    if (id) return id;
+    var nom = (target.nom == null ? '' : String(target.nom)).trim();
+    return nom ? 'nom:' + nom : '';
+  }
+
+  // Tous MES identifiants. Deux raisons d'en avoir plusieurs :
+  //  1. je peux tenir plusieurs rôles (pilote d'un lieu ET bâtisseur) : ma
+  //     boîte doit tout montrer, quel que soit le rôle actif ;
+  //  2. les anciens identifiants par nom sont conservés, sinon les
+  //     conversations reçues avant ce correctif resteraient invisibles.
+  function evadChatIds(primary) {
+    var out = [], seen = {};
+    function push(v) {
+      v = (v == null ? '' : String(v)).trim();
+      if (v && !seen[v]) { seen[v] = 1; out.push(v); }
+    }
+    function pushLegacy(prefixes, names) {
+      names.forEach(function (n) {
+        n = (n == null ? '' : String(n)).trim();
+        if (!n || GENERIC_NAMES[n.toLowerCase()]) return;
+        prefixes.forEach(function (p) { push(p + n); });
+      });
+    }
+    push(primary);
+    var lieu = _myLieu(), bat = _myBat(), sem = _mySem();
+    if (lieu) { push(lieu.id); pushLegacy(['lieu:', 'user:', 'm:', 'nom:'], [lieu.nom]); }
+    if (bat) {
+      push(bat.id); push(_lsGet('evad:batisseur-id'));
+      pushLegacy(['bat:', 'user:', 'm:', 'nom:'], [bat.prenom, ((bat.prenom || '') + ' ' + (bat.nom || '')).trim()]);
+    }
+    if (sem) {
+      push(sem.id); push(_lsGet('evad:semeur-id'));
+      pushLegacy(['sem:', 'user:', 'm:', 'nom:'], [sem.nom]);
+    }
+    return out;
+  }
+
+  // Id de repli quand aucune fiche n'existe encore : stable pour ce
+  // navigateur, jamais partagé (l'ancien repli était la chaîne « pilote »,
+  // commune à tous les pilotes du prototype).
+  function _anonId() {
+    var v = _lsGet('evad:chat-anon-id');
+    if (!v) { v = 'anon-' + uuid(); try { global.localStorage.setItem('evad:chat-anon-id', v); } catch (e) {} }
+    return v;
+  }
+
+  // Identité de l'utilisateur courant (selon son rôle actif).
   function evadChatMe() {
-    var role = (typeof currentRole !== 'undefined' && currentRole) ? currentRole : 'batisseur';
-    var id = null, nom = null;
+    var role = _myRole(), id = null, nom = null;
+    var lieu = _myLieu(), bat = _myBat(), sem = _mySem();
     try {
       if (role === 'pilote') {
-        id = (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.id) || 'pilote';
-        nom = (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom) || 'Pilote';
+        id = (lieu && lieu.id) || null;
+        nom = (lieu && lieu.nom) || 'Pilote';
       } else if (role === 'semeur') {
-        id = (typeof _currentSemeurId === 'function') ? _currentSemeurId() : 'semeur';
-        nom = (typeof semFicheData !== 'undefined' && semFicheData && semFicheData.nom) || 'Semeur';
+        id = ((typeof _currentSemeurId === 'function') ? _currentSemeurId() : null) || (sem && sem.id) || null;
+        nom = (sem && sem.nom) || 'Semeur';
       } else {
-        id = (typeof _currentBatisseurId === 'function') ? _currentBatisseurId() : 'batisseur';
-        var p = (typeof batFicheData !== 'undefined' && batFicheData) ? batFicheData : {};
-        nom = ((p.prenom || '') + ' ' + (p.nom || '')).trim() || 'Bâtisseur';
+        id = ((typeof _currentBatisseurId === 'function') ? _currentBatisseurId() : null) || (bat && bat.id) || null;
+        nom = (((bat && bat.prenom) || '') + ' ' + ((bat && bat.nom) || '')).trim() || 'Bâtisseur';
       }
-    } catch (e) { id = id || 'anon'; }
-    return { role: role, id: id, nom: nom };
+    } catch (e) {}
+    if (!id) id = _anonId();
+    return { role: role, id: id, nom: nom, ids: evadChatIds(id) };
+  }
+
+  // Table de mes identifiants, pour tester « ce message est-il de moi ? ».
+  function _mineSet(me) {
+    var s = {};
+    ((me && me.ids && me.ids.length) ? me.ids : [me && me.id]).forEach(function (i) { if (i) s[i] = 1; });
+    return s;
   }
 
   // Fil déterministe Pilote ↔ Bâtisseur autour d'une quête.
@@ -110,10 +196,21 @@
     return 'q:' + (queteId || 'x') + ':' + (batisseurId || 'x');
   }
 
-  // Fil de discussion directe entre deux membres (indépendant de qui l'ouvre).
+  // Fil de discussion directe entre deux membres. Le tri rend la clé
+  // identique des deux côtés, à condition que chacun désigne l'autre par le
+  // même identifiant : c'est tout l'enjeu de evadChatMe / _peerId ci-dessus.
   function evadChatDmThread(aId, bId) {
     var a = String(aId || 'x'), b = String(bId || 'x');
     return 'dm:' + [a, b].sort().join('|');
+  }
+
+  // Retrouve l'interlocuteur à partir de la clé d'un fil direct : des deux
+  // moitiés de « dm:<a>|<b> », celle qui n'est pas moi.
+  function _dmOther(threadId, mine) {
+    if (!threadId || String(threadId).slice(0, 3) !== 'dm:') return null;
+    var parts = String(threadId).slice(3).split('|');
+    for (var i = 0; i < parts.length; i++) { if (parts[i] && !mine[parts[i]]) return parts[i]; }
+    return null;
   }
 
   // ── Chargement des messages d'un fil : union distant ∪ local. ──
@@ -162,19 +259,20 @@
     var list = document.getElementById('evad-msg-list');
     if (!list) return;
     var me = _state.meta ? _state.meta.me : evadChatMe();
+    var mine = _mineSet(me);
     if (!msgs.length) {
       list.innerHTML = '<div style="margin:auto;text-align:center;color:var(--moss);opacity:.6;font-size:.75rem;padding:1.5rem">Aucun message pour l\'instant.<br>Écris le premier 👇</div>';
       return;
     }
     list.innerHTML = msgs.map(function (m) {
-      var mine = m.author_id === me.id;
-      var bubble = mine
+      var isMine = !!mine[m.author_id];
+      var bubble = isMine
         ? 'align-self:flex-end;background:var(--forest);color:#fff;border-radius:14px 14px 4px 14px'
         : 'align-self:flex-start;background:#fff;color:var(--ink);border:1px solid rgba(46,102,66,.14);border-radius:14px 14px 14px 4px';
-      var meta = mine
+      var meta = isMine
         ? '<div style="font-size:.55rem;color:var(--moss);opacity:.55;text-align:right;margin-top:.15rem">' + esc(relTime(m.created_at)) + '</div>'
         : '<div style="font-size:.55rem;color:var(--moss);opacity:.6;margin-top:.15rem">' + esc(m.author_nom || 'Membre') + ' · ' + esc(relTime(m.created_at)) + '</div>';
-      return '<div style="max-width:80%;' + (mine ? 'align-self:flex-end' : 'align-self:flex-start') + '">'
+      return '<div style="max-width:80%;' + (isMine ? 'align-self:flex-end' : 'align-self:flex-start') + '">'
         + '<div style="' + bubble + ';padding:.5rem .7rem;font-size:.8rem;line-height:1.45;white-space:pre-wrap;word-break:break-word">' + esc(m.text) + '</div>'
         + meta + '</div>';
     }).join('');
@@ -301,6 +399,8 @@
   // attribut data- (robuste aux apostrophes/guillemets dans les noms).
   function evadMsgBtn(target, opts) {
     opts = opts || {};
+    // Pas de bouton sur ma propre fiche : on ne s'écrit pas à soi-même.
+    if (_mineSet(evadChatMe())[_peerId(target)]) return '';
     var attr = JSON.stringify(target || {}).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
     var style = 'background:' + (opts.bg || 'var(--forest)') + ';color:#fff;margin-top:' + (opts.mt || '.5rem');
     return '<button class="acteur-cta" style="' + style + '" data-evadmsg="' + attr + '" '
@@ -310,26 +410,33 @@
 
   // ── Tous les messages où je suis impliqué (auteur OU destinataire). ──
   async function _myMessages() {
-    var me = evadChatMe();
+    var me = evadChatMe(), mine = _mineSet(me);
+    var ids = Object.keys(mine);
     var byId = {};
-    if (global.evadSupabase) {
+    if (global.evadSupabase && ids.length) {
+      // Deux requêtes `in` plutôt qu'un `or` : les anciens identifiants
+      // contiennent des noms (espaces, apostrophes, virgules) qui casseraient
+      // la syntaxe d'un filtre `or` construit à la main.
       try {
-        var r = await global.evadSupabase.from('messages').select('*')
-          .or('author_id.eq.' + me.id + ',dest_id.eq.' + me.id)
-          .order('created_at', { ascending: true });
-        if (!r.error && Array.isArray(r.data)) r.data.forEach(function (m) { byId[m.id] = m; lsUpsert(m); });
+        var res = await Promise.all([
+          global.evadSupabase.from('messages').select('*').in('author_id', ids),
+          global.evadSupabase.from('messages').select('*').in('dest_id', ids)
+        ]);
+        res.forEach(function (r) {
+          if (!r.error && Array.isArray(r.data)) r.data.forEach(function (m) { byId[m.id] = m; lsUpsert(m); });
+        });
       } catch (e) {}
     }
     // Complète / repli avec le local.
     lsAll().forEach(function (m) {
-      if (!byId[m.id] && (m.author_id === me.id || m.dest_id === me.id)) byId[m.id] = m;
+      if (!byId[m.id] && (mine[m.author_id] || mine[m.dest_id])) byId[m.id] = m;
     });
-    return { me: me, msgs: Object.keys(byId).map(function (k) { return byId[k]; }) };
+    return { me: me, mine: mine, msgs: Object.keys(byId).map(function (k) { return byId[k]; }) };
   }
 
   // Regroupe mes messages par fil → une ligne d'inbox par conversation.
   async function evadLoadInbox() {
-    var data = await _myMessages(), me = data.me;
+    var data = await _myMessages(), me = data.me, mine = data.mine;
     var seenSet = {}; seenAll().forEach(function (i) { seenSet[i] = 1; });
     var reg = threadsAll();
     var threads = {};
@@ -342,15 +449,25 @@
       var t = threads[tid];
       t.msgs.sort(function (a, b) { return String(a.created_at).localeCompare(String(b.created_at)); });
       var last = t.msgs[t.msgs.length - 1];
-      var unread = t.msgs.filter(function (m) { return m.dest_id === me.id && !seenSet[m.id]; }).length;
+      var unread = t.msgs.filter(function (m) { return mine[m.dest_id] && !mine[m.author_id] && !seenSet[m.id]; }).length;
       // Nom de l'interlocuteur : dernier auteur ≠ moi, sinon le registre, sinon générique.
       var otherMsg = null;
-      for (var i = t.msgs.length - 1; i >= 0; i--) { if (t.msgs[i].author_id !== me.id) { otherMsg = t.msgs[i]; break; } }
+      for (var i = t.msgs.length - 1; i >= 0; i--) { if (!mine[t.msgs[i].author_id]) { otherMsg = t.msgs[i]; break; } }
       var r = reg[tid] || {};
       var title = (otherMsg && otherMsg.author_nom) || r.title || 'Conversation';
       var oRole = (otherMsg && otherMsg.author_role) || r.otherRole || null;
-      var oId = (otherMsg && otherMsg.author_id) || r.otherId || null;
-      var prefix = last.author_id === me.id ? 'Toi : ' : '';
+      // L'id de l'interlocuteur, dans l'ordre : le dernier message reçu, le
+      // destinataire d'un message que j'ai envoyé, le registre local, enfin la
+      // clé du fil elle-même (dm:<a>|<b>) — ce dernier repli permet de
+      // répondre depuis un autre appareil, sans registre en localStorage.
+      var oId = (otherMsg && otherMsg.author_id) || null;
+      if (!oId) {
+        for (var j = t.msgs.length - 1; j >= 0; j--) {
+          if (mine[t.msgs[j].author_id] && t.msgs[j].dest_id && !mine[t.msgs[j].dest_id]) { oId = t.msgs[j].dest_id; break; }
+        }
+      }
+      if (!oId) oId = r.otherId || _dmOther(tid, mine) || null;
+      var prefix = mine[last.author_id] ? 'Toi : ' : '';
       return {
         threadId: tid, title: title, otherId: oId, otherRole: oRole,
         quete_id: last.quete_id || r.quete_id || null, lieu_id: last.lieu_id || r.lieu_id || null,
@@ -439,7 +556,15 @@
   function evadStartChat(target) {
     target = target || {};
     var me = evadChatMe();
-    var otherId = target.id || ('m:' + (target.nom || 'membre'));
+    var otherId = _peerId(target);
+    if (!otherId) {
+      if (typeof mmBubble === 'function') mmBubble('Cette fiche n\'a pas encore de contact joignable 🍃');
+      return;
+    }
+    if (_mineSet(me)[otherId]) {
+      if (typeof mmBubble === 'function') mmBubble('C\'est ta propre fiche 🙂');
+      return;
+    }
     var tid = evadChatDmThread(me.id, otherId);
     var opts = {
       title: target.nom || 'Conversation',
@@ -455,9 +580,9 @@
   var _unread = 0;
   async function evadRefreshUnread() {
     try {
-      var data = await _myMessages(), me = data.me;
+      var data = await _myMessages(), mine = data.mine;
       var seenSet = {}; seenAll().forEach(function (i) { seenSet[i] = 1; });
-      _unread = data.msgs.filter(function (m) { return m.dest_id === me.id && m.author_id !== me.id && !seenSet[m.id]; }).length;
+      _unread = data.msgs.filter(function (m) { return mine[m.dest_id] && !mine[m.author_id] && !seenSet[m.id]; }).length;
     } catch (e) { _unread = _unread || 0; }
     var b = document.getElementById('evad-msg-unread-badge');
     if (b) {
@@ -475,27 +600,47 @@
   }
 
   // ── Init : abonnement temps réel global + rafraîchissement périodique. ──
-  var _inboxChan = null;
+  var _inboxChans = [], _inboxKey = '';
   function evadMessagesInit() {
     try { evadRefreshUnread(); } catch (e) {}
+    if (!global.evadSupabase || typeof global.evadSupabase.channel !== 'function') { _startUnreadTimer(); return; }
     // Temps réel : tout nouveau message me concernant met à jour le badge.
-    if (!_inboxChan && global.evadSupabase && typeof global.evadSupabase.channel === 'function') {
-      try {
-        var me = evadChatMe();
-        _inboxChan = global.evadSupabase.channel('inbox:' + me.id)
-          .on('postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'messages', filter: 'dest_id=eq.' + me.id },
-            function (payload) { if (payload && payload.new) { lsUpsert(payload.new); evadRefreshUnread(); } })
-          .subscribe();
-      } catch (e) {}
+    // Un abonnement par identifiant (je peux être pilote ET bâtisseur) ; les
+    // filtres PostgREST n'acceptent pas d'espaces, donc les anciens
+    // identifiants par nom sont couverts par le rafraîchissement périodique.
+    var me = evadChatMe();
+    var ids = (me.ids || [me.id]).filter(function (i) { return /^[A-Za-z0-9:_-]+$/.test(i); }).slice(0, 4);
+    var key = ids.join('|');
+    if (key && key !== _inboxKey) {
+      _inboxChans.forEach(function (c) { try { global.evadSupabase.removeChannel(c); } catch (e) {} });
+      _inboxChans = [];
+      ids.forEach(function (id) {
+        try {
+          _inboxChans.push(global.evadSupabase.channel('inbox:' + id)
+            .on('postgres_changes',
+              { event: 'INSERT', schema: 'public', table: 'messages', filter: 'dest_id=eq.' + id },
+              function (payload) { if (payload && payload.new) { lsUpsert(payload.new); evadRefreshUnread(); } })
+            .subscribe());
+        } catch (e) {}
+      });
+      _inboxKey = key;
     }
-    // Repli si Realtime indisponible : on recalcule régulièrement.
-    if (!global._evadUnreadTimer) {
-      global._evadUnreadTimer = setInterval(function () { try { evadRefreshUnread(); } catch (e) {} }, 20000);
-    }
+    _startUnreadTimer();
+  }
+  // Repli si Realtime indisponible : on recalcule régulièrement.
+  function _startUnreadTimer() {
+    if (global._evadUnreadTimer) return;
+    global._evadUnreadTimer = setInterval(function () { try { evadRefreshUnread(); } catch (e) {} }, 20000);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(evadMessagesInit, 400); });
   else setTimeout(evadMessagesInit, 400);
+
+  // Mon identité n'existe qu'une fois les fiches reçues de Supabase : au
+  // premier passage, evadChatMe() n'a encore aucun id de fiche et le badge se
+  // calculerait sur une identité vide. On rejoue donc l'init à l'hydratation.
+  ['evad:supabase-ready', 'evad:batisseurs-ready', 'evad:semeurs-ready'].forEach(function (ev) {
+    global.addEventListener(ev, function () { setTimeout(evadMessagesInit, 150); });
+  });
 
   global.evadOpenChat = evadOpenChat;
   global.evadCloseChat = evadCloseChat;
@@ -504,6 +649,8 @@
   global.evadChatThreadQuete = evadChatThreadQuete;
   global.evadChatDmThread = evadChatDmThread;
   global.evadChatMe = evadChatMe;
+  global.evadChatIds = evadChatIds;
+  global.evadChatPeerId = _peerId;
   global.evadOpenInbox = evadOpenInbox;
   global.evadCloseInbox = evadCloseInbox;
   global.evadInboxOpen = evadInboxOpen;

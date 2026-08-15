@@ -1013,7 +1013,7 @@ function lieuRenderPresentation() {
 
         ${contactSection}
 
-        ${(window.evadMsgBtn && !(typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom && myLieuData.nom === cData.nom)) ? window.evadMsgBtn({ id: 'lieu:' + (cData.nom || ''), nom: cData.nom || 'Ce lieu', role: 'pilote', lieu_id: cData.nom || '' }, { mt: '0' }) : ''}
+        ${window.evadMsgBtn ? window.evadMsgBtn({ id: cData.id, nom: cData.nom || 'Ce lieu', role: 'pilote', lieu_id: cData.id }, { mt: '0' }) : ''}
 
         ${reseauChips ? `<div>
           <div class="acteur-section-title" style="margin-bottom:.4rem">🌐 Réseaux d'appartenance</div>
@@ -3262,7 +3262,7 @@ function mapShowBatisseur(idx) {
         ${b.certifications.map(cert => `<span class="acteur-skill-tag" style="background:rgba(240,200,74,0.1);color:#9a7a00;border:1px solid rgba(240,200,74,0.3)">✓ ${cert}</span>`).join('')}
       </div>` : ''}
 
-      ${window.evadMsgBtn ? window.evadMsgBtn({ id: 'bat:' + b.nom, nom: b.nom, role: 'batisseur' }, { bg: 'var(--amber)', mt: '0' }) : ''}
+      ${window.evadMsgBtn ? window.evadMsgBtn({ id: b.id, nom: b.nom, role: 'batisseur' }, { bg: 'var(--amber)', mt: '0' }) : ''}
     </div>
   `;
 
@@ -3350,7 +3350,7 @@ function mapShowSemeur(idx) {
       <!-- Contact -->
       <div style="font-size:.65rem;color:var(--moss);opacity:.7;text-align:center;margin-bottom:.5rem">👤 ${s.contact}</div>
 
-      ${window.evadMsgBtn ? window.evadMsgBtn({ id: 'sem:' + s.nom, nom: s.nom, role: 'semeur' }, { mt: '0' }) : ''}
+      ${window.evadMsgBtn ? window.evadMsgBtn({ id: s.id, nom: s.nom, role: 'semeur' }, { mt: '0' }) : ''}
       <button class="acteur-cta" style="background:var(--sky);color:white;margin-top:.4rem" onclick="mmBubble('📋 Demande de partenariat envoyée à ${s.nom}')">
         Demander un partenariat →
       </button>
@@ -3411,7 +3411,7 @@ function mapShowLieu(idx) {
         <button class="acteur-cta" style="background:var(--forest);color:white" onclick="openLieuModalFromPlace(${idx})">
           Voir la fiche complète →
         </button>
-        ${window.evadMsgBtn ? window.evadMsgBtn({ id: 'lieu:' + place.nom, nom: place.nom, role: 'pilote', lieu_id: place.nom }, { mt: '.4rem' }) : ''}
+        ${window.evadMsgBtn ? window.evadMsgBtn({ id: place.fiche && place.fiche.id, nom: place.nom, role: 'pilote', lieu_id: place.fiche && place.fiche.id }, { mt: '.4rem' }) : ''}
       </div>
 
       <!-- Vadance + dimensions -->
@@ -8052,7 +8052,7 @@ function mapShowNewBatisseur() {
         ${cherche.map(c=>`<span class="acteur-skill-tag" style="background:rgba(58,110,140,.08);color:var(--sky);border:1px solid rgba(58,110,140,.2)">${c}</span>`).join('')}
       </div>` : ''}
 
-      ${window.evadMsgBtn ? window.evadMsgBtn({ id: 'bat:' + prenom, nom: prenom, role: 'batisseur' }, { bg: 'var(--amber)', mt: '0' }) : ''}
+      ${window.evadMsgBtn ? window.evadMsgBtn({ id: batFicheData.id, nom: prenom, role: 'batisseur' }, { bg: 'var(--amber)', mt: '0' }) : ''}
     </div>`;
 
   mainPanel.style.display = 'none';
@@ -8126,7 +8126,7 @@ function mapShowNewSemeur() {
         ${kpis.map(k=>`<span class="acteur-skill-tag" style="background:rgba(58,110,140,.08);color:var(--sky);border:1px solid rgba(58,110,140,.2)">${k}</span>`).join('')}
       </div>` : ''}
 
-      ${window.evadMsgBtn ? window.evadMsgBtn({ id: 'sem:' + nom, nom: nom, role: 'semeur' }, { mt: '0' }) : ''}
+      ${window.evadMsgBtn ? window.evadMsgBtn({ id: semFicheData.id, nom: nom, role: 'semeur' }, { mt: '0' }) : ''}
       <button class="acteur-cta" style="background:var(--sky);color:white;margin-top:.4rem" onclick="mmBubble('📋 Demande de partenariat envoyée à ${nom}')">
         Demander un partenariat →
       </button>
@@ -8251,7 +8251,7 @@ function mapShowNewLieu() {
       <button class="acteur-cta" style="background:var(--forest);color:white;margin-top:.2rem" onclick="mapCloseActeur();openLieuModal()">
         Voir la fiche complète →
       </button>
-      ${window.evadMsgBtn ? window.evadMsgBtn({ id: 'lieu:' + nom, nom: nom, role: 'pilote', lieu_id: nom }, { mt: '.4rem' }) : ''}
+      ${window.evadMsgBtn ? window.evadMsgBtn({ id: L.id, nom: nom, role: 'pilote', lieu_id: L.id }, { mt: '.4rem' }) : ''}
     </div>`;
 
   mainPanel.style.display = 'none';
