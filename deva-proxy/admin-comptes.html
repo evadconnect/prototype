@@ -21,6 +21,17 @@
   #out { margin-top:1.4rem; font-size:.85rem; white-space:pre-wrap; background:#f2f8f5; border-radius:10px; padding:1rem; display:none; }
   .row { display:flex; gap:.5rem; align-items:center; padding:.35rem 0; border-bottom:1px solid rgba(0,0,0,.05); }
   .ok { color:#0a7a4b; } .ko { color:#a83232; }
+  /* Dialogues intégrés (les popups natifs peuvent être bloqués par le navigateur) */
+  .ui-ov { position:fixed; inset:0; background:rgba(13,43,34,.45); display:flex; align-items:center; justify-content:center; padding:1rem; z-index:9999; }
+  .ui-box { background:#fff; border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.3); max-width:420px; width:100%; padding:1.3rem 1.4rem; }
+  .ui-title { font-weight:700; font-size:1.05rem; margin:0 0 .5rem; }
+  .ui-body { font-size:.9rem; line-height:1.5; color:#2b3d37; }
+  .ui-input { width:100%; margin-top:.9rem; padding:.7rem .9rem; border:1.5px solid rgba(1,130,98,.3); border-radius:9px; font-size:.9rem; }
+  .ui-reveal { margin-top:.8rem; padding:.7rem .9rem; background:#f2f8f5; border-radius:9px; font-family:monospace; font-size:1rem; font-weight:700; word-break:break-all; user-select:all; }
+  .ui-actions { display:flex; gap:.5rem; justify-content:flex-end; margin-top:1.2rem; flex-wrap:wrap; }
+  .ui-btn { margin:0; width:auto; padding:.55rem 1rem; border-radius:100px; font-size:.85rem; font-weight:700; cursor:pointer; background:#eef2f0; color:#334; border:1px solid rgba(0,0,0,.12); }
+  .ui-btn-primary { background:var(--forest); color:#fff; border-color:var(--forest); }
+  .ui-btn-danger { background:#b02a2a; color:#fff; border-color:#b02a2a; }
 </style>
 </head>
 <body>
@@ -66,7 +77,7 @@
     const btn = document.getElementById('go');
     const out = document.getElementById('out');
     const secret = document.getElementById('secret').value.trim();
-    if (!secret) { alert('Entre le secret admin.'); return; }
+    if (!secret) { uiAlert('Entre le secret admin.'); return; }
 
     btn.disabled = true; btn.textContent = 'Création en cours…';
     out.style.display = 'block'; out.textContent = 'Patiente…';
@@ -110,7 +121,7 @@
 
   function adminSecret() {
     const s = document.getElementById('secret').value.trim();
-    if (!s) alert('Entre le secret admin (champ en haut de la page).');
+    if (!s) uiAlert('Entre le secret admin (champ en haut de la page).');
     return s;
   }
 
@@ -119,6 +130,46 @@
   // dans un attribut onclick="…" entre quotes doubles. Sans ça, une apostrophe
   // (ex. email o'brien) coupe la chaîne et casse le bouton.
   const jsStr = (s) => String(s == null ? '' : s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+
+  // ── Dialogues intégrés (remplacent confirm/prompt/alert, que le navigateur
+  //    peut bloquer via « empêcher cette page de créer des boîtes de dialogue »).
+  const nl2br = (s) => esc(s).replace(/\n/g, '<br>');
+  function uiModal(opt) {
+    return new Promise((resolve) => {
+      const ov = document.createElement('div'); ov.className = 'ui-ov';
+      const box = document.createElement('div'); box.className = 'ui-box';
+      let html = '';
+      if (opt.title) html += '<div class="ui-title">' + esc(opt.title) + '</div>';
+      if (opt.text) html += '<div class="ui-body">' + nl2br(opt.text) + '</div>';
+      if (opt.reveal != null) html += '<div class="ui-reveal">' + esc(opt.reveal) + '</div>';
+      if (opt.input) html += '<input class="ui-input" type="text">';
+      html += '<div class="ui-actions"></div>';
+      box.innerHTML = html;
+      const inputEl = box.querySelector('.ui-input');
+      if (inputEl && opt.input.value != null) inputEl.value = opt.input.value;
+      const actions = box.querySelector('.ui-actions');
+      function done(v) { document.removeEventListener('keydown', onKey); ov.remove(); resolve(v); }
+      (opt.buttons || []).forEach((b) => {
+        const btn = document.createElement('button');
+        btn.className = 'ui-btn' + (b.primary ? ' ui-btn-primary' : '') + (b.danger ? ' ui-btn-danger' : '');
+        btn.textContent = b.label;
+        btn.onclick = () => done(b.value !== undefined ? b.value : (inputEl ? inputEl.value : true));
+        actions.appendChild(btn);
+      });
+      function onKey(e) {
+        if (e.key === 'Escape') done(opt.input ? null : false);
+        else if (e.key === 'Enter' && inputEl) { const p = (opt.buttons || []).find(x => x.primary); done(p && p.value !== undefined ? p.value : inputEl.value); }
+      }
+      document.addEventListener('keydown', onKey);
+      ov.appendChild(box); ov.addEventListener('click', (e) => { if (e.target === ov) done(opt.input ? null : false); });
+      document.body.appendChild(ov);
+      if (inputEl) { inputEl.focus(); inputEl.select(); }
+    });
+  }
+  const uiAlert = (text, title) => uiModal({ title: title || 'Info', text, buttons: [{ label: 'OK', primary: true, value: true }] });
+  const uiConfirm = (text, title) => uiModal({ title: title || 'Confirmer', text, buttons: [{ label: 'Annuler', value: false }, { label: 'Confirmer', danger: true, value: true }] });
+  const uiPrompt = (text, def, title) => uiModal({ title: title || '', text, input: { value: def }, buttons: [{ label: 'Annuler', value: null }, { label: 'Valider', primary: true }] });
+  const uiReveal = (text, value) => uiModal({ title: '', text, reveal: value, buttons: [{ label: 'Copier', value: '__copy__' }, { label: 'Fermer', primary: true, value: true }] });
   const loginLbl = (u) => u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString('fr-FR') : 'jamais';
   const identite = (u) => '<b style="font-size:.85rem">' + esc(u.email) + '</b>'
     + '<div style="font-size:.72rem;color:#3d6b5a">' + (esc((u.prenom + ' ' + u.nom).trim()) || '&nbsp;') + ' · dernière connexion : ' + loginLbl(u) + '</div>';
@@ -193,12 +244,12 @@
 
   async function changeEmail(userId, email, btn) {
     const secret = adminSecret(); if (!secret) return;
-    const nouveau = prompt('Nouvel email de connexion pour « ' + email + ' » :', email);
+    const nouveau = await uiPrompt('Nouvel email de connexion pour « ' + email + ' » :', email);
     if (nouveau === null) return;
     const clean = nouveau.trim().toLowerCase();
     if (!clean || clean === email.toLowerCase()) return;
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) { alert('Email invalide.'); return; }
-    if (!confirm('Changer l\'email de connexion :\n' + email + '\n→ ' + clean + ' ?')) return;
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) { await uiAlert('Email invalide.'); return; }
+    if (!(await uiConfirm('Changer l\'email de connexion :\n' + email + '\n→ ' + clean + ' ?'))) return;
     const label = btn.textContent; btn.disabled = true; btn.textContent = '…';
     try {
       const res = await fetch(ADMIN_USERS_ENDPOINT, {
@@ -209,20 +260,20 @@
       const data = await res.json();
       if (!res.ok) {
         const det = data.detail ? '\n\nDétail : ' + JSON.stringify(data.detail) : '';
-        alert('Changement impossible : ' + (data.error || res.status) + det);
+        await uiAlert('Changement impossible : ' + (data.error || res.status) + det);
         btn.disabled = false; btn.textContent = label; return;
       }
-      alert('✅ Email mis à jour : ' + clean + '\nL\'utilisateur se connecte désormais avec cette adresse.');
+      await uiAlert('✅ Email mis à jour : ' + clean + '\nL\'utilisateur se connecte désormais avec cette adresse.');
       loadUsers();
     } catch (e) {
-      alert('Erreur réseau : ' + e);
+      await uiAlert('Erreur réseau : ' + e);
       btn.disabled = false; btn.textContent = label;
     }
   }
 
   async function resetPassword(userId, email, btn) {
     const secret = adminSecret(); if (!secret) return;
-    if (!confirm('Générer un NOUVEAU mot de passe pour « ' + email + ' » ?\nL\'ancien ne fonctionnera plus. Le nouveau s\'affichera pour que tu le transmettes.')) return;
+    if (!(await uiConfirm('Générer un NOUVEAU mot de passe pour « ' + email + ' » ?\nL\'ancien ne fonctionnera plus. Le nouveau s\'affichera pour que tu le transmettes.'))) return;
     const label = btn.textContent; btn.disabled = true; btn.textContent = '…';
     try {
       const res = await fetch(ADMIN_USERS_ENDPOINT, {
@@ -233,13 +284,18 @@
       const data = await res.json();
       if (!res.ok) {
         const det = data.detail ? '\n\nDétail : ' + JSON.stringify(data.detail) : '';
-        alert('Renouvellement impossible : ' + (data.error || res.status) + det);
+        await uiAlert('Renouvellement impossible : ' + (data.error || res.status) + det);
         btn.disabled = false; btn.textContent = label; return;
       }
-      // Affiche le nouveau mot de passe de façon persistante (à copier/transmettre).
-      window.prompt('✅ Nouveau mot de passe pour « ' + email + ' »\n(copie-le et transmets-le à l\'utilisateur) :', data.password);
+      // Affiche le nouveau mot de passe (à copier/transmettre). Le bouton
+      // « Copier » le met dans le presse-papier ; la modale reste ouverte.
+      let r;
+      do {
+        r = await uiReveal('✅ Nouveau mot de passe pour « ' + email + ' »\n(copie-le et transmets-le à l\'utilisateur) :', data.password);
+        if (r === '__copy__') { try { await navigator.clipboard.writeText(data.password); } catch (e) {} }
+      } while (r === '__copy__');
     } catch (e) {
-      alert('Erreur réseau : ' + e);
+      await uiAlert('Erreur réseau : ' + e);
     } finally {
       btn.disabled = false; btn.textContent = label;
     }
@@ -248,7 +304,7 @@
   async function resetOnboarding(userId, email, btn, role) {
     const secret = adminSecret(); if (!secret) return;
     const cible = role ? 'du profil « ' + role + ' »' : 'de TOUS ses profils';
-    if (!confirm('Relancer l\'onboarding ' + cible + ' pour « ' + email + ' » ?\nIl reverra la visite guidée et la création de fiche à sa prochaine connexion.')) return;
+    if (!(await uiConfirm('Relancer l\'onboarding ' + cible + ' pour « ' + email + ' » ?\nIl reverra la visite guidée et la création de fiche à sa prochaine connexion.'))) return;
     const label = btn.textContent;
     btn.disabled = true; btn.textContent = '…';
     try {
@@ -260,17 +316,17 @@
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (!res.ok) { alert('Erreur : ' + (data.error || res.status)); btn.disabled = false; btn.textContent = label; return; }
+      if (!res.ok) { await uiAlert('Erreur : ' + (data.error || res.status)); btn.disabled = false; btn.textContent = label; return; }
       loadUsers(); // recharge la liste (badges à jour)
     } catch (e) {
-      alert('Erreur réseau : ' + e);
+      await uiAlert('Erreur réseau : ' + e);
       btn.disabled = false; btn.textContent = label;
     }
   }
 
   async function removeRole(userId, email, role, btn) {
     const secret = adminSecret(); if (!secret) return;
-    if (!confirm('Retirer l\'accès « ' + role + ' » de « ' + email + ' » ?\nSon profil ' + role + ' et ses données seront supprimés. Les autres profils du compte sont conservés.')) return;
+    if (!(await uiConfirm('Retirer l\'accès « ' + role + ' » de « ' + email + ' » ?\nSon profil ' + role + ' et ses données seront supprimés. Les autres profils du compte sont conservés.'))) return;
     btn.disabled = true; btn.textContent = '…';
     try {
       const res = await fetch(ADMIN_USERS_ENDPOINT, {
@@ -279,18 +335,18 @@
         body: JSON.stringify({ action: 'remove_role', user_id: userId, role: role }),
       });
       const data = await res.json();
-      if (!res.ok) { alert('Erreur : ' + (data.error || res.status)); btn.disabled = false; btn.textContent = '✕'; return; }
+      if (!res.ok) { await uiAlert('Erreur : ' + (data.error || res.status)); btn.disabled = false; btn.textContent = '✕'; return; }
       loadUsers();
     } catch (e) {
-      alert('Erreur réseau : ' + e);
+      await uiAlert('Erreur réseau : ' + e);
       btn.disabled = false; btn.textContent = '✕';
     }
   }
 
   async function deleteUser(userId, email, btn) {
     const secret = adminSecret(); if (!secret) return;
-    if (!confirm('SUPPRIMER définitivement le compte « ' + email + ' » ?\n\nCela efface son authentification ET ses fiches (pilote / bâtisseur / semeur) en base. Action IRRÉVERSIBLE.')) return;
-    if (!confirm('Confirme une dernière fois : supprimer « ' + email + ' » ?')) return;
+    if (!(await uiConfirm('SUPPRIMER définitivement le compte « ' + email + ' » ?\n\nCela efface son authentification ET ses fiches (pilote / bâtisseur / semeur) en base. Action IRRÉVERSIBLE.'))) return;
+    if (!(await uiConfirm('Confirme une dernière fois : supprimer « ' + email + ' » ?'))) return;
     btn.disabled = true; btn.textContent = '…';
     try {
       const res = await fetch(ADMIN_USERS_ENDPOINT, {
@@ -302,7 +358,7 @@
       if (!res.ok) {
         // Affiche le détail (contrainte FK, code HTTP…) pour diagnostiquer.
         const det = data.detail ? '\n\nDétail : ' + JSON.stringify(data.detail) : '';
-        alert('Suppression impossible : ' + (data.error || res.status) + det);
+        await uiAlert('Suppression impossible : ' + (data.error || res.status) + det);
         console.error('delete_user', data);
         btn.disabled = false; btn.textContent = '🗑 Supprimer'; return;
       }
@@ -312,7 +368,7 @@
       const row = btn.closest('.row'); if (row) row.remove();
       loadUsers();
     } catch (e) {
-      alert('Erreur réseau : ' + e);
+      await uiAlert('Erreur réseau : ' + e);
       btn.disabled = false; btn.textContent = '🗑 Supprimer';
     }
   }
