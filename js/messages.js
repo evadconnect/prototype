@@ -72,6 +72,28 @@
   }
 
   // ── Suivi des messages lus (par id) pour le compteur de non-lus. ──
+  // ── Repère de synchronisation : date du message le plus récent déjà reçu
+  //    du serveur. Le rafraîchissement périodique ne redemande que ce qui est
+  //    arrivé APRÈS, au lieu de retélécharger toute ma messagerie. ──
+  var LS_HW = 'evad:v1:msg-sync';
+  function hwGet() { try { return global.localStorage.getItem(LS_HW) || null; } catch (e) { return null; } }
+  function hwBump(rows) {
+    var max = hwGet();
+    rows.forEach(function (m) {
+      if (m && m.created_at && (!max || String(m.created_at) > String(max))) max = m.created_at;
+    });
+    if (max) { try { global.localStorage.setItem(LS_HW, max); } catch (e) {} }
+  }
+  // Marge de sécurité : un message inséré à T peut n'être visible qu'après
+  // notre lecture. On repart 2 min avant le repère pour ne rien manquer.
+  function hwSince() {
+    var hw = hwGet();
+    if (!hw) return null;
+    var t = Date.parse(hw);
+    if (!t) return null;
+    try { return new Date(t - 120000).toISOString(); } catch (e) { return null; }
+  }
+
   var LS_SEEN = 'evad:v1:msg-seen';
   function seenAll() {
     try { return JSON.parse(global.localStorage.getItem(LS_SEEN) || '[]') || []; } catch (e) { return []; }
@@ -216,18 +238,36 @@
   // ── Chargement des messages d'un fil : union distant ∪ local. ──
   // On fusionne pour ne jamais perdre un message présent d'un seul côté
   // (ex. message envoyé hors-ligne, ou pas encore propagé par Realtime).
-  async function loadThread(threadId) {
-    var byId = {};
+  //
+  // Par page : une conversation ancienne peut compter des centaines de
+  // messages, dont on n'affiche que la fin. On charge les PAGE derniers, et
+  // « Messages plus anciens » remonte l'historique à la demande.
+  var PAGE = 50;
+  async function loadThread(threadId, before) {
+    var byId = {}, hasMore = false;
     if (global.evadSupabase) {
       try {
-        var r = await global.evadSupabase.from('messages').select('*')
-          .eq('thread_id', threadId).order('created_at', { ascending: true });
-        if (!r.error && Array.isArray(r.data)) r.data.forEach(function (m) { byId[m.id] = m; lsUpsert(m); });
+        var q = global.evadSupabase.from('messages').select('*')
+          .eq('thread_id', threadId)
+          .order('created_at', { ascending: false })
+          .limit(PAGE);
+        if (before) q = q.lt('created_at', before);
+        var r = await q;
+        if (!r.error && Array.isArray(r.data)) {
+          hasMore = r.data.length >= PAGE;   // page pleine : il reste probablement de l'historique
+          r.data.forEach(function (m) { byId[m.id] = m; lsUpsert(m); });
+        }
       } catch (e) {}
     }
-    lsAll().forEach(function (m) { if (m.thread_id === threadId && !byId[m.id]) byId[m.id] = m; });
-    return Object.keys(byId).map(function (k) { return byId[k]; })
+    // Messages locaux du fil : envoyés hors-ligne, ou déjà connus de cet appareil.
+    lsAll().forEach(function (m) {
+      if (m.thread_id !== threadId || byId[m.id]) return;
+      if (before && String(m.created_at) >= String(before)) return;
+      byId[m.id] = m;
+    });
+    var rows = Object.keys(byId).map(function (k) { return byId[k]; })
       .sort(function (a, b) { return String(a.created_at).localeCompare(String(b.created_at)); });
+    return { msgs: rows, hasMore: hasMore };
   }
 
   function ensureDom() {
@@ -255,7 +295,7 @@
     document.body.appendChild(w);
   }
 
-  function renderList(msgs) {
+  function renderList(msgs, opts) {
     var list = document.getElementById('evad-msg-list');
     if (!list) return;
     var me = _state.meta ? _state.meta.me : evadChatMe();
@@ -264,7 +304,16 @@
       list.innerHTML = '<div style="margin:auto;text-align:center;color:var(--moss);opacity:.6;font-size:.75rem;padding:1.5rem">Aucun message pour l\'instant.<br>Écris le premier 👇</div>';
       return;
     }
-    list.innerHTML = msgs.map(function (m) {
+    // Remonter l'historique ajoute des messages EN HAUT : on garde l'ancrage
+    // visuel plutôt que de sauter en bas de la conversation.
+    var keepScroll = !!(opts && opts.keepScroll);
+    var beforeH = list.scrollHeight, beforeTop = list.scrollTop;
+    var older = _state.hasMore
+      ? '<button onclick="evadLoadOlder()" ' + (_state.loading ? 'disabled ' : '')
+        + 'style="align-self:center;flex-shrink:0;margin-bottom:.4rem;background:#fff;border:1px solid rgba(46,102,66,.2);color:var(--moss);border-radius:100px;padding:.35rem .8rem;font-size:.68rem;font-weight:700;cursor:pointer;font-family:inherit">'
+        + (_state.loading ? 'Chargement…' : '↑ Messages plus anciens') + '</button>'
+      : '';
+    list.innerHTML = older + msgs.map(function (m) {
       var isMine = !!mine[m.author_id];
       var bubble = isMine
         ? 'align-self:flex-end;background:var(--forest);color:#fff;border-radius:14px 14px 4px 14px'
@@ -276,7 +325,25 @@
         + '<div style="' + bubble + ';padding:.5rem .7rem;font-size:.8rem;line-height:1.45;white-space:pre-wrap;word-break:break-word">' + esc(m.text) + '</div>'
         + meta + '</div>';
     }).join('');
-    list.scrollTop = list.scrollHeight;
+    list.scrollTop = keepScroll ? (beforeTop + list.scrollHeight - beforeH) : list.scrollHeight;
+  }
+
+  // Remonte d'une page dans l'historique du fil ouvert.
+  async function evadLoadOlder() {
+    if (!_state.threadId || _state.loading || !_state.msgs || !_state.msgs.length) return;
+    var tid = _state.threadId, oldest = _state.msgs[0].created_at;
+    if (!oldest) return;
+    _state.loading = true;
+    renderList(_state.msgs, { keepScroll: true });
+    var page = await loadThread(tid, oldest);
+    if (_state.threadId !== tid) return;          // l'utilisateur a changé de fil
+    var add = page.msgs.filter(function (m) { return !_state.seen.has(m.id); });
+    add.forEach(function (m) { _state.seen.add(m.id); });
+    seenMark(add.map(function (m) { return m.id; }));
+    _state.msgs = add.concat(_state.msgs);
+    _state.hasMore = page.hasMore;
+    _state.loading = false;
+    renderList(_state.msgs, { keepScroll: true });
   }
 
   function appendOne(m) {
@@ -284,7 +351,7 @@
     _state.seen.add(m.id);
     _state.msgs = (_state.msgs || []).concat(m);
     seenMark([m.id]);            // le fil est ouvert : message vu
-    evadRefreshUnread();
+    evadRefreshUnread({ delta: true });
     renderList(_state.msgs);
   }
 
@@ -294,7 +361,7 @@
     ensureDom();
     evadCloseChatChannel(); // ferme un éventuel abonnement précédent
     var me = evadChatMe();
-    _state = { threadId: threadId, chan: null, seen: new Set(), msgs: [], meta: { me: me, opts: opts } };
+    _state = { threadId: threadId, chan: null, seen: new Set(), msgs: [], hasMore: false, loading: false, meta: { me: me, opts: opts } };
     threadRegister(threadId, opts);           // mémorise l'interlocuteur pour l'inbox
     var t = document.getElementById('evad-msg-title'); if (t) t.textContent = opts.title || 'Conversation';
     var s = document.getElementById('evad-msg-sub'); if (s) s.textContent = opts.sub || '';
@@ -303,15 +370,18 @@
     document.getElementById('evad-msg-modal').style.display = 'block';
     var inp = document.getElementById('evad-msg-input'); if (inp) { inp.value = ''; setTimeout(function () { inp.focus(); }, 80); }
 
-    var msgs = await loadThread(threadId);
+    var page = await loadThread(threadId);
     if (_state.threadId !== threadId) return; // l'utilisateur a déjà changé de fil
+    var msgs = page.msgs;
     _state.msgs = msgs;
+    _state.hasMore = page.hasMore;
     msgs.forEach(function (m) { _state.seen.add(m.id); });
     seenMark(msgs.map(function (m) { return m.id; }));   // marque le fil comme lu
-    evadRefreshUnread();
+    evadRefreshUnread({ delta: true });
     renderList(msgs);
 
-    // Temps réel (si Supabase Realtime actif).
+    // Temps réel (si Supabase Realtime actif). Ce filtre-ci porte sur le fil,
+    // donc il conviendra tel quel à une conversation de groupe.
     if (global.evadSupabase && typeof global.evadSupabase.channel === 'function') {
       try {
         _state.chan = global.evadSupabase.channel('msg:' + threadId)
@@ -409,7 +479,12 @@
   }
 
   // ── Tous les messages où je suis impliqué (auteur OU destinataire). ──
-  async function _myMessages() {
+  // opts.delta : ne demander que les messages arrivés depuis la dernière
+  // synchronisation (le cas courant, appelé toutes les N secondes). Sans
+  // l'option, on resynchronise tout : à l'ouverture de la boîte et au
+  // démarrage, pour reconstituer le cache local.
+  async function _myMessages(opts) {
+    opts = opts || {};
     var me = evadChatMe(), mine = _mineSet(me);
     var ids = Object.keys(mine);
     var byId = {};
@@ -417,17 +492,22 @@
       // Deux requêtes `in` plutôt qu'un `or` : les anciens identifiants
       // contiennent des noms (espaces, apostrophes, virgules) qui casseraient
       // la syntaxe d'un filtre `or` construit à la main.
+      var since = opts.delta ? hwSince() : null;
       try {
-        var res = await Promise.all([
-          global.evadSupabase.from('messages').select('*').in('author_id', ids),
-          global.evadSupabase.from('messages').select('*').in('dest_id', ids)
-        ]);
+        var res = await Promise.all(['author_id', 'dest_id'].map(function (col) {
+          var q = global.evadSupabase.from('messages').select('*').in(col, ids);
+          return since ? q.gt('created_at', since) : q;
+        }));
+        var fresh = [];
         res.forEach(function (r) {
-          if (!r.error && Array.isArray(r.data)) r.data.forEach(function (m) { byId[m.id] = m; lsUpsert(m); });
+          if (!r.error && Array.isArray(r.data)) r.data.forEach(function (m) { byId[m.id] = m; lsUpsert(m); fresh.push(m); });
         });
+        // Le repère n'avance que sur des lignes venues du serveur : un message
+        // écrit hors-ligne porte l'heure du navigateur, qui peut être en avance.
+        hwBump(fresh);
       } catch (e) {}
     }
-    // Complète / repli avec le local.
+    // Complète / repli avec le local (et fournit tout l'historique en mode delta).
     lsAll().forEach(function (m) {
       if (!byId[m.id] && (mine[m.author_id] || mine[m.dest_id])) byId[m.id] = m;
     });
@@ -435,8 +515,8 @@
   }
 
   // Regroupe mes messages par fil → une ligne d'inbox par conversation.
-  async function evadLoadInbox() {
-    var data = await _myMessages(), me = data.me, mine = data.mine;
+  async function evadLoadInbox(opts) {
+    var data = await _myMessages(opts), me = data.me, mine = data.mine;
     var seenSet = {}; seenAll().forEach(function (i) { seenSet[i] = 1; });
     var reg = threadsAll();
     var threads = {};
@@ -533,8 +613,11 @@
     document.getElementById('evad-inbox-modal').style.display = 'block';
     var list = document.getElementById('evad-inbox-list');
     if (list) list.innerHTML = '<div style="margin:2rem auto;text-align:center;color:var(--moss);opacity:.6;font-size:.75rem">Chargement…</div>';
+    // Ouverture manuelle : resynchronisation complète, c'est le moment où
+    // l'utilisateur attend une liste juste (et le cache local se reconstitue).
     var rows = await evadLoadInbox();
     _inboxRows = {}; rows.forEach(function (r) { _inboxRows[r.threadId] = r; });
+    _inboxSig = rows.map(function (r) { return r.threadId + '|' + r.when + '|' + r.unread; }).join('#');
     renderInbox(rows);
   }
   function evadCloseInbox() {
@@ -577,10 +660,10 @@
   }
 
   // ── Compteur de non-lus (messages qui me sont adressés et non vus). ──
-  var _unread = 0;
-  async function evadRefreshUnread() {
+  var _unread = 0, _inboxSig = '';
+  async function evadRefreshUnread(opts) {
     try {
-      var data = await _myMessages(), mine = data.mine;
+      var data = await _myMessages(opts), mine = data.mine;
       var seenSet = {}; seenAll().forEach(function (i) { seenSet[i] = 1; });
       _unread = data.msgs.filter(function (m) { return mine[m.dest_id] && !mine[m.author_id] && !seenSet[m.id]; }).length;
     } catch (e) { _unread = _unread || 0; }
@@ -589,12 +672,19 @@
       b.textContent = _unread > 99 ? '99+' : String(_unread);
       b.style.display = _unread > 0 ? 'flex' : 'none';
     }
-    // Si l'inbox est ouverte, on la rafraîchit pour refléter l'état.
+    // Si l'inbox est ouverte, on la rafraîchit pour refléter l'état. On ne
+    // redessine que si quelque chose a bougé : sinon un rafraîchissement
+    // périodique reconstruisait la liste entière sans rien changer, et
+    // interrompait le défilement de l'utilisateur.
     var inbox = document.getElementById('evad-inbox-modal');
     if (inbox && inbox.style.display === 'block') {
-      var rows = await evadLoadInbox();
-      _inboxRows = {}; rows.forEach(function (r) { _inboxRows[r.threadId] = r; });
-      renderInbox(rows);
+      var rows = await evadLoadInbox(opts);
+      var sig = rows.map(function (r) { return r.threadId + '|' + r.when + '|' + r.unread; }).join('#');
+      if (sig !== _inboxSig) {
+        _inboxSig = sig;
+        _inboxRows = {}; rows.forEach(function (r) { _inboxRows[r.threadId] = r; });
+        renderInbox(rows);
+      }
     }
     return _unread;
   }
@@ -608,6 +698,11 @@
     // Un abonnement par identifiant (je peux être pilote ET bâtisseur) ; les
     // filtres PostgREST n'acceptent pas d'espaces, donc les anciens
     // identifiants par nom sont couverts par le rafraîchissement périodique.
+    //
+    // Limite connue : ce filtre porte sur dest_id, c'est-à-dire un
+    // destinataire unique. Une conversation de groupe (fil de lieu) n'aura pas
+    // de dest_id ; il faudra alors s'abonner sur thread_id, ce qui suppose de
+    // savoir à quels fils j'appartiens — à traiter avec le fil de lieu.
     var me = evadChatMe();
     var ids = (me.ids || [me.id]).filter(function (i) { return /^[A-Za-z0-9:_-]+$/.test(i); }).slice(0, 4);
     var key = ids.join('|');
@@ -619,19 +714,33 @@
           _inboxChans.push(global.evadSupabase.channel('inbox:' + id)
             .on('postgres_changes',
               { event: 'INSERT', schema: 'public', table: 'messages', filter: 'dest_id=eq.' + id },
-              function (payload) { if (payload && payload.new) { lsUpsert(payload.new); evadRefreshUnread(); } })
+              function (payload) { if (payload && payload.new) { lsUpsert(payload.new); evadRefreshUnread({ delta: true }); } })
             .subscribe());
         } catch (e) {}
       });
       _inboxKey = key;
+      _stopUnreadTimer();   // la cadence change quand le temps réel est actif
     }
     _startUnreadTimer();
   }
-  // Repli si Realtime indisponible : on recalcule régulièrement.
+
+  // ── Rafraîchissement périodique : uniquement un filet de sécurité. ──
+  // Quand Realtime fonctionne, il prévient déjà des nouveaux messages : le
+  // timer sert alors de repli lent. Il ne tourne pas quand l'onglet est
+  // masqué, et ne demande que le delta (voir hwSince).
   function _startUnreadTimer() {
-    if (global._evadUnreadTimer) return;
-    global._evadUnreadTimer = setInterval(function () { try { evadRefreshUnread(); } catch (e) {} }, 20000);
+    if (global._evadUnreadTimer || document.hidden) return;
+    var delay = _inboxChans.length ? 60000 : 20000;
+    global._evadUnreadTimer = setInterval(function () { try { evadRefreshUnread({ delta: true }); } catch (e) {} }, delay);
   }
+  function _stopUnreadTimer() {
+    if (global._evadUnreadTimer) { clearInterval(global._evadUnreadTimer); global._evadUnreadTimer = null; }
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { _stopUnreadTimer(); return; }
+    try { evadRefreshUnread({ delta: true }); } catch (e) {}
+    _startUnreadTimer();
+  });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(evadMessagesInit, 400); });
   else setTimeout(evadMessagesInit, 400);
 
@@ -646,6 +755,7 @@
   global.evadCloseChat = evadCloseChat;
   global.evadDeleteThread = evadDeleteThread;
   global.evadSendChat = evadSendChat;
+  global.evadLoadOlder = evadLoadOlder;
   global.evadChatThreadQuete = evadChatThreadQuete;
   global.evadChatDmThread = evadChatDmThread;
   global.evadChatMe = evadChatMe;
