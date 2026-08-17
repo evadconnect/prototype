@@ -9879,10 +9879,30 @@ function evadGrainesLedger(type, id) {
   if (!window.store || !type || !id) return 0;
   return store.where('graines_tx', t => t.party_type === type && t.party_id === id).reduce((s, t) => s + (+t.delta || 0), 0);
 }
-// Graines bloquées : achats en attente de confirmation du vendeur.
+// Déblocage des graines de bienvenue : une 1ère preuve de quête VALIDÉE liée au
+// profil (bâtisseur → sa preuve validée ; Pilote → une preuve validée sur ses
+// quêtes). Tant que cette condition n'est pas remplie, les graines de bienvenue
+// restent bloquées (inutilisables). Semeur & autres : aucun blocage.
+function evadWelcomeUnlocked(type, id) {
+  if (!window.store || !type || !id) return true;
+  if (type === 'batisseur') return store.where('quete_preuves', p => p && p.validee === true && p.batisseur_id === id).length > 0;
+  if (type === 'pilote')    return store.where('quete_preuves', p => p && p.validee === true && p.lieu_id === id).length > 0;
+  return true;
+}
+// Montant des graines de bienvenue encore bloquées pour ce profil.
+function evadWelcomeLocked(type, id) {
+  if ((type !== 'batisseur' && type !== 'pilote') || !window.store) return 0;
+  if (evadWelcomeUnlocked(type, id)) return 0;
+  const w = store.where('graines_tx', t => t.party_type === type && t.party_id === id && t.type === 'welcome')
+    .reduce((s, t) => s + (+t.delta || 0), 0);
+  return w > 0 ? w : 0;
+}
+// Graines bloquées : achats en attente de confirmation du vendeur + graines de
+// bienvenue non encore débloquées (1ère preuve validée).
 function evadGrainesBlocked(type, id) {
   if (!window.store || !type || !id) return 0;
-  return store.where('mkt_transactions', t => t.buyer_type === type && t.buyer_id === id && t.statut === 'en_attente').reduce((s, t) => s + (+t.prix || 0), 0);
+  const escrow = store.where('mkt_transactions', t => t.buyer_type === type && t.buyer_id === id && t.statut === 'en_attente').reduce((s, t) => s + (+t.prix || 0), 0);
+  return escrow + evadWelcomeLocked(type, id);
 }
 // Solde disponible = grand livre − bloqué.
 function evadGrainesDispo(type, id) {
@@ -9902,9 +9922,11 @@ function evadGrainesMove(party, delta, txType, label, refTable, refId) {
   return row;
 }
 function _evadWelcomeAmount(party) {
-  if (party.type === 'batisseur') return 50 + (((typeof batFicheData !== 'undefined' && batFicheData && batFicheData.skills) || []).length * 15);
+  // Bâtisseur & Pilote : 10 graines de bienvenue, bloquées jusqu'à leur 1ère
+  // preuve de quête validée (voir evadWelcomeLocked / evadWelcomeUnlocked).
+  if (party.type === 'batisseur') return 10;
   if (party.type === 'semeur') return 500;
-  if (party.type === 'pilote') return 100;
+  if (party.type === 'pilote') return 10;
   return 0;
 }
 // Don de bienvenue (une seule fois par profil) : amorce l'économie regen.

@@ -194,6 +194,43 @@ end $$;
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
+-- ÉTAPE 2 bis — messages
+--
+-- Vérifié le 2026-08-17 : contrairement à ce que je pensais en écrivant
+-- l'étape 1, cette table n'est PAS protégée. supabase-messages.sql lui donne
+-- « select using (true) » et « insert with check (true) », en annonçant
+-- lui-même que « le verrouillage par participant viendra avec le lot de
+-- sécurité ». Elle renvoyait zéro ligne à ma sonde simplement parce que la
+-- table du staging est vide. En production, toutes les conversations privées
+-- sont donc lisibles sans compte, et n'importe qui peut y écrire sous
+-- l'identité d'un autre.
+--
+-- LIMITE ASSUMÉE : la table ne contient aucun lien vers le compte Supabase.
+-- author_id et dest_id portent des identifiants de FICHE, thread_id une clé
+-- construite côté navigateur. On ne peut donc pas exprimer « je suis
+-- participant de ce fil » en RLS aujourd'hui. On réserve l'accès aux comptes
+-- connectés, ce qui ferme l'accès public. Le cloisonnement par participant
+-- demande d'ajouter une colonne user_id alimentée à l'envoi, côté code.
+-- ─────────────────────────────────────────────────────────────────────────────
+do $$
+declare pol record;
+begin
+  if to_regclass('public.messages') is null then
+    raise notice 'Table messages absente';
+    return;
+  end if;
+  alter table public.messages enable row level security;
+  for pol in select policyname from pg_policies where schemaname = 'public' and tablename = 'messages' loop
+    execute format('drop policy if exists %I on public.messages', pol.policyname);
+  end loop;
+  create policy "lecture invites"   on public.messages for select to authenticated using (true);
+  create policy "envoi invites"     on public.messages for insert to authenticated with check (true);
+  -- Ni update ni delete : un message envoyé ne se modifie pas depuis l'app.
+  revoke all on public.messages from anon;
+end $$;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
 -- ÉTAPE 3 — Vérification APRÈS
 -- Chaque table doit avoir rls_active = true et au moins une policy.
 -- ─────────────────────────────────────────────────────────────────────────────
