@@ -202,6 +202,42 @@
     return v;
   }
 
+  // ── Identité de COMPTE, pour le cloisonnement des conversations en base ──
+  // evadChatMe() renvoie une identité de FICHE, qui sert à l'affichage et aux
+  // fils. La RLS, elle, ne sait raisonner que sur le compte Supabase : on
+  // renseigne donc user_id (moi) et dest_user_id (mon correspondant) à chaque
+  // envoi. Voir supabase-messages-cloisonnement.sql.
+  async function _authUid() {
+    try {
+      var c = global.evadSupabase; if (!c) return null;
+      var d = await c.auth.getSession();
+      return (d.data && d.data.session && d.data.session.user && d.data.session.user.id) || null;
+    } catch (e) { return null; }
+  }
+
+  // Compte propriétaire d'une fiche, à partir de son identifiant. Résultat mis
+  // en cache : une conversation envoie plusieurs messages au même destinataire.
+  var _uidParFiche = {};
+  async function _uidForFiche(ficheId) {
+    if (!ficheId) return null;
+    if (Object.prototype.hasOwnProperty.call(_uidParFiche, ficheId)) return _uidParFiche[ficheId];
+    var uid = null;
+    try {
+      var c = global.evadSupabase;
+      if (c) {
+        var tables = ['fiche_pilote', 'fiche_batisseur', 'fiche_semeur'];
+        for (var i = 0; i < tables.length && !uid; i++) {
+          // Un identifiant hérité (« nom:Camille ») n'est pas un uuid : la
+          // requête renvoie une erreur, qu'on ignore pour passer à la suivante.
+          var r = await c.from(tables[i]).select('user_id').eq('id', ficheId).limit(1);
+          if (!r.error && r.data && r.data.length) uid = r.data[0].user_id || null;
+        }
+      }
+    } catch (e) {}
+    _uidParFiche[ficheId] = uid;
+    return uid;
+  }
+
   // Identité de l'utilisateur courant (selon son rôle actif).
   function evadChatMe() {
     var role = _myRole(), id = null, nom = null;
@@ -493,11 +529,24 @@
     appendOne(row);          // affichage optimiste immédiat
     if (global.evadSupabase) {
       try {
-        var r = await global.evadSupabase.from('messages').insert({
+        var envoi = {
           id: row.id, thread_id: row.thread_id, quete_id: row.quete_id, lieu_id: row.lieu_id,
           author_id: row.author_id, author_role: row.author_role, author_nom: row.author_nom,
           dest_id: row.dest_id, text: row.text
-        });
+        };
+        // Comptes des deux participants, pour que la base sache qui a le droit
+        // de lire ce message. Résolus après l'affichage optimiste : le message
+        // apparaît sans attendre ces deux requêtes.
+        envoi.user_id = await _authUid();
+        envoi.dest_user_id = await _uidForFiche(row.dest_id);
+        var r = await global.evadSupabase.from('messages').insert(envoi);
+        // Repli si les colonnes n'existent pas encore en base (script SQL pas
+        // encore passé sur cet environnement) : on renvoie sans elles plutôt
+        // que de perdre le message.
+        if (r.error && /user_id/.test(r.error.message || '')) {
+          delete envoi.user_id; delete envoi.dest_user_id;
+          r = await global.evadSupabase.from('messages').insert(envoi);
+        }
         if (r.error && typeof mmBubble === 'function') mmBubble('⚠️ Message affiché ici mais non envoyé : ' + r.error.message);
       } catch (e) {
         if (typeof mmBubble === 'function') mmBubble('⚠️ Message gardé localement (réseau indisponible).');
