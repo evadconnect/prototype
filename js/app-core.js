@@ -3654,8 +3654,11 @@ function mapRenderCommunity() {
         </div>
         <div class="pcm-score-row">
           <div style="font-size:.62rem;color:var(--amber);flex:1">${stars}</div>
-          <div class="score-label" style="color:var(--amber)">${b.graines} 🌱</div>
         </div>
+        ${(b.competences && b.competences.length) ? `<div style="display:flex;flex-wrap:wrap;gap:.25rem;margin:.15rem 0 .1rem">
+          ${b.competences.slice(0,3).map(c => `<span style="font-size:.58rem;background:rgba(200,115,42,.1);color:var(--amber);border:1px solid rgba(200,115,42,.2);border-radius:100px;padding:.1rem .45rem;white-space:nowrap">${c}</span>`).join('')}
+          ${b.competences.length > 3 ? `<span style="font-size:.58rem;color:var(--amber);opacity:.7;align-self:center">+${b.competences.length - 3}</span>` : ''}
+        </div>` : ''}
         <div class="pcm-quetes" style="color:var(--amber)">⚡ ${b.quetes_realisees} quêtes réalisées · ${b.quetes_actives} en cours</div>
       `;
       sBat.appendChild(card);
@@ -3762,7 +3765,7 @@ function syncMapMarkers() {
     marker.bindPopup(`
       <div class="popup-place-title">${b.nom}</div>
       <div class="popup-place-meta" style="color:#c8732a">🌿 ${b.role} · ${b.ville}</div>
-      <div class="popup-place-score" style="color:#c8732a">${b.graines} graines · ${b.quetes_realisees} quêtes</div>
+      <div class="popup-place-score" style="color:#c8732a">${(b.competences && b.competences.length) ? b.competences.slice(0,3).join(' · ') : (b.quetes_realisees + ' quêtes réalisées')}</div>
     `, { className: "custom-popup" });
 
     marker.on("click", () => {
