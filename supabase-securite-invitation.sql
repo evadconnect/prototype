@@ -37,8 +37,9 @@ order by rls_active, 1;
 -- ÉTAPE 1 — Le modèle d'accès
 --
 --  CONTENU     lecture pour tout compte connecté, écriture réservée au
---              propriétaire de la ligne (colonne user_id, ou author_id pour
---              reseau_posts). Création ouverte à tout compte connecté.
+--              propriétaire de la ligne (colonne user_id). Création ouverte à
+--              tout compte connecté. Une table de contenu sans user_id, comme
+--              reseau_posts, reste modifiable par tout compte connecté.
 --  REFERENCE   catalogues de la Bibliothèque : lecture pour les comptes
 --              connectés, aucune écriture depuis l'app.
 --  PRIVE       le propriétaire est seul à lire et à écrire.
