@@ -10040,6 +10040,7 @@ function evadWalletRender() {
   evadGrainesEnsureWelcome(p);
   const dispo = evadGrainesDispo(p.type, p.id);
   const bloque = evadGrainesBlocked(p.type, p.id);
+  const wLocked = evadWelcomeLocked(p.type, p.id);   // graines de bienvenue non débloquées
   const ventes = evadPendingSales();
   const achats = evadPendingPurchases();
   const hist = evadGrainesHistory(p.type, p.id);
@@ -10106,7 +10107,10 @@ function evadWalletRender() {
       <div style="margin-top:.8rem;background:linear-gradient(135deg,#1a3a2e,#0e2820);border-radius:var(--r-lg,14px);padding:1rem 1.2rem;color:white">
         <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.6)">Solde disponible</div>
         <div style="font-family:'Satoshi',sans-serif;font-size:2rem;font-weight:900;line-height:1.1">🌱 ${dispo}</div>
-        ${bloque > 0 ? `<div style="font-size:.64rem;color:rgba(255,255,255,.7);margin-top:.15rem">dont 🔒 ${bloque} bloquées (achats en attente)</div>` : ''}
+        ${bloque > 0 ? `<div style="font-size:.64rem;color:rgba(255,255,255,.75);margin-top:.35rem;line-height:1.55">
+          ${wLocked > 0 ? `🔒 ${wLocked} graines de bienvenue · débloquées après ta 1<sup>re</sup> preuve de quête validée` : ''}
+          ${(bloque - wLocked) > 0 ? `${wLocked > 0 ? '<br>' : ''}🔒 ${bloque - wLocked} bloquées · achats en attente` : ''}
+        </div>` : ''}
       </div>
     </div>
     ${venteHtml}
