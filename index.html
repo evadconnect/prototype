@@ -66,6 +66,13 @@
       if (pill) pill.innerHTML = '<span class="sp-pill-leaf">🍃</span>Espace développement<span class="sp-pill-leaf sp-pill-leaf-r">🍃</span>';
       var foot = document.getElementById('sp-footer-env');
       if (foot) foot.textContent = 'EVAD © 2026, Licence Creative Commons · Prototype · espace développement';
+      // Hors prod, on masque le texte de présentation (« Bienvenue… » jusqu'à
+      // « …construire la suite ») : l'équipe n'a pas besoin de l'argumentaire,
+      // elle veut aller droit au formulaire de connexion.
+      ['.sp-slogan', '.sp-oneliner', '.sp-tagline'].forEach(function (sel) {
+        var el = document.querySelector(sel);
+        if (el) el.style.display = 'none';
+      });
     })();
     </script>
 
