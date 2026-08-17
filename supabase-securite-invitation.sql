@@ -80,10 +80,14 @@ begin
     end loop;
 
     -- Colonne qui désigne le propriétaire de la ligne, si elle existe.
+    -- Seule « user_id » fait foi : c'est la seule à contenir l'identifiant du
+    -- compte Supabase. Surtout PAS « author_id » de reseau_posts, qui porte
+    -- l'identifiant de la FICHE (lieu, bâtisseur, semeur), voire un identifiant
+    -- local anonyme, voir evadChatMe dans js/messages.js. S'en servir comme
+    -- propriétaire bloquerait toute modification sans rien sécuriser.
     select column_name into col_prop
     from information_schema.columns
-    where table_schema = 'public' and table_name = t and column_name in ('user_id', 'author_id')
-    order by case column_name when 'user_id' then 1 else 2 end
+    where table_schema = 'public' and table_name = t and column_name = 'user_id'
     limit 1;
 
     if t = any(courrier) then
@@ -99,21 +103,23 @@ begin
       if col_prop is null then
         raise exception 'Table privée % sans colonne de propriétaire : à traiter à la main', t;
       end if;
-      execute format('create policy "proprietaire seul" on public.%I for all to authenticated using (%I = auth.uid()) with check (%I = auth.uid())', t, col_prop, col_prop);
+      -- Comparaison en texte des deux côtés : selon les tables, user_id est
+      -- typé uuid ou text, et « text = uuid » n'existe pas en Postgres.
+      execute format('create policy "proprietaire seul" on public.%I for all to authenticated using (%I::text = auth.uid()::text) with check (%I::text = auth.uid()::text)', t, col_prop, col_prop);
 
     else  -- contenu
       execute format('create policy "lecture invites" on public.%I for select to authenticated using (true)', t);
       execute format('create policy "creation invites" on public.%I for insert to authenticated with check (true)', t);
       if col_prop is null then
-        -- Pas de propriétaire identifiable (reseau_posts sans author_id, par
-        -- exemple) : tout compte connecté peut modifier. À resserrer le jour où
-        -- la table portera une colonne de propriétaire.
+        -- Pas de colonne user_id : cas de reseau_posts, dont l'auteur est
+        -- désigné par une fiche et non par un compte. Tout compte connecté peut
+        -- donc modifier. À resserrer le jour où la table portera un user_id.
         execute format('create policy "modification invites" on public.%I for update to authenticated using (true) with check (true)', t);
         execute format('create policy "suppression invites" on public.%I for delete to authenticated using (true)', t);
-        raise notice 'Table % sans colonne de proprietaire : ecriture ouverte a tous les comptes connectes', t;
+        raise notice 'Table % sans colonne user_id : ecriture ouverte a tous les comptes connectes', t;
       else
-        execute format('create policy "modification proprietaire" on public.%I for update to authenticated using (%I = auth.uid()) with check (%I = auth.uid())', t, col_prop, col_prop);
-        execute format('create policy "suppression proprietaire" on public.%I for delete to authenticated using (%I = auth.uid())', t, col_prop);
+        execute format('create policy "modification proprietaire" on public.%I for update to authenticated using (%I::text = auth.uid()::text) with check (%I::text = auth.uid()::text)', t, col_prop, col_prop);
+        execute format('create policy "suppression proprietaire" on public.%I for delete to authenticated using (%I::text = auth.uid()::text)', t, col_prop);
       end if;
     end if;
 
