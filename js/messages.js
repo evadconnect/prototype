@@ -501,9 +501,24 @@
     try {
       var all = threadsAll(); if (all[threadId]) { delete all[threadId]; global.localStorage.setItem(LS_THREADS, JSON.stringify(all)); }
     } catch (e) {}
-    // Supabase (best effort, non bloquant : on ne fait pas attendre l'UI).
+    // Supabase : ATTENDU, et pas seulement tenté. Effacer le cache local ne
+    // suffit pas, la synchronisation suivante rapatrie les lignes restées en
+    // base et la conversation réapparaît. On attend donc la suppression, et on
+    // le dit si elle échoue plutôt que de laisser croire que c'est fait.
+    // Demande la liste des lignes supprimées : sans policy DELETE, la RLS
+    // n'échoue pas, elle ne supprime rien, et le tableau revient vide.
     if (global.evadSupabase) {
-      try { global.evadSupabase.from('messages').delete().eq('thread_id', threadId); } catch (e) {}
+      try {
+        var sup = await global.evadSupabase
+          .from('messages').delete().eq('thread_id', threadId).select('id');
+        if (sup.error) {
+          if (typeof mmBubble === 'function') mmBubble('⚠️ Conversation retirée de cet appareil seulement : ' + sup.error.message);
+        } else if (!sup.data || !sup.data.length) {
+          if (typeof mmBubble === 'function') mmBubble('⚠️ Rien à supprimer en base, ou suppression refusée : la conversation peut revenir.');
+        }
+      } catch (e) {
+        if (typeof mmBubble === 'function') mmBubble('⚠️ Conversation retirée de cet appareil seulement (réseau indisponible).');
+      }
     }
     evadCloseChat();
     if (typeof evadRefreshUnread === 'function') { try { evadRefreshUnread(); } catch (e) {} }
@@ -674,7 +689,7 @@
     +   '<div id="evad-inbox-list" style="flex:1;min-height:0;overflow-y:auto;padding:.5rem;background:rgba(46,102,66,.03)"></div>'
     +   '<div style="flex-shrink:0;padding:.7rem .9rem;border-top:1px solid rgba(46,102,66,.1);background:#fff">'
     +     '<button onclick="evadCloseInbox();if(window.openAmelioration)openAmelioration()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.4rem;background:rgba(200,115,42,.08);border:1px solid rgba(200,115,42,.25);color:var(--amber);border-radius:12px;padding:.6rem;font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit">💡 Proposer une amélioration</button>'
-    +     '<button onclick="evadClearLocalChats()" title="Efface les conversations stockées sur cet appareil (n\'affecte pas les autres membres)" style="width:100%;background:none;border:none;color:var(--moss);opacity:.55;font-size:.65rem;cursor:pointer;font-family:inherit;margin-top:.45rem;text-decoration:underline">🧹 Vider mes conversations locales</button>'
+    +     '<button onclick="evadClearLocalChats()" title="Supprime tes conversations sur cet appareil et en base (les fils où tu es expéditeur ou destinataire)" style="width:100%;background:none;border:none;color:var(--moss);opacity:.55;font-size:.65rem;cursor:pointer;font-family:inherit;margin-top:.45rem;text-decoration:underline">🧹 Supprimer toutes mes conversations</button>'
     +   '</div>'
     + '</div>';
     document.body.appendChild(w);
@@ -869,8 +884,23 @@
   // Réinitialise toutes les conversations stockées SUR CET APPAREIL (localStorage).
   // N'affecte ni la base Supabase ni les autres membres : utile pour repartir
   // propre après une phase de test.
-  function evadClearLocalChats() {
-    if (!global.confirm('Vider toutes tes conversations locales sur cet appareil ?\n(N\'affecte pas les autres membres.)')) return;
+  async function evadClearLocalChats() {
+    if (!global.confirm('Supprimer toutes tes conversations ?\n\nElles sont retirées de cet appareil ET de la base, pour les fils où tu es expéditeur ou destinataire. Cette action est définitive.')) return;
+    // Base D'ABORD, sinon la synchronisation suivante rapatrie tout : vider le
+    // seul cache local donnait l'impression que le bouton ne faisait rien.
+    var uid = await _authUid();
+    if (global.evadSupabase && uid) {
+      try {
+        var a = await global.evadSupabase.from('messages').delete().eq('user_id', uid).select('id');
+        var b = await global.evadSupabase.from('messages').delete().eq('dest_user_id', uid).select('id');
+        var n = ((a.data || []).length) + ((b.data || []).length);
+        var err = a.error || b.error;
+        if (err && typeof mmBubble === 'function') mmBubble('⚠️ Conversations retirées de cet appareil seulement : ' + err.message);
+        else if (typeof mmBubble === 'function') mmBubble('🧹 ' + n + ' message' + (n > 1 ? 's' : '') + ' supprimé' + (n > 1 ? 's' : '') + ' en base.');
+      } catch (e) {
+        if (typeof mmBubble === 'function') mmBubble('⚠️ Conversations retirées de cet appareil seulement (réseau indisponible).');
+      }
+    }
     ['evad:v1:messages', 'evad:v1:threads', 'evad:v1:msg-seen', 'evad:v1:msg-fav', 'evad:v1:msg-sync']
       .forEach(function (k) { try { global.localStorage.removeItem(k); } catch (e) {} });
     if (typeof evadRefreshUnread === 'function') { try { evadRefreshUnread(); } catch (e) {} }

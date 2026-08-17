@@ -70,6 +70,26 @@ from public.messages;
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
+-- PHASE 1 bis — Droit de supprimer ses conversations
+--
+-- Constaté le 2026-08-17 : la corbeille de la boîte de réception et le bouton
+-- « Supprimer toutes mes conversations » n'avaient jamais d'effet durable. La
+-- table n'a aucune policy DELETE, donc la RLS ne supprime rien, sans lever
+-- d'erreur, et la synchronisation suivante rapatriait les lignes restées en
+-- base. Effacer le cache local ne suffit jamais.
+--
+-- À lancer dès maintenant, indépendamment de la phase 2.
+-- Les lignes antérieures à la phase 1, sans user_id ni dest_user_id, restent
+-- non supprimables : c'est volontaire, on ne donne pas un droit de suppression
+-- sur des messages dont on ne sait pas à qui ils appartiennent.
+-- ─────────────────────────────────────────────────────────────────────────────
+drop policy if exists "suppression de mes conversations" on public.messages;
+create policy "suppression de mes conversations" on public.messages
+  for delete to authenticated
+  using (user_id = auth.uid() or dest_user_id = auth.uid());
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
 -- PHASE 2 — Le verrou par participant
 --
 -- ⚠️ NE PAS LANCER tant que le contrôle ci-dessus n'est pas satisfaisant, et
