@@ -274,8 +274,9 @@ function closeAmelioration(){
    « anon public » (publique, jamais la service_role). Table attendue : `feedback`
    avec une policy RLS « insert » pour le rôle anon (voir SQL fourni). ── */
 const EVAD_FEEDBACK_SUPABASE = {
-  url: 'https://lmhhrccmgebztioesmik.supabase.co',
-  anonKey: 'sb_publishable_M_1-SinRmo1T8exi8_gkvw_RTiHznag',  // clé publishable (publique, OK dans le front)
+  // url + anonKey suivent la base active (PROD ou STAGING) définie dans supabase-config.js.
+  get url(){ return (window.EVAD_SUPABASE_ENV && window.EVAD_SUPABASE_ENV.url) || 'https://lmhhrccmgebztioesmik.supabase.co'; },
+  get anonKey(){ return (window.EVAD_SUPABASE_ENV && window.EVAD_SUPABASE_ENV.key) || 'sb_publishable_M_1-SinRmo1T8exi8_gkvw_RTiHznag'; },  // clé publishable (publique, OK dans le front)
   table: 'feedback_prototype',
   bucket: 'feedback'   // bucket Storage public pour les pièces jointes
 };

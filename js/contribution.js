@@ -134,8 +134,9 @@ function closeContribModal(){ if (typeof showScreen === 'function') showScreen('
    colonne JSON `details`. L'image de couverture est uploadée dans le bucket
    Storage `contributions`. Repli localStorage si l'envoi échoue. ── */
 const EVAD_CONTRIB_SUPABASE = {
-  url: 'https://lmhhrccmgebztioesmik.supabase.co',
-  anonKey: 'sb_publishable_M_1-SinRmo1T8exi8_gkvw_RTiHznag',
+  // url + anonKey suivent la base active (PROD ou STAGING) définie dans supabase-config.js.
+  get url(){ return (window.EVAD_SUPABASE_ENV && window.EVAD_SUPABASE_ENV.url) || 'https://lmhhrccmgebztioesmik.supabase.co'; },
+  get anonKey(){ return (window.EVAD_SUPABASE_ENV && window.EVAD_SUPABASE_ENV.key) || 'sb_publishable_M_1-SinRmo1T8exi8_gkvw_RTiHznag'; },
   table: 'contributions_solution',
   bucket: 'contributions'
 };
