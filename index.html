@@ -46,7 +46,7 @@
       <div id="home-login-error" style="display:none;color:#a83232;font-size:.75rem;margin-top:.55rem;font-family:'Satoshi',sans-serif"></div>
       <button id="home-login-btn" type="button" onclick="homeLoginSubmit()" style="width:100%;margin-top:.9rem;padding:.85rem;border:none;border-radius:100px;background:#018262;color:#fff;font-size:.95rem;font-weight:700;font-family:'Satoshi',sans-serif;cursor:pointer">Se connecter</button>
       <button id="home-forgot-btn" type="button" onclick="homeForgotPassword()" style="display:block;margin:.75rem auto 0;background:none;border:none;color:#3d6b5a;font-size:.76rem;font-family:'Satoshi',sans-serif;text-decoration:underline;cursor:pointer">Mot de passe oublié&nbsp;?</button>
-      <p style="font-size:.75rem;color:#3d6b5a;text-align:center;margin:.9rem 0 0;font-family:'Satoshi',sans-serif">Pas encore de compte&nbsp;? <a href="https://evad.org" target="_blank" rel="noopener" style="color:#018262;font-weight:700;text-decoration:none">Inscrivez-vous sur evad.org</a></p>
+      <p id="home-signup-hint" style="font-size:.75rem;color:#3d6b5a;text-align:center;margin:.9rem 0 0;font-family:'Satoshi',sans-serif">Pas encore de compte&nbsp;? <a href="https://evad.org" target="_blank" rel="noopener" style="color:#018262;font-weight:700;text-decoration:none">Inscrivez-vous sur evad.org</a></p>
     </div>
 
     <div class="sp-footer">
@@ -69,7 +69,9 @@
       // Hors prod, on masque le texte de présentation (« Bienvenue… » jusqu'à
       // « …construire la suite ») : l'équipe n'a pas besoin de l'argumentaire,
       // elle veut aller droit au formulaire de connexion.
-      ['.sp-slogan', '.sp-oneliner', '.sp-tagline'].forEach(function (sel) {
+      // On masque aussi l'invitation à s'inscrire sur evad.org : hors prod, les
+      // comptes sont créés à la main dans la base de test.
+      ['.sp-slogan', '.sp-oneliner', '.sp-tagline', '#home-signup-hint'].forEach(function (sel) {
         var el = document.querySelector(sel);
         if (el) el.style.display = 'none';
       });
