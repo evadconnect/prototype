@@ -141,14 +141,20 @@ end $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- ÉTAPE 2 — Storage : mêmes règles pour les fichiers
--- Les buckets avaient une policy « for all » ouverte à anon pour permettre
--- l'upload sans compte. La connexion étant désormais obligatoire, on réserve
--- l'accès aux comptes connectés.
+-- Les buckets avaient une policy « for all » ouverte à anon, héritée de l'époque
+-- où l'on téléversait sans compte.
+--
+-- ⚠️ Deux buckets gardent l'insertion anonyme : « contributions » et
+-- « feedback ». Les formulaires « Proposer une solution » et « Proposer une
+-- amélioration » téléversent leurs images avec la clé anon et non avec le jeton
+-- de session (voir js/contribution.js et js/fil-rouge-feedback.js). Leur retirer
+-- ce droit casserait les deux formulaires. Ils ne peuvent qu'écrire, pas relire.
 -- ─────────────────────────────────────────────────────────────────────────────
 do $$
 declare
   b text;
   pol record;
+  depot text[] := array['contributions', 'feedback'];
 begin
   for b in select unnest(array['lieux', 'preuves', 'contributions', 'feedback']) loop
     for pol in
@@ -157,11 +163,27 @@ begin
     loop
       execute format('drop policy if exists %I on storage.objects', pol.policyname);
     end loop;
+
     execute format(
       'create policy "acces invites %s" on storage.objects for all to authenticated using (bucket_id = %L) with check (bucket_id = %L)',
       b, b, b);
+
+    if b = any(depot) then
+      execute format(
+        'create policy "depot anonyme %s" on storage.objects for insert to anon with check (bucket_id = %L)',
+        b, b);
+    end if;
   end loop;
 end $$;
+
+-- ⚠️ LIMITE CONNUE, à traiter séparément : un bucket marqué « Public » dans
+-- Supabase sert ses fichiers par URL sans vérifier la moindre policy. L'app
+-- affiche justement les images via des URL /object/public/... Tant que les
+-- buckets restent publics, une personne qui connaît l'URL exacte d'une image
+-- peut l'ouvrir sans compte. Les policies ci-dessus verrouillent le dépôt et le
+-- listage, pas cette lecture directe. Pour fermer complètement, il faut passer
+-- les buckets en privé ET remplacer getPublicUrl par createSignedUrl dans le
+-- code. C'est un chantier à part, à décider après ce script.
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
