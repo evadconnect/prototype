@@ -31,7 +31,7 @@
         </svg>
       </div>
       <p class="sp-name">Écosystème Vivant Autonome &amp; Décentralisé</p>
-      <span class="sp-pill"><span class="sp-pill-leaf">🍃</span>Espace bêta-testeurs<span class="sp-pill-leaf sp-pill-leaf-r">🍃</span></span>
+      <span class="sp-pill" id="sp-pill-env"><span class="sp-pill-leaf">🍃</span>Espace bêta-testeurs<span class="sp-pill-leaf sp-pill-leaf-r">🍃</span></span>
       <p class="sp-slogan">Bienvenue dans le prototype EVAD&nbsp;!</p>
       <p class="sp-oneliner">L'écosystème qui relie les lieux régénératifs et celles et ceux qui les font vivre.</p>
       <p class="sp-tagline">Coordonner un lieu durable, passer à l'action ou soutenir des projets : EVAD réunit les actrices et acteurs de la transition régénérative. Connectez-vous pour composer votre fiche. Vos retours nous aident à construire la suite.</p>
@@ -50,8 +50,24 @@
     </div>
 
     <div class="sp-footer">
-      <div class="sp-footer-text">EVAD © 2026, Licence Creative Commons · Prototype · espace bêta-testeurs</div>
+      <div class="sp-footer-text" id="sp-footer-env">EVAD © 2026, Licence Creative Commons · Prototype · espace bêta-testeurs</div>
     </div>
+
+    <script>
+    /* Libellé de l'environnement. Sur la prod (app.evad.org) on garde
+       « espace bêta-testeurs » ; partout ailleurs (dev.evad.org, préview
+       Vercel, local) l'app tourne sur la base de test, on affiche donc
+       « espace développement ». Même liste d'hôtes que PROD_HOSTS dans
+       js/supabase-config.js, répétée ici car ce script s'exécute avant
+       (l'accueil est affiché bien avant le chargement du SDK Supabase). */
+    (function () {
+      if (location.hostname === 'app.evad.org') return;
+      var pill = document.getElementById('sp-pill-env');
+      if (pill) pill.innerHTML = '<span class="sp-pill-leaf">🍃</span>Espace développement<span class="sp-pill-leaf sp-pill-leaf-r">🍃</span>';
+      var foot = document.getElementById('sp-footer-env');
+      if (foot) foot.textContent = 'EVAD © 2026, Licence Creative Commons · Prototype · espace développement';
+    })();
+    </script>
 
   </div>
 
