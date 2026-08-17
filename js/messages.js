@@ -492,11 +492,7 @@
     if (!threadId) return;
     if (!global.confirm('Supprimer cette conversation ? Cette action est définitive.')) return;
     favForget(threadId);
-    // Supabase (best effort : la lecture/écriture est publique en bêta).
-    if (global.evadSupabase) {
-      try { await global.evadSupabase.from('messages').delete().eq('thread_id', threadId); } catch (e) {}
-    }
-    // localStorage : messages du fil.
+    // localStorage D'ABORD : garanti même si Supabase est lent/bloqué/refusé (RLS).
     try {
       var kept = lsAll().filter(function (m) { return m.thread_id !== threadId; });
       global.localStorage.setItem(LS_KEY, JSON.stringify(kept));
@@ -505,6 +501,10 @@
     try {
       var all = threadsAll(); if (all[threadId]) { delete all[threadId]; global.localStorage.setItem(LS_THREADS, JSON.stringify(all)); }
     } catch (e) {}
+    // Supabase (best effort, non bloquant : on ne fait pas attendre l'UI).
+    if (global.evadSupabase) {
+      try { global.evadSupabase.from('messages').delete().eq('thread_id', threadId); } catch (e) {}
+    }
     evadCloseChat();
     if (typeof evadRefreshUnread === 'function') { try { evadRefreshUnread(); } catch (e) {} }
     // Rouvre la boîte de réception si elle était derrière.
