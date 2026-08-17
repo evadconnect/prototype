@@ -683,7 +683,7 @@
     var list = document.getElementById('evad-inbox-list');
     if (!list) return;
     if (!rows.length) {
-      list.innerHTML = '<div style="margin:2rem auto;text-align:center;color:var(--moss);opacity:.65;font-size:.78rem;padding:1.5rem;line-height:1.5">Aucune conversation pour l\'instant.<br>Contacte un lieu ou un bâtisseur depuis le réseau pour démarrer 💬</div>';
+      list.innerHTML = '<div style="margin:2rem auto;text-align:center;color:var(--moss);opacity:.65;font-size:.78rem;padding:1.5rem;line-height:1.5">Aucune conversation pour l\'instant.<br>Contacte un lieu ou un bâtisseur depuis la carte avec le bouton « Envoyer un message » 💬</div>';
       return;
     }
     list.innerHTML = rows.map(function (row) {
