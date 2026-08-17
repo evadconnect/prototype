@@ -674,6 +674,7 @@
     +   '<div id="evad-inbox-list" style="flex:1;min-height:0;overflow-y:auto;padding:.5rem;background:rgba(46,102,66,.03)"></div>'
     +   '<div style="flex-shrink:0;padding:.7rem .9rem;border-top:1px solid rgba(46,102,66,.1);background:#fff">'
     +     '<button onclick="evadCloseInbox();if(window.openAmelioration)openAmelioration()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.4rem;background:rgba(200,115,42,.08);border:1px solid rgba(200,115,42,.25);color:var(--amber);border-radius:12px;padding:.6rem;font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit">💡 Proposer une amélioration</button>'
+    +     '<button onclick="evadClearLocalChats()" title="Efface les conversations stockées sur cet appareil (n\'affecte pas les autres membres)" style="width:100%;background:none;border:none;color:var(--moss);opacity:.55;font-size:.65rem;cursor:pointer;font-family:inherit;margin-top:.45rem;text-decoration:underline">🧹 Vider mes conversations locales</button>'
     +   '</div>'
     + '</div>';
     document.body.appendChild(w);
@@ -865,9 +866,21 @@
     global.addEventListener(ev, function () { setTimeout(evadMessagesInit, 150); });
   });
 
+  // Réinitialise toutes les conversations stockées SUR CET APPAREIL (localStorage).
+  // N'affecte ni la base Supabase ni les autres membres : utile pour repartir
+  // propre après une phase de test.
+  function evadClearLocalChats() {
+    if (!global.confirm('Vider toutes tes conversations locales sur cet appareil ?\n(N\'affecte pas les autres membres.)')) return;
+    ['evad:v1:messages', 'evad:v1:threads', 'evad:v1:msg-seen', 'evad:v1:msg-fav', 'evad:v1:msg-sync']
+      .forEach(function (k) { try { global.localStorage.removeItem(k); } catch (e) {} });
+    if (typeof evadRefreshUnread === 'function') { try { evadRefreshUnread(); } catch (e) {} }
+    if (typeof evadOpenInbox === 'function') { try { evadOpenInbox(); } catch (e) {} }
+  }
+
   global.evadOpenChat = evadOpenChat;
   global.evadCloseChat = evadCloseChat;
   global.evadDeleteThread = evadDeleteThread;
+  global.evadClearLocalChats = evadClearLocalChats;
   global.evadToggleFav = evadToggleFav;
   global.evadSendChat = evadSendChat;
   global.evadLoadOlder = evadLoadOlder;
