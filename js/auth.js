@@ -153,6 +153,34 @@ async function evadDoPasswordReset(){
   setTimeout(hookRecovery, 400);
 })();
 
+// ── Restauration de session au chargement ──
+// Supabase persiste la session (persistSession: true). Au refresh, si un compte
+// est déjà connecté, on entre directement dans l'app avec son dernier rôle,
+// au lieu de réafficher l'écran de connexion (= « déconnexion » ressentie).
+async function evadRestoreSession(){
+  if (window.__evadRestored) return;
+  const client = window.evadSupabase;
+  if (!client || !client.auth) return;
+  let session = null;
+  try { const { data } = await client.auth.getSession(); session = data && data.session; } catch (e) { return; }
+  if (!session || !session.user) return;           // pas connecté → on laisse l'écran de connexion
+  window.__evadRestored = true;
+  const user = session.user;
+  const roles = evadUserRoles(user);
+  window.EVAD_ROLES = roles;
+  window.EVAD_FICHES_FAITES = (user.user_metadata && user.user_metadata.fiches_faites) || [];
+  if (typeof renderRoleSwitcher === 'function') { try { renderRoleSwitcher(roles); } catch (e) {} }
+  let last = null; try { last = localStorage.getItem('evad:last-role'); } catch (e) {}
+  const role = (last && roles.indexOf(last) !== -1) ? last : (roles.length === 1 ? roles[0] : null);
+  if (role) { currentRole = role; await evadEnterRole(role); }
+  else if (typeof showProfileChooser === 'function') { showProfileChooser(roles); }
+}
+(function hookRestore(){
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', hookRestore); return; }
+  try { if (window.evadSupabase && window.evadSupabase.auth) { evadRestoreSession(); return; } } catch (e) {}
+  setTimeout(hookRestore, 300);
+})();
+
 // ── Multi-profil : profils autorisés du compte + sélecteur + switcher ──
 const EVAD_ROLE_META = {
   pilote:    { ic:'🏡', name:"Pilote d'impact",    desc:"Coordonner un lieu durable." },
@@ -206,6 +234,7 @@ function evadFicheDone(role){
 async function evadEnterRole(role){
   splashRole = role;
   currentRole = role;
+  try { localStorage.setItem('evad:last-role', role); } catch (e) {}   // pour restaurer au refresh
   let done = evadFicheDone(role);
   // Rattrapage comptes existants : une fiche Pilote déjà en base = fiche faite.
   if (!done && role === 'pilote') {
