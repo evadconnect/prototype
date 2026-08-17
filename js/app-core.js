@@ -2822,9 +2822,36 @@ function navWizardSet(steps, currentIdx, onJump) {
       }
     });
   }
+  // Raccourci réservé aux environnements de test (dev.evad.org, préview, local) :
+  // sauter l'assistant pour aller voir le reste de l'app sans remplir la fiche.
+  // Absent de la production, où EVAD_SUPABASE_ENV.isProd vaut true
+  // (liste des hôtes : PROD_HOSTS dans js/supabase-config.js).
+  if (!(window.EVAD_SUPABASE_ENV && window.EVAD_SUPABASE_ENV.isProd)) {
+    const skip = document.createElement('button');
+    skip.type = 'button';
+    skip.className = 'nav-stepper-skip';
+    skip.id = 'nav-stepper-skip';
+    skip.innerHTML = '<span>⏭</span> Passer la création de fiche';
+    skip.title = 'Raccourci de test, absent de app.evad.org';
+    skip.addEventListener('click', evadSkipFiche);
+    container.appendChild(skip);
+  }
   // Mémorise l'état pour la barre mobile (qui affiche les étapes à la place des onglets).
   window._navWizard = { steps: steps.slice(), currentIdx: currentIdx, onJump: onJump };
   if (typeof window.renderMobNav === 'function') window.renderMobNav();
+}
+
+// Quitte l'assistant de création et ouvre le tableau de bord du profil en cours.
+// Couvre les trois assistants : Pilote (creer), Bâtisseur (fiche-bat) et
+// Semeur (fiche-sem). Réservé aux environnements de test, voir navWizardSet.
+function evadSkipFiche() {
+  const active = document.querySelector('.screen.active');
+  const roleByScreen = { 'screen-creer': 'pilote', 'screen-fiche-bat': 'batisseur', 'screen-fiche-sem': 'semeur' };
+  const role = (active && roleByScreen[active.id]) || currentRole;
+  currentRole = role;
+  if (typeof updateRoleNavigation === 'function') updateRoleNavigation(role);
+  navWizardClear();
+  showScreen({ pilote: 'pilote', batisseur: 'quete', semeur: 'semeur' }[role] || 'carte');
 }
 
 // Saut vers une étape déjà franchie depuis la barre wizard mobile.
