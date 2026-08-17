@@ -15637,3 +15637,33 @@ syncMapPlacesFromStore();
 setRole('pilote', null);
 renderProfileContext();
 setTimeout(initRealMap, 120);
+
+/* ─── RACCOURCIS DE TEST (hors production) ───
+   Bouton « Créer ma fiche » dans les trois tableaux de bord, pour relancer
+   l'assistant depuis la première étape autant de fois qu'on veut. Il complète
+   le bouton « Passer la création de fiche » du fil de progression : l'un sort
+   de l'assistant, l'autre y revient. Absents de app.evad.org, où
+   EVAD_SUPABASE_ENV.isProd vaut true (voir js/supabase-config.js).
+   Les fonctions reset appelées ici vident le brouillon local et remettent
+   l'assistant à l'étape 1 ; elles ne suppriment aucune fiche déjà publiée. */
+(function () {
+  if (window.EVAD_SUPABASE_ENV && window.EVAD_SUPABASE_ENV.isProd) return;
+  const CIBLES = [
+    { dash: 'screen-pilote', label: '👤 Créer ma fiche lieu',        open: function () { showScreen('creer');     if (typeof creerReset    === 'function') creerReset(); } },
+    { dash: 'screen-quete',  label: '👤 Créer ma fiche particulier', open: function () { showScreen('fiche-bat'); if (typeof batFicheReset === 'function') batFicheReset(); } },
+    { dash: 'screen-semeur', label: '👤 Créer ma fiche semeur',      open: function () { showScreen('fiche-sem'); if (typeof semFicheReset === 'function') semFicheReset(); } }
+  ];
+  CIBLES.forEach(function (c) {
+    const screen = document.getElementById(c.dash);
+    const actions = screen && screen.querySelector('.topbar-actions');
+    if (!actions) return;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn btn-ghost';
+    b.dataset.devShortcut = 'creer-fiche';
+    b.textContent = c.label;
+    b.title = "Raccourci de test : relance l'assistant depuis la première étape. Absent de app.evad.org.";
+    b.addEventListener('click', c.open);
+    actions.appendChild(b);
+  });
+})();
