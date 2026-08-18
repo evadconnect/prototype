@@ -8777,6 +8777,26 @@ function batQueteSelToggle(q) {
   try { localStorage.setItem(BAT_SEL_KEY, JSON.stringify(l.slice(-200))); } catch (e) {}
   return i < 0;
 }
+// Bascule depuis l'étoile d'une carte de la liste « Matching ». On met l'étoile
+// à jour sur place plutôt que de re-rendre l'étape : un re-rendu rejouerait le
+// récap de Deva et ferait sauter la liste sous le curseur.
+function batQueteSelFromCard(btn) {
+  if (!btn) return;
+  const key = String(btn.getAttribute('data-selq') || '');
+  const q = BAT_QUETES.find(x => String(x.srcId || x.id) === key);
+  if (!q) return;
+  const on = batQueteSelToggle(q);
+  btn.textContent = on ? '★' : '☆';
+  btn.style.color = on ? '#8a6a12' : 'var(--moss)';
+  btn.style.background = on ? 'rgba(240,176,50,.16)' : 'transparent';
+  btn.title = on ? 'Retirer de ma sélection' : 'Garder cette quête dans « Mes quêtes »';
+  const card = btn.closest('div[onclick]');
+  if (card) card.style.background = on ? 'rgba(240,176,50,.07)' : 'white';
+  if (typeof mmBubble === 'function') {
+    mmBubble(on ? '⭐ Quête gardée : tu la retrouveras dans « Mes quêtes »' : 'Quête retirée de ta sélection');
+  }
+}
+
 // Bouton « Sélectionner cette quête » du panneau : bascule et re-rend.
 function qdSelectQuete() {
   const q = qdQuest(); if (!q) return;
@@ -12615,7 +12635,7 @@ function batFicheRenderStep() {
       _devaMsg += `J'en ai trouvé <b>${_n}</b> qui te ${_n > 1 ? 'correspondent' : 'correspond'}, classée${_n > 1 ? 's' : ''} par pertinence.`;
     }
     if (_top) _devaMsg += ` La plus alignée avec ton profil : <b>${escapeHtml(_top.titre)}</b>, ${escapeHtml(_top.lieu)} (${_top.score}%).`;
-    _devaMsg += ` Clique sur une quête pour postuler 👇`;
+    _devaMsg += ` Clique sur une quête pour la découvrir, ou sur ☆ pour la garder dans « Mes quêtes » 👇`;
 
     // Le récap du matching s'affiche dans la bulle de Deva (au-dessus du pill),
     // plus dans une carte inline : la liste des quêtes reste dégagée.
@@ -12628,10 +12648,18 @@ function batFicheRenderStep() {
           const col = colFor(q.score);
           const colBg = col === 'var(--fern)' ? 'rgba(74,140,92,.1)' : col === 'var(--amber)' ? 'rgba(200,115,42,.1)' : 'rgba(58,110,140,.1)';
           const typeIc = q.type.split(' ')[0];
-          return `<div onclick="openQueteModalFromFiche(${q.id})" style="background:white;border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:.6rem .65rem;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;gap:.35rem;min-width:0" onmouseover="this.style.borderColor='rgba(74,140,92,.35)';this.style.boxShadow='0 3px 12px rgba(74,140,92,.09)'" onmouseout="this.style.borderColor='rgba(46,102,66,.12)';this.style.boxShadow='none'">
+          // Étoile de sélection directement sur la carte : on garde une quête
+          // sans avoir à ouvrir son détail. Le clic ne doit pas ouvrir le
+          // panneau, d'où le stopPropagation.
+          const _sel = batQueteSelHas(q);
+          const _star = `<button data-selq="${q.srcId || q.id}" onclick="event.stopPropagation();batQueteSelFromCard(this)" title="${_sel ? 'Retirer de ma sélection' : 'Garder cette quête dans « Mes quêtes »'}" aria-label="Sélectionner cette quête" style="flex-shrink:0;border:none;border-radius:8px;cursor:pointer;font-size:.85rem;line-height:1;padding:.2rem .28rem;font-family:inherit;background:${_sel ? 'rgba(240,176,50,.16)' : 'transparent'};color:${_sel ? '#8a6a12' : 'var(--moss)'}">${_sel ? '★' : '☆'}</button>`;
+          return `<div onclick="openQueteModalFromFiche(${q.id})" style="background:${_sel ? 'rgba(240,176,50,.07)' : 'white'};border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:.6rem .65rem;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;gap:.35rem;min-width:0" onmouseover="this.style.borderColor='rgba(74,140,92,.35)';this.style.boxShadow='0 3px 12px rgba(74,140,92,.09)'" onmouseout="this.style.borderColor='rgba(46,102,66,.12)';this.style.boxShadow='none'">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:.4rem">
               <div style="width:30px;height:30px;border-radius:8px;background:rgba(74,140,92,.1);display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0">${typeIc}</div>
-              <span style="font-size:.58rem;font-weight:800;color:${col};background:${colBg};padding:.1rem .4rem;border-radius:100px;flex-shrink:0">${q.score}%</span>
+              <div style="display:flex;align-items:center;gap:.25rem;flex-shrink:0">
+                <span style="font-size:.58rem;font-weight:800;color:${col};background:${colBg};padding:.1rem .4rem;border-radius:100px">${q.score}%</span>
+                ${_star}
+              </div>
             </div>
             <div style="font-size:.72rem;font-weight:600;color:var(--ink);line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${q.titre}</div>
             <div style="font-size:.58rem;color:var(--moss);opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📍 ${q.lieu}</div>
