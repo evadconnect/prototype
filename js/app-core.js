@@ -15586,14 +15586,35 @@ function syncMapSemeursFromStore(){
 window.addEventListener('evad:semeurs-ready', function(){
   try {
     syncMapSemeursFromStore();
-    // Restaure MA fiche Semeur après un rechargement, via l'id stable.
+    // Restaure MA fiche Semeur en la rattachant au COMPTE connecté (user_id) et
+    // non à la clé localStorage de l'appareil (même correctif que le bâtisseur :
+    // sinon l'identité d'un compte précédent persiste sur ce navigateur).
     try {
-      const mySid = localStorage.getItem('evad:semeur-id');
-      if (mySid && (typeof semFicheData === 'undefined' || !semFicheData || !semFicheData.id)) {
-        const mine = store.get('semeurs', mySid);
-        if (mine) {
-          semFicheData = Object.assign(_SEM_FICHE_EMPTY(), mine);
-          if (typeof semReflectProfile === 'function') semReflectProfile();
+      const uid = (typeof store.userId === 'function') ? store.userId() : null;
+      if (uid) {
+        const mineRows = store.all('semeurs').filter(function (r) { return r && r.user_id === uid; });
+        const myRow = mineRows.length ? mineRows[mineRows.length - 1] : null;
+        if (myRow) {
+          if (!semFicheData || semFicheData.id !== myRow.id) {
+            semFicheData = Object.assign(_SEM_FICHE_EMPTY(), myRow);
+            try { localStorage.setItem('evad:semeur-id', myRow.id); } catch (e) {}
+            if (typeof semReflectProfile === 'function') semReflectProfile();
+          }
+        } else {
+          const cur = (semFicheData && semFicheData.id) ? store.get('semeurs', semFicheData.id) : null;
+          if (cur && cur.user_id && cur.user_id !== uid) {
+            semFicheData = _SEM_FICHE_EMPTY();
+            try { localStorage.removeItem('evad:semeur-id'); } catch (e) {}
+          }
+        }
+      } else {
+        const mySid = localStorage.getItem('evad:semeur-id');
+        if (mySid && (typeof semFicheData === 'undefined' || !semFicheData || !semFicheData.id)) {
+          const mine = store.get('semeurs', mySid);
+          if (mine) {
+            semFicheData = Object.assign(_SEM_FICHE_EMPTY(), mine);
+            if (typeof semReflectProfile === 'function') semReflectProfile();
+          }
         }
       }
     } catch(e){}
@@ -15612,17 +15633,45 @@ window.addEventListener('evad:semeurs-ready', function(){
 window.addEventListener('evad:batisseurs-ready', function(){
   try {
     syncMapBatisseursFromStore();
-    // Restaure MA fiche dans le tableau de bord après un rechargement : on
-    // retrouve ma ligne via l'id stable du bâtisseur (localStorage).
+    // Restaure MA fiche bâtisseur en la rattachant au COMPTE connecté (user_id),
+    // pas à la clé localStorage de l'appareil : sinon un navigateur qui a servi
+    // à Romain garderait l'identité de Romain même connecté sur un autre compte
+    // (le bouton « Envoyer un message » disparaissait alors sur sa fiche, vu
+    // comme « soi-même »).
     try {
-      const myBid = localStorage.getItem('evad:batisseur-id');
-      if (myBid && (typeof batFicheData === 'undefined' || !batFicheData || !batFicheData.id)) {
-        const mine = store.get('batisseurs', myBid);
-        if (mine) {
-          batFicheData = Object.assign(_BAT_FICHE_EMPTY(), mine);
-          if (typeof batReflectProfile === 'function') batReflectProfile();
-          const fp = document.getElementById('bat-panel-fiche');
-          if (fp && fp.classList.contains('active') && typeof batDashFicheRender === 'function') batDashFicheRender();
+      const uid = (typeof store.userId === 'function') ? store.userId() : null;
+      if (uid) {
+        const mineRows = store.all('batisseurs').filter(function (r) { return r && r.user_id === uid; });
+        const myRow = mineRows.length ? mineRows[mineRows.length - 1] : null;
+        if (myRow) {
+          if (!batFicheData || batFicheData.id !== myRow.id) {
+            batFicheData = Object.assign(_BAT_FICHE_EMPTY(), myRow);
+            try { localStorage.setItem('evad:batisseur-id', myRow.id); } catch (e) {}
+            if (typeof batReflectProfile === 'function') batReflectProfile();
+            const fp = document.getElementById('bat-panel-fiche');
+            if (fp && fp.classList.contains('active') && typeof batDashFicheRender === 'function') batDashFicheRender();
+          }
+        } else {
+          // Ce compte n'a pas de fiche bâtisseur : on efface l'identité bâtisseur
+          // héritée d'un autre compte sur cet appareil (fiche appartenant à un
+          // autre user_id), sinon elle pollue « mes identifiants » (evadChatIds).
+          const cur = (batFicheData && batFicheData.id) ? store.get('batisseurs', batFicheData.id) : null;
+          if (cur && cur.user_id && cur.user_id !== uid) {
+            batFicheData = _BAT_FICHE_EMPTY();
+            try { localStorage.removeItem('evad:batisseur-id'); } catch (e) {}
+          }
+        }
+      } else {
+        // Pas de session (mode démo local) : repli historique par la clé locale.
+        const myBid = localStorage.getItem('evad:batisseur-id');
+        if (myBid && (typeof batFicheData === 'undefined' || !batFicheData || !batFicheData.id)) {
+          const mine = store.get('batisseurs', myBid);
+          if (mine) {
+            batFicheData = Object.assign(_BAT_FICHE_EMPTY(), mine);
+            if (typeof batReflectProfile === 'function') batReflectProfile();
+            const fp = document.getElementById('bat-panel-fiche');
+            if (fp && fp.classList.contains('active') && typeof batDashFicheRender === 'function') batDashFicheRender();
+          }
         }
       }
     } catch(e){}
