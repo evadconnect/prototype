@@ -44,6 +44,8 @@ async function evadLoginCore(email, password, onError, btn, btnLabel){
     const roles = evadUserRoles(user);
     window.EVAD_ROLES = roles;
     window.EVAD_FICHES_FAITES = (user && user.user_metadata && user.user_metadata.fiches_faites) || [];
+    // Les fiches de ce compte, et pas celles laissées par une session précédente.
+    try { await evadAdoptMyFiches(); } catch (e) {}
     currentRole = roles[0];
     closeAuthModal();
     const splash = document.getElementById('evad-splash');
@@ -169,6 +171,7 @@ async function evadRestoreSession(){
   const roles = evadUserRoles(user);
   window.EVAD_ROLES = roles;
   window.EVAD_FICHES_FAITES = (user.user_metadata && user.user_metadata.fiches_faites) || [];
+  try { await evadAdoptMyFiches(); } catch (e) {}
   if (typeof renderRoleSwitcher === 'function') { try { renderRoleSwitcher(roles); } catch (e) {} }
   let last = null; try { last = localStorage.getItem('evad:last-role'); } catch (e) {}
   const role = (last && roles.indexOf(last) !== -1) ? last : (roles.length === 1 ? roles[0] : null);
@@ -221,6 +224,63 @@ function chooseProfile(role){
   const ov = document.getElementById('evad-profile-chooser');
   if (ov) ov.remove();
   evadEnterRole(role);
+}
+
+/* ── Rattacher les fiches au COMPTE, pas au navigateur ──────────────────────
+   L'app retrouve « ma » fiche Bâtisseur ou Semeur par un identifiant gardé en
+   localStorage (evad:batisseur-id, evad:semeur-id). Ces clés survivent à un
+   changement de compte : après connexion avec un autre compte, l'app
+   revendiquait encore la fiche du précédent. Conséquences observées : ses
+   messages s'affichaient comme les miens, la conversation portait mon nom au
+   lieu du sien, et le bouton « Envoyer un message » disparaissait de sa fiche,
+   puisqu'on ne s'écrit pas à soi-même.
+   On rétablit ici la vérité de la base : ce que auth.uid() possède, rien de
+   plus. Sur erreur réseau on ne touche à rien, plutôt que d'effacer à tort. */
+async function evadAdoptMyFiches(){
+  const client = window.evadSupabase;
+  if (!client) return;
+  let uid = null;
+  try {
+    const { data } = await client.auth.getSession();
+    uid = data && data.session && data.session.user && data.session.user.id;
+  } catch (e) { return; }
+  if (!uid) return;
+
+  const paires = [
+    { table: 'fiche_batisseur', cle: 'evad:batisseur-id' },
+    { table: 'fiche_semeur',    cle: 'evad:semeur-id' }
+  ];
+  for (let i = 0; i < paires.length; i++) {
+    const p = paires[i];
+    let id = null, ok = false;
+    try {
+      const r = await client.from(p.table).select('id').eq('user_id', uid)
+        .order('created_at', { ascending: false }).limit(1);
+      if (!r.error) { ok = true; if (r.data && r.data.length) id = r.data[0].id; }
+    } catch (e) { /* réseau : on laisse l'existant */ }
+    if (!ok) continue;
+    try {
+      if (id) localStorage.setItem(p.cle, id);
+      else localStorage.removeItem(p.cle);   // ce compte n'a pas de fiche de ce type
+    } catch (e) {}
+  }
+
+  // Les données en mémoire suivent, sinon batFicheData garderait la fiche du
+  // compte précédent jusqu'au prochain rechargement complet.
+  try {
+    const bid = localStorage.getItem('evad:batisseur-id');
+    if (typeof batFicheData !== 'undefined' && typeof _BAT_FICHE_EMPTY === 'function') {
+      const mine = (bid && window.store) ? store.get('batisseurs', bid) : null;
+      batFicheData = mine ? Object.assign(_BAT_FICHE_EMPTY(), mine) : _BAT_FICHE_EMPTY();
+    }
+  } catch (e) {}
+  try {
+    const sid = localStorage.getItem('evad:semeur-id');
+    if (typeof semFicheData !== 'undefined' && typeof _SEM_FICHE_EMPTY === 'function') {
+      const mine = (sid && window.store) ? store.get('semeurs', sid) : null;
+      semFicheData = mine ? Object.assign(_SEM_FICHE_EMPTY(), mine) : _SEM_FICHE_EMPTY();
+    }
+  } catch (e) {}
 }
 
 // True si la fiche de ce profil a déjà été faite (marqueur sur le compte).
