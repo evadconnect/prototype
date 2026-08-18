@@ -689,7 +689,6 @@
     +   '<div id="evad-inbox-list" style="flex:1;min-height:0;overflow-y:auto;padding:.5rem;background:rgba(46,102,66,.03)"></div>'
     +   '<div style="flex-shrink:0;padding:.7rem .9rem;border-top:1px solid rgba(46,102,66,.1);background:#fff">'
     +     '<button onclick="evadCloseInbox();if(window.openAmelioration)openAmelioration()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.4rem;background:rgba(200,115,42,.08);border:1px solid rgba(200,115,42,.25);color:var(--amber);border-radius:12px;padding:.6rem;font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit">💡 Proposer une amélioration</button>'
-    +     '<button onclick="evadClearLocalChats()" title="Supprime tes conversations sur cet appareil et en base (les fils où tu es expéditeur ou destinataire)" style="width:100%;background:none;border:none;color:var(--moss);opacity:.55;font-size:.65rem;cursor:pointer;font-family:inherit;margin-top:.45rem;text-decoration:underline">🧹 Supprimer toutes mes conversations</button>'
     +   '</div>'
     + '</div>';
     document.body.appendChild(w);
