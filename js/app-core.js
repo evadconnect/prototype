@@ -8754,6 +8754,39 @@ function batBuildQuetesFromProfile() {
 }
 
 // Carte quête de la liste Bâtisseur (liste « pour toi » et « mes quêtes »).
+/* ── Quêtes sélectionnées à l'étape « Matching » de l'assistant Bâtisseur ──
+   Le Bâtisseur coche les quêtes qu'il veut garder sous la main : elles le
+   suivent dans « Mes quêtes » du tableau de bord. C'est un repère personnel,
+   pas une candidature : rejoindre une quête reste un geste distinct, qui
+   engage le Bâtisseur et demande la validation du Pilote. La sélection est
+   donc locale à l'appareil, et réversible d'un second clic. */
+const BAT_SEL_KEY = 'evad:v1:bat-quetes-selection';
+function batQueteSelAll() {
+  try { return JSON.parse(localStorage.getItem(BAT_SEL_KEY) || '[]') || []; } catch (e) { return []; }
+}
+function batQueteSelKey(q) { return q ? String(q.srcId || q.id) : ''; }
+function batQueteSelHas(q) {
+  const k = batQueteSelKey(q);
+  return !!k && batQueteSelAll().indexOf(k) >= 0;
+}
+function batQueteSelToggle(q) {
+  const k = batQueteSelKey(q);
+  if (!k) return false;
+  const l = batQueteSelAll(), i = l.indexOf(k);
+  if (i >= 0) l.splice(i, 1); else l.push(k);
+  try { localStorage.setItem(BAT_SEL_KEY, JSON.stringify(l.slice(-200))); } catch (e) {}
+  return i < 0;
+}
+// Bouton « Sélectionner cette quête » du panneau : bascule et re-rend.
+function qdSelectQuete() {
+  const q = qdQuest(); if (!q) return;
+  const on = batQueteSelToggle(q);
+  if (typeof mmBubble === 'function') {
+    mmBubble(on ? '⭐ Quête gardée : tu la retrouveras dans « Mes quêtes »' : 'Quête retirée de ta sélection');
+  }
+  qdRerender();
+}
+
 function _batQueteCard(q) {
   const matchColor = q.match >= 65 ? 'var(--fern)' : q.match >= 45 ? 'var(--amber)' : 'var(--sky)';
   const etapePct = Math.round((q.etape_actuelle / q.etapes) * 100);
@@ -8763,7 +8796,9 @@ function _batQueteCard(q) {
       ? '<span class="quete-status" style="font-size:.58rem;background:rgba(200,115,42,.12);color:#8a4a1a">🕓 En attente</span>'
       : q.joined
         ? '<span class="quete-status" style="font-size:.58rem;background:rgba(1,130,98,.1);color:var(--forest)">🔨 Inscrit</span>'
-        : '<span class="quete-status qs-open" style="font-size:.58rem">Ouvert</span>';
+        : batQueteSelHas(q)
+          ? '<span class="quete-status" style="font-size:.58rem;background:rgba(240,176,50,.14);color:#8a6a12">★ Sélectionnée</span>'
+          : '<span class="quete-status qs-open" style="font-size:.58rem">Ouvert</span>';
   const dateTxt = (q.dateISO && typeof qdFormatDateFr === 'function') ? qdFormatDateFr(q.dateISO, q.heure) : '';
   return `<div class="quete-card" onclick="batSelectQuete(${q.id})" style="display:flex;align-items:center;gap:1rem;padding:1rem 1.1rem">
     <div style="width:42px;height:42px;border-radius:10px;background:rgba(74,140,92,0.1);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">${q.type.split(' ')[0]}</div>
@@ -8795,7 +8830,10 @@ function batRenderQuetes() {
 
   const joined = BAT_QUETES.filter(q => q.joined);
   const terminees = joined.filter(q => q.statut === 'terminee');
-  const ouvertes = BAT_QUETES.filter(q => q.statut === 'ouverte' && !q.joined);
+  // Quêtes cochées à l'étape « Matching » : elles remontent dans « Mes quêtes »
+  // et sortent de la liste générale, pour ne pas y figurer deux fois.
+  const selection = BAT_QUETES.filter(q => !q.joined && batQueteSelHas(q));
+  const ouvertes = BAT_QUETES.filter(q => q.statut === 'ouverte' && !q.joined && !batQueteSelHas(q));
 
   // ── KPIs « Mes quêtes » (réels, plus jamais figés à 0) ──
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
@@ -8807,8 +8845,8 @@ function batRenderQuetes() {
   // ── Mes quêtes rejointes (inscriptions persistées via quete_candidatures) ──
   const mesBox = document.getElementById('bat-mes-quetes-box');
   const mesList = document.getElementById('bat-mes-quetes');
-  if (mesBox) mesBox.style.display = joined.length ? 'block' : 'none';
-  if (mesList) mesList.innerHTML = joined.map(q => _batQueteCard(q)).join('');
+  if (mesBox) mesBox.style.display = (joined.length || selection.length) ? 'block' : 'none';
+  if (mesList) mesList.innerHTML = joined.concat(selection).map(q => _batQueteCard(q)).join('');
 
   if (!BAT_QUETES.length) {
     list.innerHTML = `<div style="text-align:center;padding:2.5rem 1.2rem;color:var(--moss)">
@@ -9468,8 +9506,14 @@ function renderQueteDetail() {
   // Actions (bandeau + colonne de droite selon le rôle, conscientes de l'état)
   const funded = q.financement && q.financement.objectif > 0 && q.financement.montant >= q.financement.objectif;
   const done = (k) => `<button class="btn" disabled style="opacity:.65;cursor:default;background:rgba(74,140,92,.12);color:var(--fern);border:1px solid rgba(74,140,92,.3)">${k}</button>`;
+  // Dans le panneau de l'assistant Bâtisseur, on ne rejoint pas encore : on
+  // SÉLECTIONNE les quêtes à garder, la fiche n'étant même pas publiée. Ailleurs
+  // (tableau de bord, carte), le bouton « Rejoindre » reste inchangé.
+  const _selMode = !!window._batQueteInline;
+  const _selOn = _selMode && batQueteSelHas(q);
+  const _btnSel = (full) => `<button class="btn ${_selOn ? '' : 'btn-primary'}" ${_selOn ? 'style="background:rgba(240,176,50,.14);color:#8a6a12;border:1px solid rgba(240,176,50,.4)' + (full ? ';width:100%;padding:.8rem;font-size:.82rem' : '') + '"' : (full ? 'style="width:100%;padding:.8rem;font-size:.82rem"' : '')} onclick="qdSelectQuete()">${_selOn ? '★ Quête sélectionnée' : '☆ Sélectionner cette quête'}</button>`;
   const ctas = {
-    batisseur: q.pending ? done('🕓 Demande en attente') : q.joined ? done('✓ Tu participes') : `<button class="btn btn-primary" onclick="qdJoindre()">✅ Rejoindre cette quête</button>`,
+    batisseur: _selMode ? _btnSel(false) : q.pending ? done('🕓 Demande en attente') : q.joined ? done('✓ Tu participes') : `<button class="btn btn-primary" onclick="qdJoindre()">✅ Rejoindre cette quête</button>`,
     semeur: funded ? done('✓ Quête financée') : `<button class="btn btn-primary" onclick="qdFinancer()">💰 Financer cette quête</button>`,
     // Pilote : pas de bouton dans le bandeau, les actions vivent dans
     // « Gestion de la quête » (publier/modifier) et « Preuves des bâtisseurs » (valider).
@@ -9763,12 +9807,15 @@ function renderQueteDetail() {
       </div>
 
       <!-- CTA -->
-      ${q.pending
+      ${_selMode
+        ? _btnSel(true)
+        : q.pending
         ? `<button class="btn" disabled style="width:100%;padding:.8rem;font-size:.82rem;background:rgba(200,115,42,.1);color:#8a4a1a;border:1px solid rgba(200,115,42,.3);cursor:default">🕓 Demande en attente de validation du lieu</button>`
         : q.joined
         ? `<button class="btn" disabled style="width:100%;padding:.8rem;font-size:.82rem;background:rgba(74,140,92,.12);color:var(--fern);border:1px solid rgba(74,140,92,.3);cursor:default">✓ Tu participes à cette quête</button>
            <button class="btn btn-ghost" style="width:100%;font-size:.72rem" onclick="qdDeposerPreuve()">📎 Déposer une preuve</button>`
         : `<button class="btn btn-primary" style="width:100%;padding:.8rem;font-size:.82rem" onclick="qdJoindre()">✅ Rejoindre cette quête</button>`}
+      ${_selMode ? '<div style="font-size:.66rem;color:var(--moss);opacity:.8;line-height:1.5;text-align:center">Tu la retrouveras dans « Mes quêtes ». Tu pourras la rejoindre une fois ta fiche publiée.</div>' : ''}
       <button class="btn btn-ghost" style="width:100%;font-size:.72rem" onclick="qdContactPilote()">💬 Poser une question au Pilote</button>
     `;
   } else if (currentRole === 'semeur') {
