@@ -833,6 +833,38 @@ function svgSemeurLieux(svg, c, ca) {
 }
 
 /* ─── ONGLETS FICHE LIEU ─── */
+// Passe le modal « fiche lieu » en panneau latéral, calé sur la zone du
+// panneau quête (mêmes bords, même glissement de la gauche vers la droite).
+// Renvoie false hors de ce contexte : le modal garde alors son plein écran.
+// Les styles d'origine sont mémorisés pour être rendus tels quels à la
+// fermeture, le modal servant aussi depuis la carte et le réseau.
+function _lieuPanelOn(m) {
+  const ov = document.getElementById('bat-quete-ov');
+  if (!window._batQueteInline || !ov || !m) return false;
+  const r = ov.getBoundingClientRect();
+  if (!r.width || !r.height) return false;
+  const box = m.firstElementChild;
+  if (!m.dataset.evadStyleSaved) {
+    m.dataset.evadStyleModal = m.getAttribute('style') || '';
+    if (box) m.dataset.evadStyleBox = box.getAttribute('style') || '';
+    m.dataset.evadStyleSaved = '1';
+  }
+  m.setAttribute('style',
+    'display:block;position:fixed;left:' + Math.round(r.left) + 'px;top:' + Math.round(r.top) +
+    'px;width:' + Math.round(r.width) + 'px;height:' + Math.round(r.height) +
+    'px;z-index:1000;background:transparent;padding:0;overflow:hidden');
+  if (box) {
+    box.setAttribute('style',
+      'max-width:none;margin:0;height:100%;overflow-y:auto;border-radius:0;position:relative;' +
+      'background:#fff;box-shadow:12px 0 30px rgba(14,26,18,.14);' +
+      'transform:translateX(-100%);transition:transform .32s cubic-bezier(.22,1,.36,1)');
+    // Deux images : sans ce délai, le panneau apparaît en place sans glisser.
+    requestAnimationFrame(function () { box.style.transform = 'translateX(0)'; });
+  }
+  m.dataset.evadPanel = '1';
+  return true;
+}
+
 function openLieuModal() {
   // La fiche lit cData : si l'assistant a été réinitialisé (rechargement de
   // page…), on repart du dernier lieu publié pour afficher les infos saisies.
@@ -841,7 +873,10 @@ function openLieuModal() {
   }
   const m = document.getElementById('lieu-modal');
   m.style.display = 'block';
-  document.body.style.overflow = 'hidden';
+  // Depuis le panneau quête de l'assistant Bâtisseur, la fiche lieu s'ouvre
+  // elle aussi en panneau latéral, et pas en modal plein écran : on ne quitte
+  // jamais l'assistant. Ailleurs (carte, réseau), le modal reste inchangé.
+  if (!_lieuPanelOn(m)) document.body.style.overflow = 'hidden';
   lieuRenderHero();
   lieuTab('presentation', document.getElementById('ltab-presentation'));
   lieuRenderPresentation();
@@ -1360,7 +1395,21 @@ function lieuRenderEspaces() {
 }
 
 function closeLieuModal() {
-  document.getElementById('lieu-modal').style.display = 'none';
+  const m = document.getElementById('lieu-modal');
+  if (m && m.dataset.evadPanel) {
+    // Mode panneau : on referme par le glissement inverse, puis on rend au
+    // modal ses styles d'origine pour ses autres usages (carte, réseau).
+    const box = m.firstElementChild;
+    if (box) box.style.transform = 'translateX(-100%)';
+    setTimeout(function () {
+      m.setAttribute('style', m.dataset.evadStyleModal || '');
+      if (box) box.setAttribute('style', m.dataset.evadStyleBox || '');
+      m.style.display = 'none';
+      delete m.dataset.evadPanel;
+    }, 320);
+  } else if (m) {
+    m.style.display = 'none';
+  }
   document.body.style.overflow = '';
   cStep = 0;
   cData = _CDATA_EMPTY();
