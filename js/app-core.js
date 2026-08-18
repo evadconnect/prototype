@@ -3222,7 +3222,7 @@ function mapShowBatisseur(idx) {
         <div style="position:relative;margin-top:.85rem;font-size:.7rem;color:rgba(255,255,255,0.65);line-height:1.45">${b.bio}</div>
       </div>
 
-      ${window.evadMsgBtn ? window.evadMsgBtn({ id: b.id, nom: b.nom, role: 'batisseur' }, { bg: 'var(--amber)', mt: '0' }) : ''}
+      ${window.evadMsgBtn ? window.evadMsgBtn({ id: b.id, nom: b.nom, role: 'batisseur' }, { bg: 'var(--amber)', mt: '0', mb: '.9rem' }) : ''}
 
       <!-- Stats -->
       <div class="acteur-stat-row">
@@ -3324,7 +3324,7 @@ function mapShowSemeur(idx) {
         <div style="position:relative;margin-top:.85rem;font-size:.7rem;color:rgba(255,255,255,0.65);line-height:1.45">${s.description}</div>
       </div>
 
-      ${window.evadMsgBtn ? window.evadMsgBtn({ id: s.id, nom: s.nom, role: 'semeur' }, { mt: '0' }) : ''}
+      ${window.evadMsgBtn ? window.evadMsgBtn({ id: s.id, nom: s.nom, role: 'semeur' }, { mt: '0', mb: '.9rem' }) : ''}
 
       <!-- Stats finances -->
       <div class="acteur-stat-row">
@@ -8820,11 +8820,46 @@ function showQueteDetail(id, from) {
   showScreen('quete-detail');
 }
 
-// Ouvre la fiche quête en PLEINE PAGE (depuis la liste « Trouver des quêtes »).
-// Le bouton « ← Retour » ramène à l'étape de création de fiche bâtisseur.
+// Ouvre la fiche quête dans le PANNEAU LATÉRAL de l'assistant Bâtisseur : il
+// glisse de la gauche vers la droite par-dessus le mind map, et la liste de
+// matching reste sous les yeux. En pleine page, on quittait l'assistant pour y
+// revenir ensuite, ce qui cassait le fil de la création de fiche.
 function openQueteModalFromFiche(id) {
-  window._batQueteInline = false;
-  showQueteDetail(id, 'fiche-bat');
+  const ov  = document.getElementById('bat-quete-ov');
+  const box = document.getElementById('bat-quete-ov-box');
+  // Repli : appelé depuis un écran sans panneau, on garde la pleine page.
+  if (!ov || !box) { window._batQueteInline = false; showQueteDetail(id, 'fiche-bat'); return; }
+
+  _qdQuestOverride = null;
+  _qdEditSection = null; _qdOpenSections = {};
+  _qdCurrentId = id;
+  _qdFrom = 'fiche-bat';
+  window._batQueteInline = true;
+
+  // renderQueteDetail écrit dans l'écran « quete-detail », resté masqué ; on
+  // recopie son rendu ici. Les ids qm-* sont ceux qu'attend
+  // refreshFicheQueteModal, pour que les actions (postuler, plier une section)
+  // se répercutent dans le panneau sans le rouvrir.
+  renderQueteDetail();
+  box.innerHTML =
+      '<div style="position:sticky;top:0;background:#fff;padding:.95rem 1.3rem .8rem;border-bottom:1px solid rgba(46,102,66,.1);display:flex;align-items:flex-start;gap:.9rem;z-index:2">'
+    +   '<button class="btn btn-ghost" style="font-size:.72rem;padding:.32rem .8rem;flex-shrink:0" onclick="closeFicheQueteModal()">← Retour</button>'
+    +   '<div style="min-width:0">'
+    +     '<div class="topbar-title" id="qm-title" style="font-size:.95rem"></div>'
+    +     '<div class="topbar-sub" id="qm-sub"></div>'
+    +   '</div>'
+    + '</div>'
+    + '<div style="padding:1.1rem 1.3rem 1.6rem;display:flex;flex-direction:column;gap:1.1rem">'
+    +   '<div id="qm-main" style="display:flex;flex-direction:column;gap:1.1rem"></div>'
+    +   '<div id="qm-panel" style="display:flex;flex-direction:column;gap:.9rem"></div>'
+    + '</div>';
+  refreshFicheQueteModal();
+
+  ov.style.display = 'block';
+  box.scrollTop = 0;
+  // Affichage puis animation sur deux images : appliquer les deux d'un coup
+  // ferait apparaître le panneau en place, sans glissement.
+  requestAnimationFrame(function () { box.style.transform = 'translateX(0)'; });
 }
 
 // Recopie le contenu rendu de la fiche quête dans le panneau (sync après une
@@ -8852,7 +8887,7 @@ function closeFicheQueteModal() {
     window._batQueteInline = false;
     const ov  = document.getElementById('bat-quete-ov');
     const box = document.getElementById('bat-quete-ov-box');
-    if (box) box.style.transform = 'translateY(-100%)';
+    if (box) box.style.transform = 'translateX(-100%)';
     if (ov)  setTimeout(() => { ov.style.display = 'none'; }, 300);
   }
 }

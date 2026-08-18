@@ -581,7 +581,7 @@
     // Pas de bouton sur ma propre fiche : on ne s'écrit pas à soi-même.
     if (_mineSet(evadChatMe())[_peerId(target)]) return '';
     var attr = JSON.stringify(target || {}).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-    var style = 'background:' + (opts.bg || 'var(--forest)') + ';color:#fff;margin-top:' + (opts.mt || '.5rem');
+    var style = 'background:' + (opts.bg || 'var(--forest)') + ';color:#fff;margin-top:' + (opts.mt || '.5rem') + ';margin-bottom:' + (opts.mb || '0');
     return '<button class="acteur-cta" style="' + style + '" data-evadmsg="' + attr + '" '
       + 'onclick="evadStartChat(JSON.parse(this.getAttribute(\'data-evadmsg\')))">✉️ '
       + (opts.label || 'Envoyer un message') + '</button>';
