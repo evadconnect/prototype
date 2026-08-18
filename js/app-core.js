@@ -3222,6 +3222,8 @@ function mapShowBatisseur(idx) {
         <div style="position:relative;margin-top:.85rem;font-size:.7rem;color:rgba(255,255,255,0.65);line-height:1.45">${b.bio}</div>
       </div>
 
+      ${window.evadMsgBtn ? window.evadMsgBtn({ id: b.id, nom: b.nom, role: 'batisseur' }, { bg: 'var(--amber)', mt: '0' }) : ''}
+
       <!-- Stats -->
       <div class="acteur-stat-row">
         <div class="acteur-stat">
@@ -3288,8 +3290,6 @@ function mapShowBatisseur(idx) {
       <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.85rem">
         ${b.certifications.map(cert => `<span class="acteur-skill-tag" style="background:rgba(240,200,74,0.1);color:#9a7a00;border:1px solid rgba(240,200,74,0.3)">✓ ${cert}</span>`).join('')}
       </div>` : ''}
-
-      ${window.evadMsgBtn ? window.evadMsgBtn({ id: b.id, nom: b.nom, role: 'batisseur' }, { bg: 'var(--amber)', mt: '0' }) : ''}
     </div>
   `;
 
@@ -3323,6 +3323,8 @@ function mapShowSemeur(idx) {
         </div>
         <div style="position:relative;margin-top:.85rem;font-size:.7rem;color:rgba(255,255,255,0.65);line-height:1.45">${s.description}</div>
       </div>
+
+      ${window.evadMsgBtn ? window.evadMsgBtn({ id: s.id, nom: s.nom, role: 'semeur' }, { mt: '0' }) : ''}
 
       <!-- Stats finances -->
       <div class="acteur-stat-row">
@@ -3377,7 +3379,6 @@ function mapShowSemeur(idx) {
       <!-- Contact -->
       <div style="font-size:.65rem;color:var(--moss);opacity:.7;text-align:center;margin-bottom:.5rem">👤 ${s.contact}</div>
 
-      ${window.evadMsgBtn ? window.evadMsgBtn({ id: s.id, nom: s.nom, role: 'semeur' }, { mt: '0' }) : ''}
       <button class="acteur-cta" style="background:var(--sky);color:white;margin-top:.4rem" onclick="mmBubble('📋 Demande de partenariat envoyée à ${s.nom}')">
         Demander un partenariat →
       </button>
