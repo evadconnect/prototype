@@ -3297,6 +3297,27 @@ function mapShowBatisseur(idx) {
         ⏱ ${b.disponibilite}
       </div>
 
+      <!-- Valeurs / Ce que j'apporte / Ce que je cherche : mêmes sections et
+           mêmes styles que l'aperçu avant publication (mapShowNewBatisseur),
+           pour que la fiche publiée soit exactement ce qu'on a prévisualisé. -->
+      ${(b.valeurs && b.valeurs.length) ? `
+      <div class="acteur-section-title">💚 Valeurs</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.85rem">
+        ${b.valeurs.map(v => `<span class="acteur-skill-tag" style="background:rgba(74,140,92,.1);color:var(--fern);border:1px solid rgba(74,140,92,.2)">${v}</span>`).join('')}
+      </div>` : ''}
+
+      ${(b.apporte && b.apporte.length) ? `
+      <div class="acteur-section-title">✦ Ce qu'il ou elle apporte</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.85rem">
+        ${b.apporte.map(a => `<span class="acteur-skill-tag" style="background:rgba(200,115,42,.08);color:var(--amber);border:1px solid rgba(200,115,42,.2)">${a}</span>`).join('')}
+      </div>` : ''}
+
+      ${(b.cherche && b.cherche.length) ? `
+      <div class="acteur-section-title">🔍 Ce qu'il ou elle cherche</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.85rem">
+        ${b.cherche.map(c => `<span class="acteur-skill-tag" style="background:rgba(58,110,140,.08);color:var(--sky);border:1px solid rgba(58,110,140,.2)">${c}</span>`).join('')}
+      </div>` : ''}
+
       <!-- Engagement -->
       ${(() => {
         const ENG = { ponctuel:'⚡ Ponctuel', recurrent:'🔄 Récurrent', immersif:'🏕 Immersif' };
@@ -8082,9 +8103,9 @@ function mapShowNewBatisseur() {
   const bio       = batFicheData.bio    || '';
   const skills    = (batFicheData.skills || []).map(id => BAT_SKILLS.find(s=>s.id===id)).filter(Boolean);
   const dispos    = (batFicheData.dispo  || []).join(' · ') || 'Non précisée';
-  const valeurs   = (batFicheData.valeurs|| []);
-  const apporte   = (batFicheData.apporte|| []);
-  const cherche   = (batFicheData.cherche|| []);
+  const valeurs   = batLabelsValeurs(batFicheData.valeurs);
+  const apporte   = batLabelsApporte(batFicheData.apporte);
+  const cherche   = batLabelsCherche(batFicheData.cherche);
 
   panel.innerHTML = `
     <div class="acteur-fiche">
@@ -15569,6 +15590,19 @@ function syncMapPlacesFromStore(){
 
 // Convertit une ligne fiche_batisseur (store) vers l'entrée de carte lue par
 // mapShowBatisseur / mapRenderCommunity / les marqueurs.
+// Les fiches stockent des identifiants (« autonomie », « collectif »). Sur les
+// cartes on veut le libellé lisible et son icône, comme dans l'éditeur de fiche.
+// Une saisie libre qui ne correspond à aucun identifiant est rendue telle quelle.
+function batLabelFor(liste, id) {
+  try {
+    const e = (liste || []).find(x => x.id === id);
+    return e ? ((e.ic ? e.ic + ' ' : '') + e.label) : String(id);
+  } catch (e) { return String(id); }
+}
+function batLabelsValeurs(ids) { return (ids || []).map(v => batLabelFor(typeof BAT_VALEURS !== 'undefined' ? BAT_VALEURS : [], v)); }
+function batLabelsApporte(ids) { return (ids || []).map(v => batLabelFor(typeof BAT_APPORTE !== 'undefined' ? BAT_APPORTE : [], v)); }
+function batLabelsCherche(ids) { return (ids || []).map(v => batLabelFor(typeof BAT_CHERCHE !== 'undefined' ? BAT_CHERCHE : [], v)); }
+
 function _batisseurRowToMapEntry(row){
   const prenom = row.prenom || '';
   const nom = ((prenom + ' ' + (row.nom || '')).trim()) || 'Bâtisseur';
@@ -15597,6 +15631,11 @@ function _batisseurRowToMapEntry(row){
     disponibilite: dispo,
     engagement: row.engagement || '',
     mode: row.mode || '',
+    // Sections déclaratives de la fiche : elles n'arrivaient pas jusqu'ici, si
+    // bien que la carte publiée montrait moins que l'aperçu avant publication.
+    valeurs: batLabelsValeurs(row.valeurs),
+    apporte: batLabelsApporte(row.apporte),
+    cherche: batLabelsCherche(row.cherche),
     contact: { email: row.email || '', tel: row.tel || '', web: row.web || '' },
     lieux_frequentes: [],
     certifications: [],
