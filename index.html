@@ -12,7 +12,7 @@
         crossorigin=""
     />
         
-<link rel="stylesheet" href="css/styles.css?v=247">
+<link rel="stylesheet" href="css/styles.css?v=248">
 </head>
 <body>
 
@@ -119,7 +119,7 @@
 </div>
 
 
-<script src="js/splash-onboarding.js?v=247"></script>
+<script src="js/splash-onboarding.js?v=248"></script>
 
 <div class="app">
 
@@ -172,7 +172,7 @@
     <div class="nav-item dev-only" data-screen="modelisation" onclick="showScreen('modelisation')">
       <span class="nav-icon">🧊</span> Modélisation
     </div>
-    <div class="nav-item dev-only" data-screen="compte" onclick="showScreen('compte'); if(window.evadOpenCompte) evadOpenCompte();">
+    <div class="nav-item dev-only" data-screen="compte" onclick="showScreen('compte')">
       <span class="nav-icon">☁️</span> Compte
     </div>
 
@@ -1514,9 +1514,9 @@
   </div>
 </div>
 
-<script src="js/data-reseau.js?v=247"></script>
+<script src="js/data-reseau.js?v=248"></script>
 
-<script src="js/regen-loop.js?v=247"></script>
+<script src="js/regen-loop.js?v=248"></script>
 
 <!-- Modale ajout/édition offre Pilote -->
 <div id="pmkt-modal" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(14,26,18,0.75);backdrop-filter:blur(6px);align-items:center;justify-content:center">
@@ -2403,14 +2403,16 @@
   </div>
   <div id="compte-frame-wrap" style="flex:1;min-height:0;position:relative;background:#f4faf8">
     <iframe id="compte-frame" title="Compte EVAD (Nextcloud)"
-      style="width:100%;height:100%;border:0;display:block"
+      style="width:100%;height:100%;border:0;display:none"
       allow="clipboard-read; clipboard-write; camera; microphone; fullscreen; autoplay; display-capture"></iframe>
-    <div id="compte-frame-fallback" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;text-align:center;padding:2rem;font-family:'Satoshi',sans-serif;color:var(--moss)">
+    <div id="compte-frame-card" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:2rem;font-family:'Satoshi',sans-serif;color:var(--moss)">
       <div>
-        <div style="font-size:2rem;margin-bottom:.6rem">☁️</div>
-        <div style="font-weight:800;color:var(--ink);margin-bottom:.4rem">Nextcloud n'autorise pas l'affichage intégré</div>
-        <div style="font-size:.8rem;line-height:1.5;max-width:420px;margin:0 auto 1rem">Pour l'afficher ici, autorise le cadrage depuis dev.evad.org côté Nextcloud (X-Frame-Options / CSP). En attendant, ouvre-le en plein écran :</div>
-        <a class="btn btn-primary" href="https://compte.evad.org" target="_blank" rel="noopener">Ouvrir compte.evad.org ↗</a>
+        <div style="font-size:2.6rem;margin-bottom:.6rem">☁️</div>
+        <div style="font-weight:800;font-size:1.05rem;color:var(--ink);margin-bottom:.4rem">Ton espace Nextcloud</div>
+        <div style="font-size:.82rem;line-height:1.6;max-width:440px;margin:0 auto 1.2rem">Retrouve tes fichiers, Talk et ton compte sur <b>compte.evad.org</b>.</div>
+        <a class="btn btn-primary" href="https://compte.evad.org" target="_blank" rel="noopener" style="display:inline-block;margin-bottom:.9rem">Ouvrir compte.evad.org ↗</a>
+        <div><button onclick="evadEmbedCompte()" class="btn btn-ghost" style="font-size:.72rem">Afficher dans l'application</button></div>
+        <div style="font-size:.66rem;opacity:.55;margin-top:.5rem;max-width:400px;line-height:1.4">L'affichage intégré nécessite d'autoriser le cadrage (iframe) depuis dev.evad.org côté Nextcloud.</div>
       </div>
     </div>
   </div>
@@ -2680,9 +2682,9 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-config.js?v=247"></script>
-<script src="js/store.js?v=247"></script>
-<script src="js/app-core.js?v=247"></script>
+<script src="js/supabase-config.js?v=248"></script>
+<script src="js/store.js?v=248"></script>
+<script src="js/app-core.js?v=248"></script>
 
 <script
   src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -2742,9 +2744,9 @@
   </div>
 </div>
 
-<script src="js/deva.js?v=247"></script>
+<script src="js/deva.js?v=248"></script>
 
-<script src="js/nav-mobile.js?v=247"></script>
+<script src="js/nav-mobile.js?v=248"></script>
 
 <!-- ── Modal : Choisir ton profil ── -->
 <div id="auth-profil-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(14,26,18,.6);backdrop-filter:blur(6px);align-items:center;justify-content:center">
@@ -2789,7 +2791,7 @@
 </div>
 
 
-<script src="js/auth.js?v=247"></script>
+<script src="js/auth.js?v=248"></script>
 
 <!-- Espace modal, placé au niveau body pour rester accessible depuis tous les contextes -->
 <div id="espace-modal">
@@ -2878,17 +2880,17 @@
     </div>
   </div>
 </div>
-<script src="js/espace-modal.js?v=247"></script>
+<script src="js/espace-modal.js?v=248"></script>
 
 <!-- ═══════════════════════════════════════════════════════
      COUCHE DE CONVERGENCE, PERMA-COMPTABILITÉ EVAD
      Saisie unique → traduction multi-cadres institutionnels
      ═══════════════════════════════════════════════════════ -->
-<script src="js/quetes.js?v=247"></script>
-<script src="js/ici.js?v=247"></script>
+<script src="js/quetes.js?v=248"></script>
+<script src="js/ici.js?v=248"></script>
 
-<script src="js/contribution.js?v=247"></script>
-<script src="js/messages.js?v=247"></script>
+<script src="js/contribution.js?v=248"></script>
+<script src="js/messages.js?v=248"></script>
 
 <!-- Modal détail solution (créer lieu step 4) -->
 <div id="creer-sol-detail-modal" style="display:none;position:fixed;inset:0;z-index:10010;background:rgba(13,43,34,.6);backdrop-filter:blur(6px);align-items:flex-end;justify-content:center;" onclick="if(event.target===this)creerCloseSolDetail()">
@@ -2901,7 +2903,7 @@
   </div>
 </div>
 
-<script src="js/fil-rouge-feedback.js?v=247"></script>
+<script src="js/fil-rouge-feedback.js?v=248"></script>
 
 <script>
 /* Onglets « dev-only » (Réseau, Modélisation, Compte) : visibles sur
@@ -2914,21 +2916,18 @@
   }
 })();
 
-/* Onglet Compte : charge Nextcloud (compte.evad.org) en iframe à la 1ʳᵉ
-   ouverture seulement (évite un chargement/redirection à chaque page). */
-function evadOpenCompte() {
+/* Onglet Compte : par défaut une carte propre (Nextcloud refuse souvent le
+   cadrage en iframe). « Afficher dans l'application » tente l'iframe à la
+   demande — utile une fois le cadrage autorisé côté Nextcloud. */
+function evadEmbedCompte() {
   var f = document.getElementById('compte-frame');
-  if (!f || f.getAttribute('src')) return;
-  var fb = document.getElementById('compte-frame-fallback');
-  var loaded = false;
-  f.addEventListener('load', function () { loaded = true; if (fb) fb.style.display = 'none'; });
-  f.addEventListener('error', function () { if (fb) fb.style.display = 'flex'; });
-  f.setAttribute('src', 'https://compte.evad.org');
-  // Repli : si rien n'a chargé après 7 s (cadrage refusé par Nextcloud), on
-  // propose l'ouverture en plein écran.
-  setTimeout(function () { if (!loaded && fb) fb.style.display = 'flex'; }, 7000);
+  var card = document.getElementById('compte-frame-card');
+  if (!f) return;
+  if (!f.getAttribute('src')) f.setAttribute('src', 'https://compte.evad.org');
+  f.style.display = 'block';
+  if (card) card.style.display = 'none';
 }
-window.evadOpenCompte = evadOpenCompte;
+window.evadEmbedCompte = evadEmbedCompte;
 </script>
 
 </body>
