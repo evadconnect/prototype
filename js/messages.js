@@ -788,13 +788,93 @@
     evadOpenChat(tid, opts);
   }
 
+  // ── Notification d'un message reçu ────────────────────────────────────
+  // Le badge donne un nombre, il ne dit pas qu'un message VIENT d'arriver, ni
+  // de qui. On affiche donc une notification cliquable qui ouvre la
+  // conversation. Les messages déjà signalés sont mémorisés pour ne pas
+  // renotifier à chaque synchronisation ni au rechargement de la page.
+  var LS_NOTIF = 'evad:v1:msg-notified';
+  var _notifAmorce = false;   // 1re passe : on prend l'existant sans rien annoncer
+  function notifAll() {
+    try { return JSON.parse(global.localStorage.getItem(LS_NOTIF) || '[]') || []; } catch (e) { return []; }
+  }
+  function notifMark(ids) {
+    if (!ids || !ids.length) return;
+    try {
+      var set = {}; notifAll().forEach(function (i) { set[i] = 1; });
+      ids.forEach(function (i) { if (i) set[i] = 1; });
+      global.localStorage.setItem(LS_NOTIF, JSON.stringify(Object.keys(set).slice(-2000)));
+    } catch (e) {}
+  }
+
+  function evadMsgNotifClose() {
+    var n = document.getElementById('evad-msg-notif');
+    if (n) { n.style.transform = 'translateY(12px)'; n.style.opacity = '0'; setTimeout(function () { if (n.parentNode) n.remove(); }, 220); }
+  }
+
+  // Ouvre la conversation d'où vient la notification.
+  function evadMsgNotifOpen(threadId, autreId, nom, role) {
+    evadMsgNotifClose();
+    var opts = { title: nom || 'Conversation', sub: roleLabel(role), dest_id: autreId || null, dest_role: role || null };
+    threadRegister(threadId, opts);
+    evadOpenChat(threadId, opts);
+  }
+
+  function evadMsgNotify(m, reste) {
+    if (!m) return;
+    var ancienne = document.getElementById('evad-msg-notif');
+    if (ancienne) ancienne.remove();
+    var nom = m.author_nom || 'Un membre';
+    var texte = String(m.text || '').slice(0, 90);
+    var n = document.createElement('div');
+    n.id = 'evad-msg-notif';
+    n.setAttribute('role', 'status');
+    n.setAttribute('aria-live', 'polite');
+    n.style.cssText = 'position:fixed;right:1rem;bottom:calc(1rem + env(safe-area-inset-bottom,0px));z-index:10030;'
+      + 'max-width:min(320px,86vw);background:#fff;border:1px solid rgba(46,102,66,.14);border-radius:14px;'
+      + "padding:.7rem .8rem;box-shadow:0 14px 34px -12px rgba(14,26,18,.42);font-family:'Satoshi',sans-serif;"
+      + 'cursor:pointer;display:flex;gap:.6rem;align-items:flex-start;'
+      + 'transform:translateY(12px);opacity:0;transition:transform .22s ease,opacity .22s ease';
+    n.innerHTML =
+        '<div style="width:32px;height:32px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--fern),var(--moss));color:#fff;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:800">'
+      +   esc((nom.trim().charAt(0) || '?').toUpperCase())
+      + '</div>'
+      + '<div style="flex:1;min-width:0">'
+      +   '<div style="font-size:.74rem;font-weight:800;color:var(--ink)">✉️ ' + esc(nom)
+      +     (reste > 0 ? ' <span style="font-weight:600;color:var(--moss);opacity:.75">+' + reste + ' autre' + (reste > 1 ? 's' : '') + '</span>' : '')
+      +   '</div>'
+      +   '<div style="font-size:.7rem;color:var(--moss);line-height:1.4;margin-top:.15rem;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">' + esc(texte) + '</div>'
+      + '</div>'
+      + '<button aria-label="Fermer" style="flex-shrink:0;background:none;border:none;cursor:pointer;color:var(--moss);opacity:.5;font-size:.8rem;line-height:1;padding:.1rem">✕</button>';
+    n.querySelector('button').addEventListener('click', function (e) { e.stopPropagation(); evadMsgNotifClose(); });
+    n.addEventListener('click', function () { evadMsgNotifOpen(m.thread_id, m.author_id, nom, m.author_role); });
+    document.body.appendChild(n);
+    requestAnimationFrame(function () { n.style.transform = 'translateY(0)'; n.style.opacity = '1'; });
+    clearTimeout(global._evadMsgNotifTimer);
+    global._evadMsgNotifTimer = setTimeout(evadMsgNotifClose, 9000);
+  }
+
   // ── Compteur de non-lus (messages qui me sont adressés et non vus). ──
   var _unread = 0, _inboxSig = '';
   async function evadRefreshUnread(opts) {
     try {
       var data = await _myMessages(opts), mine = data.mine;
       var seenSet = {}; seenAll().forEach(function (i) { seenSet[i] = 1; });
-      _unread = data.msgs.filter(function (m) { return mine[m.dest_id] && !mine[m.author_id] && !seenSet[m.id]; }).length;
+      var recus = data.msgs.filter(function (m) { return mine[m.dest_id] && !mine[m.author_id] && !seenSet[m.id]; });
+      _unread = recus.length;
+      // Nouveaux depuis la dernière passe → notification.
+      var deja = {}; notifAll().forEach(function (i) { deja[i] = 1; });
+      var nouveaux = recus.filter(function (m) { return !deja[m.id]; });
+      if (nouveaux.length) {
+        notifMark(nouveaux.map(function (m) { return m.id; }));
+        // La toute première passe sert d'amorce : on ne veut pas annoncer d'un
+        // coup tout l'historique non lu à l'ouverture de l'app.
+        if (_notifAmorce) {
+          nouveaux.sort(function (a, b) { return String(a.created_at).localeCompare(String(b.created_at)); });
+          evadMsgNotify(nouveaux[nouveaux.length - 1], nouveaux.length - 1);
+        }
+      }
+      _notifAmorce = true;
     } catch (e) { _unread = _unread || 0; }
     var b = document.getElementById('evad-msg-unread-badge');
     if (b) {
@@ -918,6 +998,7 @@
   global.evadChatMe = evadChatMe;
   global.evadChatIds = evadChatIds;
   global.evadChatPeerId = _peerId;
+  global.evadMsgNotifClose = evadMsgNotifClose;
   global.evadOpenInbox = evadOpenInbox;
   global.evadCloseInbox = evadCloseInbox;
   global.evadInboxOpen = evadInboxOpen;
