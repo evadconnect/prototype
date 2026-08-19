@@ -369,6 +369,9 @@ body {
 /* ─── SCREENS ─── */
 .screen { display: none; min-height: 100vh; }
 .screen.active { display: block; }
+/* Écran Compte : mise en page flex uniquement quand il est actif (avant, un
+   display:flex inline le laissait affiché en permanence sous chaque page). */
+#screen-compte.active { display: flex; flex-direction: column; }
 
 /* ─── TOP BAR ─── */
 .topbar {
