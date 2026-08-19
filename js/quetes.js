@@ -321,7 +321,9 @@ function piloteQueteCreerEnsureDom() {
   if (document.getElementById('pq-create-modal')) return;
   const wrap = document.createElement('div');
   wrap.id = 'pq-create-modal';
-  wrap.style.cssText = 'display:none;position:fixed;inset:0;z-index:10030;font-family:\'Satoshi\',sans-serif;background:var(--paper);overflow-y:auto';
+  // Positionnement (tiroir latéral vs plein écran mobile) géré en CSS via
+  // #pq-create-modal, pour laisser les media queries ajuster le décalage gauche.
+  wrap.style.cssText = 'display:none;z-index:10030;font-family:\'Satoshi\',sans-serif;background:var(--paper);overflow-y:auto';
   const inputStyle = 'width:100%;padding:.55rem .7rem;border-radius:10px;border:1px solid rgba(46,102,66,.2);font-family:inherit;font-size:.82rem;color:var(--ink);background:#fff;box-sizing:border-box';
   const labelStyle = 'display:block;font-size:.72rem;font-weight:700;color:var(--moss);margin:.75rem 0 .3rem';
   wrap.innerHTML =

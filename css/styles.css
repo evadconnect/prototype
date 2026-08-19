@@ -2243,6 +2243,14 @@ body {
   display:flex; flex-direction:column;
   box-shadow:10px 0 40px -12px rgba(14,26,18,0.4);
 }
+
+/* ─── PANNEAU CRÉATION / ÉDITION DE QUÊTE (Pilote) ─── */
+/* Tiroir latéral qui laisse la sidebar visible (comme #espace-modal). Le
+   décalage gauche suit la largeur de la sidebar ; plein écran en mobile. */
+#pq-create-modal {
+  position:fixed; top:0; right:0; bottom:0; left:220px; z-index:10030;
+  box-shadow:-10px 0 40px -12px rgba(14,26,18,0.22);
+}
 .espace-modal-header {
   padding:1.2rem 1.4rem 0.9rem; border-bottom:1px solid rgba(46,102,66,0.1);
   display:flex; align-items:center; justify-content:space-between;
@@ -2584,6 +2592,8 @@ body {
   }
   /* Panneau espace : aligné sur la sidebar icône-seule (64px) */
   #espace-modal { left: 64px; }
+  /* Panneau quête : idem, aligné sur la sidebar icône-seule */
+  #pq-create-modal { left: 64px; }
   .nav-logo { text-align: center; padding: 0.4rem 0 1rem !important; }
   .nav-logo-title { font-size: 1.1rem !important; }
   .nav-logo-sub,
@@ -2681,8 +2691,9 @@ body {
        (la topbar) dans un conteneur de scroll sur iOS, et l'inertie est native
        depuis iOS 13. */
   }
-  /* Sidebar masquée en mobile → panneau espace plein écran */
+  /* Sidebar masquée en mobile → panneaux espace + quête en plein écran */
   #espace-modal { left: 0; }
+  #pq-create-modal { left: 0; box-shadow: none; }
 
   /* ── Onboarding : empiler en colonne (sinon le panneau fixe 480px déborde
      et coupe le texte à droite). Couvre les deux variantes d'onboarding. ── */
