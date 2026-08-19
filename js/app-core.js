@@ -1556,6 +1556,12 @@ function renderLieuFluxTable() {
 }
 
 function showScreen(id) {
+  // Écrans « dev-only » (Réseau, Modélisation, Compte/Nextcloud) : jamais
+  // affichés sur la prod app.evad.org, même si appelés programmatiquement. Le
+  // nav est déjà masqué via .dev-only ; ce garde-fou ferme la porte de service.
+  if (location.hostname === 'app.evad.org' && (id === 'reseau' || id === 'modelisation' || id === 'compte')) {
+    id = 'carte';
+  }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+id).classList.add('active');
   updateActiveNav(id);
