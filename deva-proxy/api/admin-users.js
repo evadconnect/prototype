@@ -235,6 +235,9 @@ export default async function handler(req, res) {
         nom: row.nom || '',
         role: row.role || '',
         role_label: row.role_label || '',
+        // Champs du formulaire d'inscription (noms variables selon le site → replis).
+        ville: row.ville || row.commune || row.localisation || '',
+        structure: row.structure || row.organisation || row.nom_structure || row.entreprise || '',
         statut: row.statut || 'nouveau',
         acces_pilote: !!row.acces_pilote,
         acces_batisseur: !!row.acces_batisseur,

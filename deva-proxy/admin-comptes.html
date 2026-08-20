@@ -58,10 +58,11 @@
     <div class="card">
       <h1>📋 Inscriptions</h1>
       <p class="sub">Choisis les <b>profils</b> à ouvrir et passe le statut de <b>nouveau</b> à <b>à créer</b>, puis crée les comptes (identifiants envoyés par email). <b>Sans passer par Supabase.</b></p>
-      <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.7rem">
+      <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.55rem">
         <div id="insc-filters" style="display:flex;flex-wrap:wrap;gap:.35rem"></div>
         <input id="insc-search" type="text" placeholder="🔍 email ou nom" oninput="renderInscriptions()" style="flex:1;min-width:150px;width:auto;margin:0;padding:.5rem .8rem;font-size:.85rem">
       </div>
+      <div id="insc-selects" style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.7rem"></div>
       <button id="load-insc" onclick="loadInscriptions()">↻ Actualiser les inscriptions</button>
       <div id="insc-out" style="margin-top:1rem;display:none"></div>
       <button id="go" onclick="run()">✅ Créer les comptes « à créer »</button>
@@ -111,8 +112,10 @@
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { err.textContent = 'Erreur : ' + (data.error || res.status); err.style.display = 'block'; return; }
       _inscriptions = data.inscriptions || [];
+      _inscVille = 'tous'; _inscStructure = 'tous';
       document.getElementById('login-view').style.display = 'none';
       document.getElementById('panel-view').style.display = 'block';
+      renderInscSelects();
       renderInscFilters();
       renderInscriptions();
     } catch (e) {
@@ -246,6 +249,29 @@
 
   let _inscriptions = [];
   let _inscFilter = 'tous';
+  let _inscVille = 'tous';
+  let _inscStructure = 'tous';
+
+  // Valeurs distinctes non vides d'un champ (pour peupler un menu déroulant).
+  function distinctVals(field) {
+    const set = {};
+    _inscriptions.forEach((i) => { const v = String(i[field] || '').trim(); if (v) set[v] = true; });
+    return Object.keys(set).sort((a, b) => a.localeCompare(b));
+  }
+  // Menus déroulants Ville / Structure (masqués si le champ est vide partout).
+  function renderInscSelects() {
+    const box = document.getElementById('insc-selects'); if (!box) return;
+    const mk = (label, field, cur, fn) => {
+      const vals = distinctVals(field);
+      if (!vals.length) return '';
+      const opts = ['<option value="tous">' + label + ' : toutes</option>']
+        .concat(vals.map((v) => '<option value="' + esc(v) + '"' + (cur === v ? ' selected' : '') + '>' + esc(v) + '</option>')).join('');
+      return '<select onchange="' + fn + '(this.value)" style="width:auto;margin:0;padding:.45rem .7rem;border-radius:8px;border:1.5px solid rgba(1,130,98,.3);font-size:.8rem;font-weight:600;cursor:pointer;color:var(--moss)">' + opts + '</select>';
+    };
+    box.innerHTML = mk('Ville', 'ville', _inscVille, 'setInscVille') + mk('Structure', 'structure', _inscStructure, 'setInscStructure');
+  }
+  function setInscVille(v) { _inscVille = v; renderInscriptions(); }
+  function setInscStructure(v) { _inscStructure = v; renderInscriptions(); }
 
   // Barre de filtres par statut (avec compteurs).
   function renderInscFilters() {
@@ -271,6 +297,8 @@
     const q = (document.getElementById('insc-search').value || '').trim().toLowerCase();
     let list = _inscriptions;
     if (_inscFilter !== 'tous') list = list.filter((i) => i.statut === _inscFilter);
+    if (_inscVille !== 'tous') list = list.filter((i) => String(i.ville || '').trim() === _inscVille);
+    if (_inscStructure !== 'tous') list = list.filter((i) => String(i.structure || '').trim() === _inscStructure);
     if (q) list = list.filter((i) => ((i.email || '') + ' ' + (i.prenom || '') + ' ' + (i.nom || '')).toLowerCase().indexOf(q) !== -1);
     const aCreer = _inscriptions.filter((i) => i.statut === 'approuvé').length;
     const tete = '<div style="font-size:.82rem;color:#3d6b5a;margin-bottom:.4rem"><b>' + list.length + '</b> affichée(s)'
@@ -291,7 +319,10 @@
     const sel = '<select onchange="setStatut(\'' + jsStr(i.id) + '\',this.value,this)" style="width:auto;margin:0;padding:.32rem .5rem;border-radius:8px;border:1.5px solid rgba(1,130,98,.3);font-size:.78rem;font-weight:700;cursor:pointer;color:' + statutColor(i.statut) + '">' + opts + '</select>';
     return '<div class="row" style="flex-wrap:wrap;align-items:center;gap:.45rem">'
       + '<div style="flex:1;min-width:170px"><b style="font-size:.85rem">' + esc(i.email) + '</b>'
-      + '<div style="font-size:.72rem;color:#3d6b5a">' + (esc((i.prenom + ' ' + i.nom).trim()) || '&nbsp;') + (i.role_label ? ' · ' + esc(i.role_label) : '') + '</div></div>'
+      + '<div style="font-size:.72rem;color:#3d6b5a">' + (esc((i.prenom + ' ' + i.nom).trim()) || '&nbsp;')
+        + (i.role_label ? ' · ' + esc(i.role_label) : '')
+        + (i.ville ? ' · 📍 ' + esc(i.ville) : '')
+        + (i.structure ? ' · 🏢 ' + esc(i.structure) : '') + '</div></div>'
       + '<div style="display:flex;flex-wrap:wrap;align-items:center">' + roleBoxes + '</div>'
       + sel
       + '</div>';
@@ -312,6 +343,8 @@
       const data = await res.json();
       if (!res.ok) { box.innerHTML = '<span class="ko">Erreur : ' + (data.error || res.status) + '</span>'; return; }
       _inscriptions = data.inscriptions || [];
+      _inscVille = 'tous'; _inscStructure = 'tous';
+      renderInscSelects();
       renderInscFilters();
       renderInscriptions();
     } catch (e) {
