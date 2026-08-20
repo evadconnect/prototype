@@ -11,7 +11,7 @@
   body { font-family:Arial,Helvetica,sans-serif; background:#eef5f1; color:var(--ink); margin:0; padding:2rem 1rem; }
   .card { max-width:640px; margin:0 auto; background:#fff; border-radius:16px; box-shadow:0 12px 40px rgba(0,0,0,.1); padding:1.8rem; }
   /* Panneau admin : cartes plus larges pour aligner les contrôles sur une ligne. */
-  #panel-view .card, #panel-view > div { max-width:900px; }
+  #panel-view .card, #panel-view > div { max-width:940px; }
   h1 { font-size:1.4rem; margin:0 0 .3rem; }
   p.sub { color:var(--moss); font-size:.9rem; margin:0 0 1.4rem; }
   label { display:block; font-size:.78rem; font-weight:700; color:var(--moss); margin:0 0 .35rem; }
@@ -51,7 +51,7 @@
 
   <!-- ═══ VUE 2 : panneau admin (après connexion) ═══ -->
   <div id="panel-view" style="display:none">
-    <div style="max-width:640px;margin:0 auto 1rem;display:flex;align-items:center;justify-content:space-between;gap:.6rem">
+    <div style="max-width:940px;margin:0 auto 1rem;display:flex;align-items:center;justify-content:space-between;gap:.6rem">
       <div style="font-weight:800;color:var(--forest);font-size:1.05rem">🌱 Espace admin EVAD</div>
       <button onclick="lockAdmin()" style="width:auto;margin:0;padding:.45rem 1rem;background:#fff;color:var(--moss);border:1px solid rgba(0,0,0,.15);font-size:.82rem;font-weight:700">🔒 Verrouiller</button>
     </div>
