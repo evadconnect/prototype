@@ -16100,10 +16100,22 @@ setTimeout(initRealMap, 120);
    l'assistant à l'étape 1 ; elles ne suppriment aucune fiche déjà publiée. */
 (function () {
   if (window.EVAD_SUPABASE_ENV && window.EVAD_SUPABASE_ENV.isProd) return;
+  // On rejoue le parcours COMPLET : d'abord l'onboarding du profil, puis la
+  // création de fiche. C'est ce que voit une personne qui arrive, et c'est ce
+  // qu'on veut pouvoir retester. La remise à zéro se fait avant, pour que le
+  // formulaire soit vierge à la sortie de l'onboarding ; « Passer » y mène
+  // directement (voir obSkip).
+  const rejouer = function (role, reset) {
+    if (typeof reset === 'function') reset();
+    currentRole = role;
+    if (typeof updateRoleNavigation === 'function') updateRoleNavigation(role);
+    if (typeof showOnboarding === 'function') showOnboarding(role);
+    else showScreen({ pilote: 'creer', batisseur: 'fiche-bat', semeur: 'fiche-sem' }[role]);
+  };
   const CIBLES = [
-    { dash: 'screen-pilote', label: '👤 Créer ma fiche lieu',        open: function () { showScreen('creer');     if (typeof creerReset    === 'function') creerReset(); } },
-    { dash: 'screen-quete',  label: '👤 Créer ma fiche particulier', open: function () { showScreen('fiche-bat'); if (typeof batFicheReset === 'function') batFicheReset(); } },
-    { dash: 'screen-semeur', label: '👤 Créer ma fiche semeur',      open: function () { showScreen('fiche-sem'); if (typeof semFicheReset === 'function') semFicheReset(); } }
+    { dash: 'screen-pilote', label: '👤 Créer ma fiche lieu',        open: function () { rejouer('pilote',    typeof creerReset    === 'function' ? creerReset    : null); } },
+    { dash: 'screen-quete',  label: '👤 Créer ma fiche particulier', open: function () { rejouer('batisseur', typeof batFicheReset === 'function' ? batFicheReset : null); } },
+    { dash: 'screen-semeur', label: '👤 Créer ma fiche semeur',      open: function () { rejouer('semeur',    typeof semFicheReset === 'function' ? semFicheReset : null); } }
   ];
   CIBLES.forEach(function (c) {
     const screen = document.getElementById(c.dash);

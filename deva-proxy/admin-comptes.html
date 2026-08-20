@@ -10,6 +10,8 @@
   * { box-sizing:border-box; }
   body { font-family:Arial,Helvetica,sans-serif; background:#eef5f1; color:var(--ink); margin:0; padding:2rem 1rem; }
   .card { max-width:640px; margin:0 auto; background:#fff; border-radius:16px; box-shadow:0 12px 40px rgba(0,0,0,.1); padding:1.8rem; }
+  /* Panneau admin : cartes plus larges pour aligner les contrôles sur une ligne. */
+  #panel-view .card, #panel-view > div { max-width:900px; }
   h1 { font-size:1.4rem; margin:0 0 .3rem; }
   p.sub { color:var(--moss); font-size:.9rem; margin:0 0 1.4rem; }
   label { display:block; font-size:.78rem; font-weight:700; color:var(--moss); margin:0 0 .35rem; }
@@ -484,21 +486,26 @@
     const btnStyle = 'margin:0;width:auto;padding:.35rem .7rem;font-size:.72rem;background:#fff;';
     const emailBtn = '<button onclick="changeEmail(\'' + jsStr(u.id) + '\',\'' + jsStr(u.email) + '\',this)" title="Changer l\'email de connexion" style="' + btnStyle + 'color:#2a5db0;border:1px solid rgba(42,93,176,.4)">✉️ Email</button>';
     const pwBtn = '<button onclick="resetPassword(\'' + jsStr(u.id) + '\',\'' + jsStr(u.email) + '\',this)" title="Générer un nouveau mot de passe" style="' + btnStyle + 'color:#7a4ba0;border:1px solid rgba(122,75,160,.4)">🔑 Mot de passe</button>';
-    return '<div class="row" style="flex-wrap:wrap;align-items:center;gap:.35rem">'
-      + '<div style="flex:1;min-width:180px">' + identite(u) + '</div>'
-      + '<div>' + badges + '</div>'
-      + emailBtn + pwBtn
-      + (canReset
-          ? '<button onclick="resetOnboarding(\'' + jsStr(u.id) + '\',\'' + jsStr(u.email) + '\',this)" style="' + btnStyle + 'color:#a06010;border:1px solid rgba(160,96,16,.4)">↺ Onboarding (tout)</button>'
-          : '')
+    const onboardingBtn = canReset
+      ? '<button onclick="resetOnboarding(\'' + jsStr(u.id) + '\',\'' + jsStr(u.email) + '\',this)" style="' + btnStyle + 'color:#a06010;border:1px solid rgba(160,96,16,.4);flex-shrink:0">↺ Onboarding (tout)</button>'
+      : '';
+    // Tout sur une seule ligne : identité flexible + groupe de contrôles
+    // non sécable (badges + Email + Mot de passe + Onboarding). Défile
+    // horizontalement si l'ensemble dépasse la largeur.
+    return '<div class="row" style="flex-wrap:nowrap;align-items:center;gap:.5rem;overflow-x:auto">'
+      + '<div style="flex:1 1 auto;min-width:150px">' + identite(u) + '</div>'
+      + '<div style="flex:0 0 auto;display:flex;align-items:center;gap:.35rem;white-space:nowrap">'
+        + '<div style="display:flex;align-items:center">' + badges + '</div>'
+        + emailBtn + pwBtn + onboardingBtn
+      + '</div>'
       + '</div>';
   }
 
   // Ligne « Suppression » : identité + bouton supprimer uniquement.
   function suppressionRow(u) {
-    return '<div class="row" style="flex-wrap:wrap;align-items:center">'
-      + '<div style="flex:1;min-width:180px">' + identite(u) + '</div>'
-      + '<button onclick="deleteUser(\'' + jsStr(u.id) + '\',\'' + jsStr(u.email) + '\',this)" style="margin:0;width:auto;padding:.35rem .8rem;font-size:.72rem;background:#fff;color:#b02a2a;border:1px solid rgba(176,42,42,.4)">🗑 Supprimer</button>'
+    return '<div class="row" style="flex-wrap:nowrap;align-items:center;gap:.5rem;overflow-x:auto">'
+      + '<div style="flex:1 1 auto;min-width:150px">' + identite(u) + '</div>'
+      + '<button onclick="deleteUser(\'' + jsStr(u.id) + '\',\'' + jsStr(u.email) + '\',this)" style="margin:0;width:auto;padding:.35rem .8rem;font-size:.72rem;background:#fff;color:#b02a2a;border:1px solid rgba(176,42,42,.4);flex-shrink:0">🗑 Supprimer</button>'
       + '</div>';
   }
 
