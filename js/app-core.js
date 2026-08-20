@@ -10192,34 +10192,55 @@ function evadPendingPurchases() {
   return store.where('mkt_transactions', t => t.buyer_type === p.type && t.buyer_id === p.id && t.statut === 'en_attente')
     .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
 }
-// Le vendeur confirme la remise → transfert des graines (débit acheteur, crédit vendeur).
-function evadConfirmSale(txId) {
-  const tx = store.get('mkt_transactions', txId);
-  if (!tx || tx.statut !== 'en_attente') return;
-  store.update('mkt_transactions', txId, { statut: 'confirmee', confirmed_at: store.now() });
-  const prix = +tx.prix || 0;
-  if (prix > 0) {
-    evadGrainesMove({ type: tx.buyer_type, id: tx.buyer_id }, -prix, 'achat', 'Achat · ' + (tx.offer_titre || 'offre'), 'mkt_transactions', txId);
-    evadGrainesMove({ type: tx.seller_type, id: tx.seller_id }, prix, 'vente', 'Vente · ' + (tx.offer_titre || 'offre') + ' à ' + (tx.buyer_nom || ''), 'mkt_transactions', txId);
+// ── Récolte : le déverrouillage passe par l'Edge Function « recolte-unlock ».
+// Le front n'écrit JAMAIS graines_tx / mkt_transactions / places en direct : il
+// appelle la fonction (réserver / confirmer / annuler), puis re-hydrate.
+async function evadRecolteEdge(action, payload) {
+  if (!window.evadSupabase || !window.evadSupabase.functions) {
+    return { error: { message: 'Connexion indisponible, réessaie dans un instant.' } };
   }
-  if (typeof mmBubble === 'function') mmBubble('✅ Remise confirmée · ' + (prix > 0 ? '+' + prix + ' graines reçues de ' + (tx.buyer_nom || 'ce Bâtisseur') : 'accès gratuit ouvert'));
-  try { window.dispatchEvent(new CustomEvent('evad:graines-changed')); } catch (e) {}
-  if (typeof evadWalletRender === 'function') evadWalletRender();
+  try {
+    const r = await window.evadSupabase.functions.invoke('recolte-unlock', {
+      body: Object.assign({ action: action }, payload || {})
+    });
+    if (r.error) {
+      let msg = r.error.message || 'Opération impossible.';
+      try { const b = JSON.parse(await r.error.context.text()); msg = b.message || b.error || msg; } catch (e) {}
+      return { error: { message: msg } };
+    }
+    return { data: r.data };
+  } catch (e) { return { error: { message: e.message || 'Opération impossible.' } }; }
 }
-// Annulation tant que non confirmée : graines débloquées, stock rendu.
-function evadCancelTx(txId) {
+// Recharge accès + transactions + grand livre depuis Supabase, puis rafraîchit l'UI.
+async function evadRecolteRefresh() {
+  try { if (store.hydrateOffres) await store.hydrateOffres(); } catch (e) {}
+  try { if (store.hydrateMktTx) await store.hydrateMktTx(); } catch (e) {}
+  try { if (store.hydrateGraines) await store.hydrateGraines(); } catch (e) {}
+  try { if (typeof evadSyncPmktFromStore === 'function') evadSyncPmktFromStore(); } catch (e) {}
+  try { window.dispatchEvent(new CustomEvent('evad:graines-changed')); } catch (e) {}
+  try { if (typeof evadWalletRender === 'function') evadWalletRender(); } catch (e) {}
+}
+
+// Le Pilote hôte confirme la remise → transfert réel des graines (via l'Edge Function).
+async function evadConfirmSale(txId) {
   const tx = store.get('mkt_transactions', txId);
   if (!tx || tx.statut !== 'en_attente') return;
-  store.update('mkt_transactions', txId, { statut: 'annulee' });
-  // Rend le stock réservé à l'offre (dans le store partagé).
-  const _srow = window.store ? store.get('offres_mkt', tx.offer_id) : null;
-  if (_srow) {
-    store.update('offres_mkt', tx.offer_id, { stock: (+_srow.stock || 0) + 1, status: _srow.status === 'full' ? 'active' : _srow.status });
-    if (typeof evadSyncPmktFromStore === 'function') evadSyncPmktFromStore();
-  }
-  if (typeof mmBubble === 'function') mmBubble('Échange annulé · graines débloquées');
-  try { window.dispatchEvent(new CustomEvent('evad:graines-changed')); } catch (e) {}
-  if (typeof evadWalletRender === 'function') evadWalletRender();
+  const p = (typeof evadGrainesParty === 'function') ? evadGrainesParty() : null;
+  const r = await evadRecolteEdge('confirm', { tx_id: txId, confirming_lieu: (p && p.id) || tx.seller_id || '' });
+  if (r.error) { if (typeof mmBubble === 'function') mmBubble('⚠️ ' + r.error.message); return; }
+  await evadRecolteRefresh();
+  const prix = +tx.prix || 0;
+  if (typeof mmBubble === 'function') mmBubble('✅ Remise confirmée · ' + (prix > 0 ? '+' + prix + ' graines reçues de ' + (tx.buyer_nom || 'ce Bâtisseur') : 'accès gratuit ouvert'));
+}
+// Annulation tant que non confirmée (via l'Edge Function) : la place est rendue,
+// aucune graine ne bouge.
+async function evadCancelTx(txId) {
+  const tx = store.get('mkt_transactions', txId);
+  if (!tx || tx.statut !== 'en_attente') return;
+  const r = await evadRecolteEdge('cancel', { tx_id: txId });
+  if (r.error) { if (typeof mmBubble === 'function') mmBubble('⚠️ ' + r.error.message); return; }
+  await evadRecolteRefresh();
+  if (typeof mmBubble === 'function') mmBubble('Réservation annulée · graines débloquées');
 }
 
 // Compat : ancien helper, redirigé vers le grand livre.
@@ -10932,7 +10953,7 @@ function mktOpenModal(id) {
 
 // Escrow (double validation) : le Bâtisseur DÉVERROUILLE (ses graines sont
 // bloquées) ; le Pilote hôte confirme la remise de l'accès → transfert effectif.
-function mktConfirmBuy(id) {
+async function mktConfirmBuy(id) {
   const o = mktAllOffres().find(x => x.id === id) || MKT_OFFRES[id];
   if (!o) return;
   const buyer = evadGrainesParty();
@@ -10941,32 +10962,34 @@ function mktConfirmBuy(id) {
   const seller = evadOfferSeller(o);
   if (seller.id && buyer.type === seller.type && buyer.id === seller.id) { mmBubble('C\'est ton propre accès 🙂'); return; }
   if (prix > 0 && evadGrainesDispo(buyer.type, buyer.id) < prix) { mmBubble('🔒 Graines insuffisantes'); return; }
-  // Offre catalogue de démo (aucun vendeur réel) : achat direct, sans escrow.
-  if (prix > 0 && !seller.id) {
-    evadGrainesMove(buyer, -prix, 'achat', 'Achat · ' + o.titre, 'offres_mkt', id);
+
+  // Accès catalogue de démo (aucun lieu hôte réel) : déverrouillage local direct.
+  if (!seller.id) {
+    if (prix > 0) evadGrainesMove(buyer, -prix, 'acces', 'Accès · ' + o.titre, 'offres_mkt', id);
     const _m = MKT_OFFRES.find(x => x.id === id); if (_m && _m.stock != null) _m.stock = Math.max(0, _m.stock - 1);
     document.getElementById('mkt-modal').style.display = 'none';
     mktRender();
-    mmBubble(`✅ Accès déverrouillé ! « ${o.titre} », −${prix} graines`);
+    mmBubble(`✅ Accès déverrouillé ! « ${o.titre} », ${prix > 0 ? '−' + prix + ' graines' : 'gratuit'}`);
     return;
   }
-  const code = _mktCode();
-  store.insert('mkt_transactions', {
-    offer_id: id, offer_titre: o.titre, prix: prix,
-    buyer_type: buyer.type, buyer_id: buyer.id, buyer_nom: buyer.nom,
-    seller_type: seller.type, seller_id: seller.id, seller_nom: seller.nom,
-    code: code, statut: prix > 0 ? 'en_attente' : 'confirmee'
+
+  // Accès réel : RÉSERVATION via l'Edge Function (aucune écriture directe).
+  const key = (window.store && store.uuid) ? store.uuid() : String(Date.now());
+  const btn = document.querySelector('#mkt-modal-content .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Patiente…'; }
+  const r = await evadRecolteEdge('reserve', {
+    access_id: id, buyer_type: buyer.type, buyer_id: buyer.id, buyer_nom: buyer.nom || '', idempotency_key: key
   });
-  // Réserve le stock dans le store (offre partagée) — rendu si annulation.
-  const _srow = window.store ? store.get('offres_mkt', id) : null;
-  if (_srow) {
-    const ns = Math.max(0, (+_srow.stock || 0) - 1);
-    store.update('offres_mkt', id, { stock: ns, echanges: (+_srow.echanges || 0) + 1, status: ns === 0 ? 'full' : _srow.status });
-    if (typeof evadSyncPmktFromStore === 'function') evadSyncPmktFromStore();
-  } else { const m = MKT_OFFRES.find(x => x.id === id); if (m && m.stock != null) m.stock = Math.max(0, m.stock - 1); }
-  document.getElementById('mkt-modal').style.display = 'none';
+  if (r.error) {
+    if (btn) { btn.disabled = false; }
+    mmBubble('⚠️ ' + r.error.message);
+    return;
+  }
+  await evadRecolteRefresh();
+  const tx = r.data && r.data.transaction;
+  const code = (tx && tx.code) || '';
+  const mdl = document.getElementById('mkt-modal'); if (mdl) mdl.style.display = 'none';
   mktRender();
-  try { window.dispatchEvent(new CustomEvent('evad:graines-changed')); } catch (e) {}
   if (prix > 0) mmBubble(`🔒 Réservé ! Montre le code ${code} à ${seller.nom}. ${prix} graines bloquées jusqu'à sa confirmation.`);
   else mmBubble(`🎟 Réservé gratuitement chez ${seller.nom} · présente-toi sur place`);
 }

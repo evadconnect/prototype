@@ -603,7 +603,10 @@
     } catch (e) { console.warn('Erreur récupération graines_tx :', e); }
   }
 
-  // ── Produits / offres du Marché : table offres_mkt (partagées) ──
+  // ── Accès de la Récolte : table recolte_acces (ex offres_mkt, partagée) ──
+  // Le nom LOCAL du store reste 'offres_mkt' (clé interne, pour ne pas toucher
+  // tout app-core) ; seule la table DISTANTE et ses colonnes sont renommées :
+  // prix→graines_cost, stock→places, stockMax→places_max, + hors_exploitation.
   function remoteOffreRow(row) {
     return {
       id: row.id,
@@ -612,9 +615,10 @@
       lieu_nom: row.lieu_nom || null,
       titre: row.titre || null,
       cat: row.cat || null,
-      prix: (typeof row.prix === 'number') ? row.prix : (parseInt(row.prix, 10) || 0),
-      stock: (typeof row.stock === 'number') ? row.stock : (parseInt(row.stock, 10) || 0),
-      stock_max: (typeof row.stockMax === 'number') ? row.stockMax : (parseInt(row.stockMax, 10) || 0),
+      graines_cost: (typeof row.prix === 'number') ? row.prix : (parseInt(row.prix, 10) || 0),
+      places: (typeof row.stock === 'number') ? row.stock : (parseInt(row.stock, 10) || 0),
+      places_max: (typeof row.stockMax === 'number') ? row.stockMax : (parseInt(row.stockMax, 10) || 0),
+      hors_exploitation: !!row.hors_exploitation,
       emoji: row.emoji || null,
       description: row.desc || row.description || null,
       statut: row.status || row.statut || 'active',
@@ -627,34 +631,35 @@
   function upsertOffreRemote(row) {
     if (!global.evadSupabase || !row || !row.id) return;
     global.evadSupabase
-      .from('offres_mkt')
+      .from('recolte_acces')
       .upsert(remoteOffreRow(row), { onConflict: 'id' })
       .then(function (result) {
-        if (result.error) notifySyncError('Offre non enregistrée : ' + result.error.message);
+        if (result.error) notifySyncError('Accès non enregistré : ' + result.error.message);
       });
   }
   function deleteOffreRemote(id) {
     if (!global.evadSupabase || !id) return;
-    global.evadSupabase.from('offres_mkt').delete().eq('id', id).then(function (r) {
-      if (r && r.error) notifySyncError('Suppression d\'offre non enregistrée : ' + r.error.message);
+    global.evadSupabase.from('recolte_acces').delete().eq('id', id).then(function (r) {
+      if (r && r.error) notifySyncError('Suppression d\'accès non enregistrée : ' + r.error.message);
     });
   }
   async function hydrateOffres() {
     if (!global.evadSupabase) return;
     try {
-      var result = await global.evadSupabase.from('offres_mkt').select('*');
-      if (result.error) { console.warn('Lecture offres_mkt impossible : ' + result.error.message); return; }
+      var result = await global.evadSupabase.from('recolte_acces').select('*');
+      if (result.error) { console.warn('Lecture recolte_acces impossible : ' + result.error.message); return; }
       var rows = (result.data || []).map(function (r) {
         return Object.assign({}, r.donnees || {}, {
           id: r.id, lieu_id: r.lieu_id, lieu_nom: r.lieu_nom,
-          titre: r.titre, cat: r.cat, prix: r.prix, stock: r.stock, stockMax: r.stock_max,
+          titre: r.titre, cat: r.cat, prix: r.graines_cost, stock: r.places, stockMax: r.places_max,
+          hors_exploitation: !!r.hors_exploitation,
           emoji: r.emoji, desc: r.description, status: r.statut,
           vues: r.vues, echanges: r.echanges, created_at: r.created_at, updated_at: r.updated_at
         });
       });
       write('offres_mkt', rows);
       global.dispatchEvent(new CustomEvent('evad:offres-ready', { detail: { rows: rows } }));
-    } catch (e) { console.warn('Erreur récupération offres_mkt :', e); }
+    } catch (e) { console.warn('Erreur récupération recolte_acces :', e); }
   }
 
   // ── Transactions Marketplace (escrow / double validation) : mkt_transactions ──
