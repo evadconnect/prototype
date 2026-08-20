@@ -321,18 +321,85 @@ function obRenderSVG() {
     // étape. Seul le Bâtisseur a besoin d'une autre illustration.
     if (_horsProd && obRole === 'batisseur') {
       svgGrainesRecolte(svg, c, ca);
+    } else if (_horsProd && obRole === 'semeur') {
+      svgAntiGreenwashing(svg, c, ca);
     } else {
       svgVadanceVadite(svg, c, ca);
-      // Semeur hors production : sa légende s'adresse à lui, « transforme tes
-      // promesses » parle au Pilote qui agit. On retouche ici plutôt que dans
-      // le dessin, qui reste commun aux trois profils et inchangé en production.
-      if (_horsProd && obRole === 'semeur') {
-        var _t = svg.querySelectorAll('text');
-        var _fin = _t[_t.length - 1];
-        if (_fin) _fin.textContent = 'L\'écart, c\'est ce que tu regardes avant d\'engager ⚖️';
-      }
     }
   }
+}
+
+/* Étape 2 du Semeur (hors production) · l'anti-greenwashing en une image.
+   Le dessin dit les trois blocs du texte : une annonce est DÉCOTÉE selon son
+   niveau de preuve (les segments rétrécissent d'un coefficient à l'autre),
+   l'ÉCART entre annoncé et compté est public (les deux colonnes et l'indice de
+   confiance), et chaque preuve est OPPOSABLE (la mention du bas).
+   Les coefficients sont ceux de ref_niveau_preuve : 0,25 / 0,50 / 0,75 / 1. */
+function svgAntiGreenwashing(svg, c, ca) {
+  const cream = '#f2ecdb', sub = 'rgba(206,226,238,.62)';
+  // Une annonce de 100, ventilée par niveau de preuve. Empilée du plus solide
+  // (en bas) au plus fragile (en haut) : on voit ce qui s'évapore par le haut.
+  const crans = [
+    { ic: '🔍', nom: 'Audité',      part: 26, coef: 1.00, op: 1 },
+    { ic: '🤝', nom: 'Par les pairs', part: 20, coef: 0.75, op: .72 },
+    { ic: '📄', nom: 'Documenté',   part: 30, coef: 0.50, op: .46 },
+    { ic: '📣', nom: 'Déclaré',     part: 24, coef: 0.25, op: .24 }
+  ];
+  const annonce = crans.reduce(function (t, k) { return t + k.part; }, 0);
+  const compte = Math.round(crans.reduce(function (t, k) { return t + k.part * k.coef; }, 0));
+  const indice = Math.round(compte / annonce * 100);
+
+  const base = 300, ech = 1.9, bw = 58, x1 = 96, x2 = 196;
+  let yA = base, yC = base;
+  const colonnes = crans.map(function (k, i) {
+    const hA = k.part * ech, hC = k.part * k.coef * ech;
+    yA -= hA; yC -= hC;
+    return { k: k, yA: yA, hA: hA, yC: yC, hC: hC, i: i };
+  });
+
+  svg.setAttribute('viewBox', '0 0 420 360');
+  svg.innerHTML = `
+    <defs>
+      <filter id="ag-glow" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+
+    <g transform="translate(210,44)">
+      <rect x="-112" y="-17" width="224" height="32" rx="16" fill="${ca}" fill-opacity=".14" stroke="${ca}" stroke-opacity=".5"/>
+      <text x="0" y="5" text-anchor="middle" font-size="12" font-weight="800" fill="${cream}" font-family="Satoshi,sans-serif">⚖️ Indice de confiance · ${indice} %</text>
+    </g>
+
+    <line x1="56" y1="${base}" x2="384" y2="${base}" stroke="rgba(255,255,255,.18)"/>
+
+    ${colonnes.map(function (co) {
+      return `<rect x="${x1 - bw / 2}" y="${co.yA}" width="${bw}" height="${co.hA - 2}" rx="4" fill="${ca}" fill-opacity=".13" stroke="${ca}" stroke-opacity=".38" stroke-dasharray="4 3"/>`;
+    }).join('')}
+    <text x="${x1}" y="${colonnes[colonnes.length - 1].yA - 12}" text-anchor="middle" font-size="22" font-weight="900" fill="${ca}" font-family="Satoshi,sans-serif">${annonce}</text>
+    <text x="${x1}" y="${base + 19}" text-anchor="middle" font-size="11" font-weight="700" fill="${cream}" font-family="Satoshi,sans-serif">Annoncé</text>
+    <text x="${x1}" y="${base + 32}" text-anchor="middle" font-size="9" fill="${sub}" font-family="Satoshi,sans-serif">ce que le lieu affirme</text>
+
+    ${colonnes.map(function (co) {
+      return `<g>` +
+        `<line x1="${x1 + bw / 2 + 3}" y1="${co.yA + co.hA / 2}" x2="${x2 - bw / 2 - 3}" y2="${co.yC + co.hC / 2}" stroke="${ca}" stroke-opacity=".22" stroke-dasharray="3 3"/>` +
+        `<rect x="${x2 - bw / 2}" y="${base}" width="${bw}" height="0" rx="4" fill="${ca}" fill-opacity="${co.k.op}"${co.k.coef === 1 ? ' filter="url(#ag-glow)"' : ''}>` +
+          `<animate attributeName="y" values="${base};${co.yC}" dur=".8s" begin="${0.2 + co.i * 0.12}s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.16 1 0.3 1"/>` +
+          `<animate attributeName="height" values="0;${Math.max(co.hC - 2, 2)}" dur=".8s" begin="${0.2 + co.i * 0.12}s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.16 1 0.3 1"/>` +
+        `</rect></g>`;
+    }).join('')}
+    <text x="${x2}" y="${colonnes[colonnes.length - 1].yC - 12}" text-anchor="middle" font-size="22" font-weight="900" fill="${cream}" font-family="Satoshi,sans-serif">${compte}</text>
+    <text x="${x2}" y="${base + 19}" text-anchor="middle" font-size="11" font-weight="700" fill="${cream}" font-family="Satoshi,sans-serif">Compté</text>
+    <text x="${x2}" y="${base + 32}" text-anchor="middle" font-size="9" fill="${sub}" font-family="Satoshi,sans-serif">ce qu\'il peut montrer</text>
+
+    ${colonnes.map(function (co, i) {
+      const y = 108 + i * 30;
+      return `<g>` +
+        `<rect x="266" y="${y - 10}" width="14" height="14" rx="3" fill="${ca}" fill-opacity="${co.k.op}"/>` +
+        `<text x="288" y="${y + 1}" font-size="9.5" fill="${cream}" font-family="Satoshi,sans-serif">${co.k.ic} ${co.k.nom}</text>` +
+        `<text x="288" y="${y + 12}" font-size="8.5" fill="${sub}" font-family="Satoshi,sans-serif">compte pour ${Math.round(co.k.coef * 100)} %</text>` +
+        `</g>`;
+    }).join('')}
+
+    <text x="210" y="346" text-anchor="middle" font-size="10.5" font-weight="700" fill="${cream}" font-family="Satoshi,sans-serif">Chaque preuve est horodatée, tracée, opposable 🔍</text>
+  `;
 }
 
 /* Étape 2 du Bâtisseur (hors production) : ce qu'il reçoit en reconnaissance,
