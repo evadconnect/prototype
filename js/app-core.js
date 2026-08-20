@@ -10541,8 +10541,8 @@ function pmktRenderOffers() {
   const exemples = ['📚 un atelier', '🤝 un coup de main', '🛠 un prêt de matériel', '🏛 une location de salle', '🏡 un hébergement'];
   const inviteHtml = '<div style="padding:1.8rem 1.6rem;text-align:center">'
     + '<div style="font-size:2.2rem;margin-bottom:.5rem">🤲</div>'
-    + '<div style="font-family:\'Satoshi\',sans-serif;font-size:1rem;font-weight:800;color:var(--ink);margin-bottom:.4rem">Fais vivre l\'économie de ton lieu</div>'
-    + '<div style="font-size:.76rem;color:var(--moss);line-height:1.6;max-width:460px;margin:0 auto .9rem">Ouvre des <b>accès que les Bâtisseurs déverrouillent avec leurs graines</b>. Les graines circulent, et ton lieu devient un moteur d\'<b>économie locale régénérative</b>.</div>'
+    + '<div style="font-family:\'Satoshi\',sans-serif;font-size:1rem;font-weight:800;color:var(--ink);margin-bottom:.4rem">Ouvre les portes de ton lieu</div>'
+    + '<div style="font-size:.76rem;color:var(--moss);line-height:1.6;max-width:460px;margin:0 auto .9rem">Propose des <b>accès que les Bâtisseurs déverrouillent avec leurs graines</b>, reçues en reconnaissance de ce qu\'ils ont fait pousser ici. Chaque porte ouverte, c\'est une raison de plus de venir contribuer à ton lieu.</div>'
     + '<div style="display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;margin-bottom:1.1rem">' + exemples.map(e => '<span style="font-size:.66rem;color:var(--ink);background:rgba(46,102,66,.06);border:1px solid rgba(46,102,66,.12);border-radius:100px;padding:.25rem .6rem">' + e + '</span>').join('') + '</div>'
     + '<button class="btn btn-primary" style="font-size:.78rem;padding:.6rem 1.4rem" onclick="piloteMktOpenAdd()">+ Ouvrir mon premier accès</button>'
     + '</div>';
