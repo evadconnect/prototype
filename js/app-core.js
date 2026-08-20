@@ -1188,11 +1188,11 @@ function lieuRenderMarche() {
   offres = offres.filter(o => _lieuId ? (o.seller_id === _lieuId) : (o.lieu === _lieuNom));
 
   if (!offres.length) {
-    box.innerHTML = `<div class="acteur-section-title">🛖 Marché du lieu</div>
+    box.innerHTML = `<div class="acteur-section-title">🌾 la Récolte du lieu</div>
       <div style="padding:2rem 1rem;text-align:center;border:1.5px dashed rgba(46,102,66,.18);border-radius:var(--r-lg)">
-        <div style="font-size:1.4rem;margin-bottom:.5rem">🛖</div>
-        <div style="font-size:.75rem;font-weight:600;color:var(--ink);margin-bottom:.25rem">Aucune offre en vente pour l'instant</div>
-        <div style="font-size:.65rem;color:var(--moss);opacity:.6">Le Pilote propose ses biens et services payables en graines depuis son tableau de bord (onglet Marché).</div>
+        <div style="font-size:1.4rem;margin-bottom:.5rem">🌾</div>
+        <div style="font-size:.75rem;font-weight:600;color:var(--ink);margin-bottom:.25rem">Aucun accès ouvert pour l'instant</div>
+        <div style="font-size:.65rem;color:var(--moss);opacity:.6">Le Pilote ouvre des accès déverrouillables en graines depuis son tableau de bord (onglet la Récolte).</div>
       </div>`;
     return;
   }
@@ -1215,12 +1215,12 @@ function lieuRenderMarche() {
       </div>
       <div style="flex-shrink:0;text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:.35rem">
         <div style="font-family:'Satoshi',sans-serif;font-size:.95rem;font-weight:900;color:var(--amber)">${(+o.prix||0) > 0 ? '🪙 '+o.prix : '🎁 Gratuit'}</div>
-        <button class="btn btn-primary" style="font-size:.68rem;padding:.35rem .8rem" onclick="event.stopPropagation();mktOpenModal('${o.id}')">${(+o.prix||0) === 0 ? 'Réserver →' : 'Échanger →'}</button>
+        <button class="btn btn-primary" style="font-size:.68rem;padding:.35rem .8rem" onclick="event.stopPropagation();mktOpenModal('${o.id}')">${(+o.prix||0) === 0 ? 'Accéder →' : 'Déverrouiller →'}</button>
       </div>
     </div>`;
   }).join('');
 
-  box.innerHTML = `<div class="acteur-section-title">🛖 Marché du lieu · <span style="font-weight:400;opacity:.65">${offres.length} offre${offres.length > 1 ? 's' : ''} en vente</span></div>
+  box.innerHTML = `<div class="acteur-section-title">🌾 la Récolte du lieu · <span style="font-weight:400;opacity:.65">${offres.length} accès ouvert${offres.length > 1 ? 's' : ''}</span></div>
     <div style="display:flex;flex-direction:column;gap:.6rem">${cards}</div>`;
 }
 
@@ -10472,6 +10472,7 @@ function _offreRowToPmkt(r) {
     stock: +r.stock || 0, stockMax: +r.stockMax || +r.stock_max || 0,
     desc: r.desc || r.description || '', status: r.status || r.statut || 'active',
     vues: +r.vues || 0, echanges: +r.echanges || 0, date: r.date || '',
+    hors_exploitation: !!r.hors_exploitation,
     lieu_id: r.lieu_id || null, lieu_nom: r.lieu_nom || null
   };
 }
@@ -10490,7 +10491,8 @@ function evadPersistOffre(o) {
   store.upsert('offres_mkt', {
     id: o.id, lieu_id: lieuId, lieu_nom: lieuNom,
     titre: o.titre, cat: o.cat, prix: o.prix, stock: o.stock, stockMax: o.stockMax,
-    emoji: o.emoji, desc: o.desc, date: o.date || '', status: o.status, vues: o.vues, echanges: o.echanges
+    emoji: o.emoji, desc: o.desc, date: o.date || '', status: o.status, vues: o.vues, echanges: o.echanges,
+    hors_exploitation: !!o.hors_exploitation
   });
   o.lieu_id = lieuId; o.lieu_nom = lieuNom;
 }
@@ -10515,13 +10517,13 @@ function pmktRenderOffers() {
   const statusCls   = { active:'pmkt-status-active', paused:'pmkt-status-paused', full:'pmkt-status-full' };
 
   const noOffersAtAll = pmktOffers.length === 0;
-  const exemples = ['🥦 un panier de légumes', '🎓 un atelier', '🛠 un coup de main', '🏛 une location de salle', '☕ un café'];
+  const exemples = ['📚 un atelier', '🤝 un coup de main', '🛠 un prêt de matériel', '🏛 une location de salle', '🏡 un hébergement'];
   const inviteHtml = '<div style="padding:1.8rem 1.6rem;text-align:center">'
-    + '<div style="font-size:2.2rem;margin-bottom:.5rem">🛖</div>'
+    + '<div style="font-size:2.2rem;margin-bottom:.5rem">🌾</div>'
     + '<div style="font-family:\'Satoshi\',sans-serif;font-size:1rem;font-weight:800;color:var(--ink);margin-bottom:.4rem">Fais vivre l\'économie de ton lieu</div>'
-    + '<div style="font-size:.76rem;color:var(--moss);line-height:1.6;max-width:460px;margin:0 auto .9rem">Propose des <b>biens et services payables en graines</b>. Les bâtisseurs et les membres du réseau viennent les dépenser chez toi : les graines circulent, et ton lieu devient un moteur d\'<b>économie locale régénérative</b>.</div>'
+    + '<div style="font-size:.76rem;color:var(--moss);line-height:1.6;max-width:460px;margin:0 auto .9rem">Ouvre des <b>accès que les Bâtisseurs déverrouillent avec leurs graines</b>. Les graines circulent, et ton lieu devient un moteur d\'<b>économie locale régénérative</b>.</div>'
     + '<div style="display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;margin-bottom:1.1rem">' + exemples.map(e => '<span style="font-size:.66rem;color:var(--ink);background:rgba(46,102,66,.06);border:1px solid rgba(46,102,66,.12);border-radius:100px;padding:.25rem .6rem">' + e + '</span>').join('') + '</div>'
-    + '<button class="btn btn-primary" style="font-size:.78rem;padding:.6rem 1.4rem" onclick="piloteMktOpenAdd()">+ Créer ma première offre</button>'
+    + '<button class="btn btn-primary" style="font-size:.78rem;padding:.6rem 1.4rem" onclick="piloteMktOpenAdd()">+ Ouvrir mon premier accès</button>'
     + '</div>';
   // En-tête : échanges à confirmer (escrow). Le solde vit dans la carte KPI
   // « mes graines » (en haut), pas dans un bouton séparé.
@@ -10534,22 +10536,22 @@ function pmktRenderOffers() {
   const _walletBtn = '';
   const _salesBanner = _sales.length
     ? `<div style="display:flex;align-items:center;justify-content:space-between;gap:.7rem;background:rgba(74,140,92,.08);border:1px solid rgba(74,140,92,.28);border-radius:var(--r-lg,14px);padding:.7rem .9rem;margin-bottom:.8rem">
-         <div style="font-size:.74rem;color:var(--forest)">🤝 <b>${_sales.length} échange${_sales.length > 1 ? 's' : ''}</b> en attente de ta confirmation (remise du produit).</div>
+         <div style="font-size:.74rem;color:var(--forest)">🤝 <b>${_sales.length} déverrouillage${_sales.length > 1 ? 's' : ''}</b> en attente de ta confirmation (remise de l'accès).</div>
          <button class="btn btn-primary" style="font-size:.72rem;padding:.4rem 1rem;white-space:nowrap" onclick="evadOpenWallet()">Confirmer →</button>
        </div>`
     : '';
   list.innerHTML = _walletBtn + _salesBanner + (offers.length === 0
-    ? (noOffersAtAll ? inviteHtml : `<div style="padding:2rem;text-align:center;font-size:.78rem;color:var(--moss);opacity:.6">Aucune offre dans cette catégorie.</div>`)
+    ? (noOffersAtAll ? inviteHtml : `<div style="padding:2rem;text-align:center;font-size:.78rem;color:var(--moss);opacity:.6">Aucun accès dans ce type.</div>`)
     : offers.map(o => `
     <div class="pmkt-offer-row">
       <div class="pmkt-offer-icon" style="background:${o.bg}">${o.emoji}</div>
       <div class="pmkt-offer-info">
         <div class="pmkt-offer-title">${o.titre}</div>
         <div class="pmkt-offer-meta">
-          <span>🪙 ${o.prix} tokens</span>
-          <span>📦 Stock : ${o.stock}/${o.stockMax}</span>
+          <span>🌱 ${o.prix} graines</span>
+          <span>🎟 Places : ${o.stock}/${o.stockMax}</span>
           <span>👁 ${o.vues} vues</span>
-          <span>✅ ${o.echanges} échanges</span>
+          <span>✅ ${o.echanges} déverrouillages</span>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:.6rem;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
@@ -10643,25 +10645,33 @@ function piloteMktOpenEdit(id) {
 // Catégories du Marché : source unique (valeur technique sans accent + libellé).
 // Les valeurs servent aux filtres (bmktFilter/smktFilter) et doivent rester
 // stables ; les libellés (emoji + accents) sont affichés partout via mktCatLabel.
+// Flag « périmètre marchand » : catégories réservées à une phase 2. false =
+// invisibles dans l'UI, mais CONSERVÉES en base et dans les types (elles
+// reviendront). Ne pas les supprimer.
+const PERIMETRE_MARCHAND = false;
+
+// Types d'accès de la Récolte. `actif:true` = toujours visible ; `actif:false`
+// = derrière le flag PERIMETRE_MARCHAND. Les zones réglementées (mobilité,
+// énergie, réparation, service, bien-être & santé) ont été retirées.
 const MKT_CATS = [
-  { v:'alimentation', e:'🥦', l:'🥦 Alimentation' },
-  { v:'maraichage',   e:'🌱', l:'🌱 Maraîchage & plants' },
-  { v:'formation',    e:'📚', l:'📚 Formation & atelier' },
-  { v:'artisanat',    e:'🪵', l:'🪵 Artisanat' },
-  { v:'service',      e:'⚙️', l:'⚙️ Service' },
-  { v:'coupdemain',   e:'🤝', l:'🤝 Coup de main' },
-  { v:'reparation',   e:'🔧', l:'🔧 Réparation' },
-  { v:'materiel',     e:'🛠', l:'🛠 Prêt de matériel' },
-  { v:'location',     e:'🔑', l:"🔑 Location d'espace" },
-  { v:'hebergement',  e:'🏡', l:'🏡 Hébergement' },
-  { v:'evenement',    e:'🎉', l:'🎉 Événement' },
-  { v:'bienetre',     e:'🧘', l:'🧘 Bien-être & santé' },
-  { v:'mobilite',     e:'🚲', l:'🚲 Mobilité' },
-  { v:'energie',      e:'⚡', l:'⚡ Énergie' },
-  { v:'textile',      e:'🧵', l:'🧵 Textile & couture' },
-  { v:'culture',      e:'🎨', l:'🎨 Culture & art' },
-  { v:'numerique',    e:'💻', l:'💻 Numérique' },
+  { v:'formation',    e:'📚', l:'📚 Formation & atelier',      actif:true },
+  { v:'coupdemain',   e:'🤝', l:'🤝 Coup de main',             actif:true },
+  { v:'materiel',     e:'🛠', l:'🛠 Prêt de matériel',         actif:true },
+  { v:'location',     e:'🔑', l:"🔑 Location d'espace",         actif:true },
+  { v:'hebergement',  e:'🏡', l:'🏡 Hébergement',              actif:true },
+  { v:'evenement',    e:'🎉', l:'🎉 Événement',                actif:true },
+  { v:'culture',      e:'🎨', l:'🎨 Culture & art',            actif:true },
+  { v:'numerique',    e:'💻', l:'💻 Accompagnement numérique', actif:true },
+  // Périmètre marchand (phase 2) — masquées tant que PERIMETRE_MARCHAND est false.
+  { v:'alimentation', e:'🥦', l:'🥦 Alimentation',             actif:false },
+  { v:'maraichage',   e:'🌱', l:'🌱 Maraîchage & plants',      actif:false },
+  { v:'artisanat',    e:'🪵', l:'🪵 Artisanat',                actif:false },
+  { v:'textile',      e:'🧵', l:'🧵 Textile & couture',        actif:false },
 ];
+// Types d'accès visibles dans l'UI, selon le flag périmètre marchand.
+function mktActiveCats() {
+  return MKT_CATS.filter(c => c.actif || PERIMETRE_MARCHAND);
+}
 function mktCatLabel(v) {
   const c = MKT_CATS.find(x => x.v === v);
   return c ? c.l : (v ? v.charAt(0).toUpperCase() + v.slice(1) : '');
@@ -10676,30 +10686,36 @@ function pmktFormHtml(o) {
   // Lieu par défaut : celui porté par l'offre, sinon mon lieu courant.
   const lieuDefault = (o && o.lieu_nom) || (typeof myLieuData !== 'undefined' && myLieuData && myLieuData.nom) || '';
   const dateVal = (o && o.date) ? o.date : '';
+  // Texte d'aide sous un champ (même style partout).
+  const help = (t) => `<div style="font-size:.66rem;color:var(--moss);opacity:.72;margin-top:.28rem;line-height:1.45">${t}</div>`;
   return `
-    <h2 style="font-family:'Satoshi', sans-serif;font-size:1.2rem;font-weight:900;color:var(--ink);margin-bottom:1.2rem">${o ? '✏️ Modifier l\'offre' : '➕ Nouvelle offre Marketplace'}</h2>
+    <h2 style="font-family:'Satoshi', sans-serif;font-size:1.2rem;font-weight:900;color:var(--ink);margin-bottom:1.2rem">${o ? '✏️ Modifier l\'accès' : '🌾 Ouvrir un accès dans la Récolte'}</h2>
     <div class="pmkt-form-row">
-      <label class="pmkt-label">Titre de l'offre</label>
-      <input class="pmkt-input" id="pf-titre" placeholder="Ex : Panier légumes hebdomadaire" value="${o ? o.titre : ''}">
+      <label class="pmkt-label">Intitulé de l'accès</label>
+      <input class="pmkt-input" id="pf-titre" placeholder="Ex : atelier vannerie, samedi matin" value="${o ? o.titre : ''}">
+      ${help('Ce que vous ouvrez aux Bâtisseurs, en quelques mots.')}
     </div>
     <div class="pmkt-form-row">
-      <label class="pmkt-label">Catégorie <span style="font-weight:400;opacity:.5;font-size:.65rem">(définit l'icône)</span></label>
+      <label class="pmkt-label">Type d'accès <span style="font-weight:400;opacity:.5;font-size:.65rem">(définit l'icône)</span></label>
       <select class="pmkt-select" id="pf-cat">
-        ${MKT_CATS.map(c => `<option value="${c.v}" ${o && o.cat===c.v?'selected':''}>${c.l}</option>`).join('')}
+        ${mktActiveCats().map(c => `<option value="${c.v}" ${o && o.cat===c.v?'selected':''}>${c.l}</option>`).join('')}
       </select>
     </div>
     <div class="pmkt-form-row">
       <label class="pmkt-label">Description courte</label>
-      <textarea class="pmkt-textarea" id="pf-desc" placeholder="Décrivez l'offre en 1-2 phrases…">${o && o.desc ? o.desc : ''}</textarea>
+      <textarea class="pmkt-textarea" id="pf-desc" placeholder="Ce qu'on y fait, ce qu'on y apprend…">${o && o.desc ? o.desc : ''}</textarea>
+      ${help('Ce qu\'on y fait, ce qu\'on y apprend, ce qu\'on y partage.')}
     </div>
     <div class="pmkt-two-col">
       <div class="pmkt-form-row" style="margin-bottom:0">
-        <label class="pmkt-label">Prix (graines)</label>
+        <label class="pmkt-label">Graines pour déverrouiller</label>
         <input class="pmkt-input" id="pf-prix" type="number" min="0" placeholder="30" value="${o ? o.prix : ''}">
+        ${help('Le nombre de graines qui ouvre cet accès. Repère : un acte étendu vaut 30 graines.')}
       </div>
       <div class="pmkt-form-row" style="margin-bottom:0">
-        <label class="pmkt-label">Stock disponible</label>
+        <label class="pmkt-label">Places disponibles</label>
         <input class="pmkt-input" id="pf-stock" type="number" min="0" placeholder="10" value="${o ? o.stock : ''}">
+        ${help('Combien de Bâtisseurs peuvent déverrouiller cet accès.')}
       </div>
     </div>
     <div style="height:.75rem"></div>
@@ -10707,6 +10723,7 @@ function pmktFormHtml(o) {
       <div class="pmkt-form-row" style="margin-bottom:0">
         <label class="pmkt-label">Date <span style="font-weight:400;opacity:.5;font-size:.65rem">(optionnel)</span></label>
         <input class="pmkt-input" id="pf-date" type="date" value="${dateVal}">
+        ${help('Si l\'accès a lieu à une date précise. Laissez vide sinon.')}
       </div>
       <div class="pmkt-form-row" style="margin-bottom:0">
         <label class="pmkt-label">Lieu</label>
@@ -10714,8 +10731,13 @@ function pmktFormHtml(o) {
       </div>
     </div>
     <div style="height:.9rem"></div>
+    <label style="display:flex;gap:.6rem;align-items:flex-start;padding:.75rem .85rem;border:1px solid rgba(46,102,66,.22);border-radius:10px;background:rgba(46,102,66,.04);cursor:pointer">
+      <input type="checkbox" id="pf-hors-exploitation" ${o && o.hors_exploitation ? 'checked' : ''} style="margin-top:.15rem;flex-shrink:0;width:16px;height:16px;accent-color:var(--forest)">
+      <span style="font-size:.72rem;line-height:1.5;color:var(--ink)">Cet accès ne relève pas de l'exploitation économique de mon lieu et ne remplace aucun emploi ni prestation que j'aurais facturés.</span>
+    </label>
+    <div id="pf-hint" style="font-size:.68rem;color:var(--terracotta);margin-top:.5rem;min-height:1rem"></div>
     <div style="display:flex;gap:.6rem;margin-top:.4rem">
-      <button class="btn btn-primary" style="flex:1;padding:.7rem" onclick="pmktSaveOffer()">${o ? '💾 Enregistrer les modifications' : '✅ Publier l\'offre'}</button>
+      <button class="btn btn-primary" style="flex:1;padding:.7rem" onclick="pmktSaveOffer()">${o ? '💾 Enregistrer les modifications' : '🌾 Ouvrir l\'accès'}</button>
       <button class="btn btn-ghost" onclick="document.getElementById('pmkt-modal').style.display='none'">Annuler</button>
     </div>`;
 }
@@ -10732,19 +10754,29 @@ function pmktSaveOffer() {
   const date  = dateEl ? dateEl.value : '';
   const lieuEl = document.getElementById('pf-lieu');
   const lieu  = lieuEl ? lieuEl.value.trim() : '';
+  const horsExploitation = !!(document.getElementById('pf-hors-exploitation') || {}).checked;
+  const hint = document.getElementById('pf-hint');
   if (!titre) { document.getElementById('pf-titre').style.borderColor='var(--terracotta)'; return; }
+  // Garde-fou obligatoire : pas d'ouverture d'accès sans l'attestation « hors
+  // exploitation ». Contrôle client ici ; le contrôle serveur (non contournable)
+  // sera assuré par l'Edge Function de publication.
+  if (!horsExploitation) {
+    if (hint) hint.textContent = "Coche l'attestation ci-dessus pour ouvrir cet accès.";
+    return;
+  }
+  if (hint) hint.textContent = '';
 
   if (pmktEditingId !== null) {
     const o = pmktOffers.find(o => o.id === pmktEditingId);
-    if (o) { o.titre=titre; o.cat=cat; o.emoji=emoji; o.prix=prix; o.stock=stock; o.stockMax=stock; o.desc=desc; o.date=date; if(lieu) o.lieu_nom=lieu; if(stock>0 && o.status==='full') o.status='active'; evadPersistOffre(o); }
-    mmBubble(`Offre "${titre.substring(0,28)}…" mise à jour ✅`);
+    if (o) { o.titre=titre; o.cat=cat; o.emoji=emoji; o.prix=prix; o.stock=stock; o.stockMax=stock; o.desc=desc; o.date=date; o.hors_exploitation=horsExploitation; if(lieu) o.lieu_nom=lieu; if(stock>0 && o.status==='full') o.status='active'; evadPersistOffre(o); }
+    mmBubble(`Accès "${titre.substring(0,28)}…" mis à jour ✅`);
   } else {
     // id chaîne stable (uuid) pour Supabase.
     const newId = (window.store && store.uuid) ? store.uuid() : String(Date.now());
-    const o = { id:newId, emoji, bg:'rgba(74,140,92,.1)', titre, cat, prix, stock, stockMax:stock, desc, date, lieu_nom:(lieu || undefined), status:'active', vues:0, echanges:0 };
+    const o = { id:newId, emoji, bg:'rgba(74,140,92,.1)', titre, cat, prix, stock, stockMax:stock, desc, date, hors_exploitation:horsExploitation, lieu_nom:(lieu || undefined), status:'active', vues:0, echanges:0 };
     pmktOffers.push(o);
     evadPersistOffre(o);
-    mmBubble(`Nouvelle offre "${titre.substring(0,28)}…" publiée dans le Marché 🎉`);
+    mmBubble(`Accès "${titre.substring(0,28)}…" ouvert dans la Récolte 🌾`);
   }
   document.getElementById('pmkt-modal').style.display = 'none';
   pmktRenderOffers();
@@ -10784,7 +10816,7 @@ function pmktToMkt(o) {
     desc: o.desc || ('Offre proposée par ' + lieu + '.'),
     lieu: lieu, ville: ville, prix: o.prix,
     seller_id: sellerId, seller_nom: (o.lieu_nom || lieu),
-    unite: o.unite || (o.prix > 0 ? 'à échanger en graines' : 'accès libre'),
+    unite: o.unite || (o.prix > 0 ? 'à déverrouiller en graines' : 'accès libre'),
     emoji: o.emoji, bg: o.bg || 'rgba(74,140,92,.1)', badge: o.badge || 'new',
     stock: o.stock, date: o.date || '', impact: o.impact || "Soutient l'économie locale et circulaire du lieu."
   };
@@ -10840,7 +10872,7 @@ function mktRender() {
           <div class="mkt-price-sub">${o.prix > 0 ? o.unite : 'accès libre'}</div>
         </div>
         <button class="mkt-btn-buy ${canAfford?'can-afford':'cant-afford'}" onclick="event.stopPropagation();mktOpenModal('${o.id}')">
-          ${canAfford ? (o.prix===0 ? 'Réserver →' : 'Échanger →') : 'Insuffisant'}
+          ${canAfford ? (o.prix===0 ? 'Accéder →' : 'Déverrouiller →') : 'Insuffisant'}
         </button>
       </div>
     </div>`;
@@ -10881,7 +10913,7 @@ function mktOpenModal(id) {
     <div style="display:flex;align-items:center;justify-content:space-between;padding:.8rem 1rem;background:${canAfford?'rgba(74,140,92,.06)':'rgba(184,78,53,.05)'};border:1px solid ${canAfford?'rgba(74,140,92,.2)':'rgba(184,78,53,.2)'};border-radius:var(--r-lg);margin-bottom:1rem">
       <div>
         <div style="font-size:.62rem;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.1em">Coût</div>
-        <div style="font-family:'Satoshi', sans-serif;font-size:1.4rem;font-weight:900;color:var(--amber)">${o.prix>0?'🪙 '+o.prix+' tokens':'🎁 Gratuit'}</div>
+        <div style="font-family:'Satoshi', sans-serif;font-size:1.4rem;font-weight:900;color:var(--amber)">${o.prix>0?'🌱 '+o.prix+' graines':'🎁 Gratuit'}</div>
       </div>
       <div style="text-align:right">
         <div style="font-size:.62rem;color:var(--moss);opacity:.6;text-transform:uppercase;letter-spacing:.1em">Ton solde</div>
@@ -10890,7 +10922,7 @@ function mktOpenModal(id) {
     </div>
     <div style="display:flex;gap:.6rem">
       ${canAfford
-        ? `<button class="btn btn-primary" style="flex:1;padding:.75rem" onclick="mktConfirmBuy('${o.id}')">${o.prix===0?'🎟 Réserver gratuitement':'🔒 Réserver (−'+o.prix+' graines bloquées)'}</button>`
+        ? `<button class="btn btn-primary" style="flex:1;padding:.75rem" onclick="mktConfirmBuy('${o.id}')">${o.prix===0?'🎟 Accéder gratuitement':'🔒 Déverrouiller (−'+o.prix+' graines bloquées)'}</button>`
         : `<button class="btn" style="flex:1;padding:.75rem;background:rgba(46,102,66,.08);color:var(--moss);cursor:default" disabled>🔒 graines insuffisantes (manque ${o.prix - mktBalance})</button>`
       }
       <button class="btn btn-ghost" onclick="document.getElementById('mkt-modal').style.display='none'">Fermer</button>

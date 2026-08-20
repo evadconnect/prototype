@@ -10,7 +10,7 @@ const REGEN_PROFILE_CONTENT = {
   batisseur: { label:'Bâtisseur', steps:[
     {title:'Valoriser : repérer où ton impact compte', desc:'Découvrir les lieux et leur base T0, repérer les boucles où tes compétences font la différence.', tags:['📍 Diagnostic T0','🔍 Découverte'], outils:['Carte','Modélisation 3D','Deva'],
      taches:['Explorer les lieux et leur diagnostic T0','Repérer les boucles où tes compétences comptent','Te projeter dans une contribution idéale']},
-    {title:'Activer : rejoindre les quêtes', desc:'Répondre aux quêtes ouvertes et passer à l\'action sur le terrain.', tags:['⚡ Action','🤝 Communauté'], outils:['Quêtes','Réseau','Marketplace (Vade)'],
+    {title:'Activer : rejoindre les quêtes', desc:'Répondre aux quêtes ouvertes et passer à l\'action sur le terrain.', tags:['⚡ Action','🤝 Communauté'], outils:['Quêtes','Réseau','la Récolte'],
      taches:['Parcourir les quêtes ouvertes sur la carte','Rejoindre une quête alignée avec tes valeurs','Mobiliser ta communauté autour de l\'action']},
     {title:'Développer : prouver l\'impact', desc:'Réaliser les quêtes-preuve, documenter les preuves, gagner du Vade.', tags:['📊 Preuve','🪙 Vade'], outils:['Quêtes-preuve','Preuves','Monnaie Vade'],
      taches:['Contribuer sur le terrain','Documenter les preuves (photos, registres)','Recevoir ton Vade en contrepartie']},
