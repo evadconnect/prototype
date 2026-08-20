@@ -397,13 +397,15 @@ function obRenderSVG() {
 function svgSpiraleVade(svg, c, ca, role) {
   const cream = '#f2ecdb', sub = 'rgba(226,226,226,.5)';
   const src = (typeof OB_STEP1_VADE !== 'undefined' && OB_STEP1_VADE[role]) ? OB_STEP1_VADE[role].steps : [];
-  // Couleurs canoniques des quatre temps (celles de REGEN_LOOP_NODES),
-  // éclaircies pour tenir sur le fond sombre de l'onboarding.
+  // Une seule couleur, celle du profil (l'accent de son onboarding) : le
+  // Pilote en vert, le Bâtisseur en ambre, le Semeur en bleu. Les quatre temps
+  // se distinguent par l'intensité, qui monte de Valoriser à Essaimer, pas par
+  // quatre teintes différentes qui casseraient l'identité de l'écran.
   const TEMPS = [
-    { lettre: 'V', nom: 'Valoriser',  col: '#4aa88a', a: -90 },
-    { lettre: 'A', nom: 'Activer',    col: '#5a9fd0', a: 0 },
-    { lettre: 'D', nom: 'Développer', col: '#e8a55a', a: 90 },
-    { lettre: 'E', nom: 'Essaimer',   col: '#9b8bc4', a: 180 }
+    { lettre: 'V', nom: 'Valoriser',  a: -90 },
+    { lettre: 'A', nom: 'Activer',    a: 0 },
+    { lettre: 'D', nom: 'Développer', a: 90 },
+    { lettre: 'E', nom: 'Essaimer',   a: 180 }
   ];
   const cx = 210, cy = 182, R = 104, rn = 25;
   const pt = function (a, r) {
@@ -413,9 +415,10 @@ function svgSpiraleVade(svg, c, ca, role) {
   // Arc entre deux temps, en s'arrêtant au bord des pastilles pour ne pas
   // passer dessous : l'anneau reste lisible.
   const marge = (rn + 6) / R * 180 / Math.PI;
-  const arc = function (a1, a2, col, i) {
+  const arc = function (a1, a2, i) {
     const p1 = pt(a1 + marge, R), p2 = pt(a2 - marge, R);
-    return `<path d="M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} A ${R} ${R} 0 0 1 ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}" fill="none" stroke="${col}" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0"><animate attributeName="stroke-opacity" values="0;.85" dur=".5s" begin="${0.35 + i * 0.18}s" fill="freeze"/></path>`;
+    const op = (0.5 + i * 0.16).toFixed(2);
+    return `<path d="M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} A ${R} ${R} 0 0 1 ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}" fill="none" stroke="${ca}" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0"><animate attributeName="stroke-opacity" values="0;${op}" dur=".5s" begin="${0.35 + i * 0.18}s" fill="freeze"/></path>`;
   };
 
   // Sortie de spirale : après Essaimer, le trait s'échappe vers le haut en
@@ -430,15 +433,15 @@ function svgSpiraleVade(svg, c, ca, role) {
   svg.setAttribute('viewBox', '0 0 420 360');
   svg.innerHTML = `
     <defs>
-      <marker id="sv-fin" markerWidth="10" markerHeight="10" refX="7" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#9b8bc4"/></marker>
+      <marker id="sv-fin" markerWidth="10" markerHeight="10" refX="7" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="${ca}"/></marker>
     </defs>
 
-    ${TEMPS.slice(0, 3).map(function (t, i) { return arc(t.a, TEMPS[i + 1].a, t.col, i); }).join('')}
+    ${TEMPS.slice(0, 3).map(function (t, i) { return arc(t.a, TEMPS[i + 1].a, i); }).join('')}
 
-    <path d="${sortie}" fill="none" stroke="#9b8bc4" stroke-width="2.4" stroke-linecap="round" marker-end="url(#sv-fin)" stroke-opacity="0">
+    <path d="${sortie}" fill="none" stroke="${ca}" stroke-width="2.4" stroke-linecap="round" marker-end="url(#sv-fin)" stroke-opacity="0">
       <animate attributeName="stroke-opacity" values="0;.9" dur=".6s" begin="1.05s" fill="freeze"/>
     </path>
-    <text x="120" y="28" text-anchor="middle" font-size="10.5" font-weight="700" fill="#b6a9db" font-family="Satoshi,sans-serif" opacity="0">un cran plus haut<animate attributeName="opacity" values="0;1" dur=".5s" begin="1.35s" fill="freeze"/></text>
+    <text x="120" y="28" text-anchor="middle" font-size="10.5" font-weight="700" fill="${ca}" font-family="Satoshi,sans-serif" opacity="0">un cran plus haut<animate attributeName="opacity" values="0;1" dur=".5s" begin="1.35s" fill="freeze"/></text>
 
     ${TEMPS.map(function (t, i) {
       const p = pt(t.a, R);
@@ -451,8 +454,8 @@ function svgSpiraleVade(svg, c, ca, role) {
       const ancre = centre ? 'middle' : (Math.cos(t.a * Math.PI / 180) > 0 ? 'start' : 'end');
       const dy = t.a === -90 ? -6 : (t.a === 90 ? 14 : 0);
       return `<g opacity="0"><animate attributeName="opacity" values="0;1" dur=".5s" begin="${0.3 + i * 0.18}s" fill="freeze"/>` +
-        `<circle cx="${p.x}" cy="${p.y}" r="${rn}" fill="#0d1a14" stroke="${t.col}" stroke-width="2.2"/>` +
-        `<text x="${p.x}" y="${p.y + 8}" text-anchor="middle" font-size="20" font-weight="900" fill="${t.col}" font-family="Satoshi,sans-serif">${t.lettre}</text>` +
+        `<circle cx="${p.x}" cy="${p.y}" r="${rn}" fill="${ca}" fill-opacity="${(0.1 + i * 0.1).toFixed(2)}" stroke="${ca}" stroke-width="2.2" stroke-opacity="${(0.55 + i * 0.15).toFixed(2)}"/>` +
+        `<text x="${p.x}" y="${p.y + 8}" text-anchor="middle" font-size="20" font-weight="900" fill="${ca}" font-family="Satoshi,sans-serif">${t.lettre}</text>` +
         `<text x="${lp.x.toFixed(0)}" y="${(lp.y + dy).toFixed(0)}" text-anchor="${ancre}" font-size="11.5" font-weight="700" fill="${cream}" font-family="Satoshi,sans-serif">${t.nom}</text>` +
         `</g>`;
     }).join('')}
