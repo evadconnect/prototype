@@ -33,21 +33,22 @@ const OB_STEP2_BATISSEUR = {
   ]
 };
 
-// Étape 2 du Semeur, HORS PRODUCTION : son sujet propre est la SOLIDITÉ de ce
-// qu'il reçoit. Les quatre crans et leurs coefficients viennent de la table
-// ref_niveau_preuve de la spécification des graines (0,25 / 0,50 / 0,75 / 1).
+// Étape 2 du Semeur, HORS PRODUCTION : ce qui l'intéresse, c'est de ne pas
+// financer une promesse creuse. On lui montre donc les trois garde-fous
+// d'EVAD : la décote par niveau de preuve (coefficients de ref_niveau_preuve,
+// 0,25 / 0,50 / 0,75 / 1), l'indice de confiance affiché publiquement, et la
+// traçabilité de chaque preuve.
 // On ne lui parle pas de monnaie : l'achat de graines par un Semeur est
 // interdit par construction, ce serait l'inviter là où le montage refuse d'aller.
 const OB_STEP2_SEMEUR = {
-  eyebrow: 'Étape 2 · Le niveau de preuve',
-  headline: 'Du déclaré\nà l\'audité.',
-  desc: 'Toutes les données ne se valent pas. EVAD les décote selon la solidité de leur preuve : ce qui entre dans ton rapport, c\'est la part vérifiable.',
+  eyebrow: 'Étape 2 · L\'anti-greenwashing',
+  headline: 'Annoncer\nne suffit pas.',
+  desc: 'Un lieu peut annoncer ce qu\'il veut. EVAD ne compte que ce qu\'il peut montrer, et rend l\'écart visible par tous.',
   type: 'cycle',
   steps: [
-    { num: '📣', title: 'Déclaré · un quart', text: 'Le lieu affirme un résultat, sans pièce à l\'appui. Compté pour 25 % : utile pour avancer, insuffisant pour un rapport.' },
-    { num: '📄', title: 'Documenté · la moitié', text: 'Une facture, une photo horodatée, un relevé. La donnée devient traçable et compte pour 50 %.' },
-    { num: '🤝', title: 'Validé par les pairs · trois quarts', text: 'D\'autres membres du réseau ont constaté sur place. Le contrôle est croisé, la donnée compte pour 75 %.' },
-    { num: '🔍', title: 'Audité · en entier', text: 'Un tiers indépendant a vérifié. La seule preuve qui compte à 100 %, et celle qui tient devant un auditeur CSRD.' }
+    { num: '📉', title: 'Une annonce est décotée', text: 'Un résultat simplement déclaré ne compte que pour un quart. Documenté, la moitié. Validé par les pairs, trois quarts. Audité seulement, il compte en entier.' },
+    { num: '⚖️', title: 'L\'écart est public', text: 'L\'indice de confiance, c\'est la part de la promesse réellement prouvée. Il se lit sur chaque lieu, avant que tu engages quoi que ce soit.' },
+    { num: '🔍', title: 'Chaque preuve est opposable', text: 'Horodatée, rattachée à un indicateur, rattachée à son auteur. Ce que tu inscris dans ton rapport, tu peux le montrer à un auditeur.' }
   ]
 };
 
@@ -315,53 +316,23 @@ function obRenderSVG() {
     // Récolte) : lui montrer le graphique Vadance/Vadité contredirait son texte.
     var _horsProd = false;
     try { _horsProd = !!(window.EVAD_SUPABASE_ENV && !window.EVAD_SUPABASE_ENV.isProd); } catch (e) {}
-    if (_horsProd && obRole === 'batisseur') svgGrainesRecolte(svg, c, ca);
-    else if (_horsProd && obRole === 'semeur') svgNiveauPreuve(svg, c, ca);
-    else svgVadanceVadite(svg, c, ca);
+    // Le Semeur garde le graphique promesse / preuve : l'indice de confiance
+    // qu'il affiche EST l'indicateur anti-greenwashing, donc le sujet de son
+    // étape. Seul le Bâtisseur a besoin d'une autre illustration.
+    if (_horsProd && obRole === 'batisseur') {
+      svgGrainesRecolte(svg, c, ca);
+    } else {
+      svgVadanceVadite(svg, c, ca);
+      // Semeur hors production : sa légende s'adresse à lui, « transforme tes
+      // promesses » parle au Pilote qui agit. On retouche ici plutôt que dans
+      // le dessin, qui reste commun aux trois profils et inchangé en production.
+      if (_horsProd && obRole === 'semeur') {
+        var _t = svg.querySelectorAll('text');
+        var _fin = _t[_t.length - 1];
+        if (_fin) _fin.textContent = 'L\'écart, c\'est ce que tu regardes avant d\'engager ⚖️';
+      }
+    }
   }
-}
-
-/* Étape 2 du Semeur (hors production) : les quatre crans de preuve et la part
-   de l'impact qui compte à chacun. Mêmes coefficients que ref_niveau_preuve. */
-function svgNiveauPreuve(svg, c, ca) {
-  const cream = '#f2ecdb', sub = 'rgba(206,226,238,.6)';
-  const crans = [
-    { ic: '📣', nom: 'Déclaré',              pct: 25,  y: 122 },
-    { ic: '📄', nom: 'Documenté',            pct: 50,  y: 180 },
-    { ic: '🤝', nom: 'Validé par les pairs', pct: 75,  y: 238 },
-    { ic: '🔍', nom: 'Audité',               pct: 100, y: 296 }
-  ];
-  const x0 = 150, larg = 208;
-  svg.setAttribute('viewBox', '0 0 420 360');
-  svg.innerHTML = `
-    <defs>
-      <linearGradient id="np-grad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${ca}" stop-opacity=".5"/><stop offset="1" stop-color="${ca}" stop-opacity="1"/></linearGradient>
-      <filter id="np-glow" x="-40%" y="-90%" width="180%" height="280%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-    </defs>
-
-    <g transform="translate(210,48)">
-      <rect x="-118" y="-17" width="236" height="32" rx="16" fill="${ca}" fill-opacity=".14" stroke="${ca}" stroke-opacity=".5"/>
-      <text x="0" y="5" text-anchor="middle" font-size="12" font-weight="800" fill="${cream}" font-family="Satoshi,sans-serif">🔎 Ce qui compte dans ton rapport</text>
-    </g>
-
-    <line x1="${x0}" y1="100" x2="${x0}" y2="318" stroke="rgba(255,255,255,.14)"/>
-
-    ${crans.map(function (cr, i) {
-      const w = larg * cr.pct / 100;
-      const plein = cr.pct === 100;
-      return `<g>` +
-        `<text x="${x0 - 12}" y="${cr.y + 4}" text-anchor="end" font-size="13">${cr.ic}</text>` +
-        `<text x="${x0 - 34}" y="${cr.y + 4}" text-anchor="end" font-size="9.5" fill="${sub}" font-family="Satoshi,sans-serif">${cr.nom}</text>` +
-        `<rect x="${x0}" y="${cr.y - 11}" width="${larg}" height="22" rx="11" fill="${ca}" fill-opacity=".07" stroke="${ca}" stroke-opacity=".18"/>` +
-        `<rect x="${x0}" y="${cr.y - 11}" width="0" height="22" rx="11" fill="url(#np-grad)"${plein ? ' filter="url(#np-glow)"' : ''}>` +
-          `<animate attributeName="width" values="0;${w}" dur=".8s" begin="${0.2 + i * 0.16}s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.16 1 0.3 1"/>` +
-        `</rect>` +
-        `<text x="${x0 + larg + 12}" y="${cr.y + 4}" font-size="11" font-weight="800" fill="${plein ? cream : ca}" font-family="Satoshi,sans-serif">${cr.pct} %</text>` +
-        `</g>`;
-    }).join('')}
-
-    <text x="210" y="344" text-anchor="middle" font-size="11" font-weight="700" fill="${cream}" font-family="Satoshi,sans-serif">Plus la preuve est solide, plus l'impact compte 🔍</text>
-  `;
 }
 
 /* Étape 2 du Bâtisseur (hors production) : ce qu'il reçoit en reconnaissance,
