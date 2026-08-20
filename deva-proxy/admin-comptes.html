@@ -63,7 +63,34 @@
         <input id="insc-search" type="text" placeholder="🔍 email ou nom" oninput="renderInscriptions()" style="flex:1;min-width:150px;width:auto;margin:0;padding:.5rem .8rem;font-size:.85rem">
       </div>
       <div id="insc-selects" style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.7rem"></div>
-      <button id="load-insc" onclick="loadInscriptions()">↻ Actualiser les inscriptions</button>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button id="load-insc" onclick="loadInscriptions()" style="flex:1;min-width:180px">↻ Actualiser les inscriptions</button>
+        <button onclick="toggleNewInscription()" style="width:auto;margin-top:1.2rem;padding:.95rem 1.2rem;background:#fff;color:var(--forest);border:1.5px solid var(--forest)">➕ Nouvelle inscription</button>
+      </div>
+
+      <!-- Formulaire de création manuelle d'une inscription -->
+      <div id="insc-new-form" style="display:none;margin-top:.9rem;padding:1rem 1.1rem;background:#f2f8f5;border:1px solid #d7ece3;border-radius:12px">
+        <div style="font-weight:700;margin-bottom:.6rem">➕ Nouvelle inscription</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.6rem">
+          <div><label for="ni-email">Email *</label><input id="ni-email" type="email" placeholder="prenom@exemple.fr" autocomplete="off"></div>
+          <div><label for="ni-prenom">Prénom</label><input id="ni-prenom" autocomplete="off"></div>
+          <div><label for="ni-nom">Nom</label><input id="ni-nom" autocomplete="off"></div>
+          <div><label for="ni-ville">Ville</label><input id="ni-ville" autocomplete="off"></div>
+          <div style="grid-column:1/-1"><label for="ni-structure">Structure</label><input id="ni-structure" autocomplete="off"></div>
+        </div>
+        <label style="margin-top:.7rem">Accès profils</label>
+        <div style="display:flex;flex-wrap:wrap;gap:.6rem">
+          <label style="display:inline-flex;align-items:center;gap:.25rem;font-weight:600;font-size:.82rem;color:#334;cursor:pointer"><input type="checkbox" id="ni-pilote" style="width:auto;margin:0"> 🏡 pilote</label>
+          <label style="display:inline-flex;align-items:center;gap:.25rem;font-weight:600;font-size:.82rem;color:#334;cursor:pointer"><input type="checkbox" id="ni-batisseur" style="width:auto;margin:0"> 🌿 bâtisseur</label>
+          <label style="display:inline-flex;align-items:center;gap:.25rem;font-weight:600;font-size:.82rem;color:#334;cursor:pointer"><input type="checkbox" id="ni-semeur" style="width:auto;margin:0"> 🌰 semeur</label>
+        </div>
+        <div id="ni-err" class="ko" style="display:none;font-size:.82rem;margin-top:.5rem"></div>
+        <div style="display:flex;gap:.5rem;margin-top:.9rem">
+          <button id="ni-submit" onclick="createInscription()" style="width:auto;margin:0;padding:.6rem 1.2rem">Créer l'inscription</button>
+          <button onclick="toggleNewInscription(false)" style="width:auto;margin:0;padding:.6rem 1rem;background:#eef2f0;color:#334;border:1px solid rgba(0,0,0,.12)">Annuler</button>
+        </div>
+      </div>
+
       <div id="insc-out" style="margin-top:1rem;display:none"></div>
       <button id="go" onclick="run()">✅ Créer les comptes « à créer »</button>
       <p class="hint">Un inscrit « à créer » reçoit son compte + un email d'identifiants. Ceux déjà en <code>créé</code> sont ignorés.</p>
@@ -387,6 +414,55 @@
     if (r.ok) {
       const it = _inscriptions.find((x) => String(x.id) === String(id)); if (it) it['acces_' + role] = checked;
     } else { el.checked = !checked; }
+  }
+
+  // ── Création manuelle d'une inscription ──
+  function toggleNewInscription(show) {
+    const f = document.getElementById('insc-new-form');
+    const vis = (show === undefined) ? (f.style.display === 'none') : show;
+    f.style.display = vis ? 'block' : 'none';
+    const err = document.getElementById('ni-err'); if (err) err.style.display = 'none';
+    if (vis) { const e = document.getElementById('ni-email'); if (e) e.focus(); }
+  }
+
+  async function createInscription() {
+    const secret = adminSecret(); if (!secret) return;
+    const err = document.getElementById('ni-err'); err.style.display = 'none';
+    const email = document.getElementById('ni-email').value.trim().toLowerCase();
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { err.textContent = 'Email invalide.'; err.style.display = 'block'; return; }
+    const btn = document.getElementById('ni-submit'); btn.disabled = true; btn.textContent = 'Création…';
+    try {
+      const payload = {
+        action: 'create_inscription',
+        email: email,
+        prenom: document.getElementById('ni-prenom').value.trim(),
+        nom: document.getElementById('ni-nom').value.trim(),
+        ville: document.getElementById('ni-ville').value.trim(),
+        structure: document.getElementById('ni-structure').value.trim(),
+        acces_pilote: document.getElementById('ni-pilote').checked,
+        acces_batisseur: document.getElementById('ni-batisseur').checked,
+        acces_semeur: document.getElementById('ni-semeur').checked,
+      };
+      const res = await fetch(ADMIN_USERS_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const det = data.detail ? ' (' + (typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)) + ')' : '';
+        err.textContent = 'Création impossible : ' + (data.error || res.status) + det; err.style.display = 'block';
+        return;
+      }
+      ['ni-email', 'ni-prenom', 'ni-nom', 'ni-ville', 'ni-structure'].forEach((id) => { document.getElementById(id).value = ''; });
+      ['ni-pilote', 'ni-batisseur', 'ni-semeur'].forEach((id) => { document.getElementById(id).checked = false; });
+      toggleNewInscription(false);
+      loadInscriptions();
+    } catch (e) {
+      err.textContent = 'Erreur réseau : ' + e; err.style.display = 'block';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Créer l\'inscription';
+    }
   }
 
   // Ligne « Gestion » : profils (↺ onboarding / ✕ retirer) + relance globale.

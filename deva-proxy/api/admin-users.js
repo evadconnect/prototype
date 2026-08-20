@@ -255,6 +255,44 @@ export default async function handler(req, res) {
       return res.status(200).json({ total: list.length, inscriptions: list });
     }
 
+    if (action === 'create_inscription') {
+      const email = String(body.email || '').trim().toLowerCase();
+      if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        return res.status(400).json({ error: 'Email invalide' });
+      }
+      const row = {
+        email: email,
+        prenom: String(body.prenom || '').trim(),
+        nom: String(body.nom || '').trim(),
+        ville: String(body.ville || '').trim(),
+        structure: String(body.structure || '').trim(),
+        acces_pilote: !!body.acces_pilote,
+        acces_batisseur: !!body.acces_batisseur,
+        acces_semeur: !!body.acces_semeur,
+        statut: 'nouveau',
+      };
+      // Rôle principal (compat) = premier accès coché.
+      const roles = [];
+      if (row.acces_pilote) roles.push('pilote');
+      if (row.acces_batisseur) roles.push('batisseur');
+      if (row.acces_semeur) roles.push('semeur');
+      if (roles.length) row.role = roles[0];
+
+      const insert = (payload) => sb('/rest/v1/inscription_beta', {
+        method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(payload),
+      });
+      let r = await insert(row);
+      let created = await r.json();
+      if (!r.ok) {
+        // Repli : colonnes ville/structure peut-être absentes/nommées autrement.
+        const core = Object.assign({}, row); delete core.ville; delete core.structure;
+        r = await insert(core);
+        created = await r.json();
+        if (!r.ok) return res.status(500).json({ error: 'Création impossible', http: r.status, detail: created });
+      }
+      return res.status(200).json({ ok: true, inscription: Array.isArray(created) ? created[0] : created });
+    }
+
     if (action === 'update_inscription') {
       const id = String(body.id || '').trim();
       if (!id) return res.status(400).json({ error: 'id manquant' });
