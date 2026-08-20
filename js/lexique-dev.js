@@ -25,7 +25,28 @@
   // « récolte » en minuscules est laissé tel quel : c'est un mot courant dans
   // les fiches de la Bibliothèque (récolte d'eau de pluie, récolte de miel),
   // le nom du marché s'écrit avec une majuscule.
+  // Vadin est MASCULIN, graine était féminin : les déterminants et les accords
+  // qui suivent doivent changer aussi, sinon on lit « une Vadin » ou
+  // « Vadins gagnées ». Les déterminants se traitent AVANT la substitution du
+  // nom, les participes APRÈS. Seuls les cas réellement présents dans l'app
+  // sont couverts, relevés par recherche dans le code.
   var REGLES = [
+    // ── Déterminants féminins → masculin ──
+    [/\bAucune\s+graine\b/g, 'Aucun Vadin'],
+    [/\baucune\s+graine\b/g, 'aucun Vadin'],
+    [/\bUne\s+graine\b/g, 'Un Vadin'],
+    [/\bune\s+graine\b/g, 'un Vadin'],
+    [/\bLa\s+graine\b/g, 'Le Vadin'],
+    [/\bla\s+graine\b/g, 'le Vadin'],
+    [/\bCette\s+graine\b/g, 'Ce Vadin'],
+    [/\bcette\s+graine\b/g, 'ce Vadin'],
+    [/\bMa\s+graine\b/g, 'Mon Vadin'],  [/\bma\s+graine\b/g, 'mon Vadin'],
+    [/\bTa\s+graine\b/g, 'Ton Vadin'],  [/\bta\s+graine\b/g, 'ton Vadin'],
+    [/\bSa\s+graine\b/g, 'Son Vadin'],  [/\bsa\s+graine\b/g, 'son Vadin'],
+    [/\bToutes\s+les\s+graines\b/g, 'Tous les Vadins'],
+    [/\btoutes\s+les\s+graines\b/g, 'tous les Vadins'],
+    [/\bCertaines\s+graines\b/g, 'Certains Vadins'],
+    [/\bcertaines\s+graines\b/g, 'certains Vadins'],
     [/\bGRAINES\b/g, 'VADINS'],
     [/\bGRAINE\b/g, 'VADIN'],
     [/\bGraines\b/g, 'Vadins'],
@@ -35,7 +56,9 @@
     [/\b[Ll]a\s+Récolte\b/g, 'Vaderie'],
     [/\bLA\s+RÉCOLTE\b/g, 'VADERIE'],
     [/\bRécolte\b/g, 'Vaderie'],
-    [/\bRÉCOLTE\b/g, 'VADERIE']
+    [/\bRÉCOLTE\b/g, 'VADERIE'],
+    // ── Accords qui SUIVENT le nom : « Vadins gagnées » → « Vadins gagnés » ──
+    [/\b(Vadins?\s+(?:bloqué|distribué|engagé|gagné|reçu|retourné|dépensé|versé|crédité|gelé))e(s?)\b/g, '$1$2']
   ];
 
   function traduire(s) {
