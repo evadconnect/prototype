@@ -46,9 +46,11 @@
   <!-- 2) Création de compte -->
   <div class="card" style="margin-top:1.2rem">
     <h1>➕ Création de compte</h1>
-    <p class="sub">Crée les comptes des inscrits passés à <b>« approuvé »</b> dans Supabase, et leur envoie leurs identifiants par email.</p>
-    <button id="go" onclick="run()">Créer les comptes approuvés</button>
-    <p class="hint">Rappel : d'abord mettre <code>statut = approuvé</code> sur les bonnes lignes dans Supabase (Table Editor → inscription_beta). Les lignes déjà traitées (<code>compte_créé</code>) sont ignorées.</p>
+    <p class="sub">Approuve les inscrits et choisis leurs profils ici, puis crée leurs comptes (identifiants envoyés par email). <b>Plus besoin de passer par Supabase.</b></p>
+    <button id="load-insc" onclick="loadInscriptions()">Afficher les inscriptions</button>
+    <div id="insc-out" style="margin-top:1rem;display:none"></div>
+    <button id="go" onclick="run()">Créer les comptes « approuvé »</button>
+    <p class="hint">1) Coche les <b>profils</b> à donner à l'inscrit · 2) passe son <b>statut</b> à <b>approuvé</b> · 3) clique <b>« Créer les comptes approuvé »</b>. Les inscrits déjà en <code>compte&nbsp;créé</code> sont ignorés.</p>
     <div id="out"></div>
   </div>
 
@@ -108,7 +110,9 @@
     } catch (e) {
       out.innerHTML = '<span class="ko">Erreur réseau : ' + e + '</span>';
     } finally {
-      btn.disabled = false; btn.textContent = 'Créer les comptes approuvés';
+      btn.disabled = false; btn.textContent = 'Créer les comptes « approuvé »';
+      // Rafraîchit la liste des inscriptions (statuts passés à « compte créé »).
+      try { const b = document.getElementById('insc-out'); if (b && b.style.display !== 'none') loadInscriptions(); } catch (e2) {}
     }
   }
 
@@ -173,6 +177,88 @@
   const loginLbl = (u) => u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString('fr-FR') : 'jamais';
   const identite = (u) => '<b style="font-size:.85rem">' + esc(u.email) + '</b>'
     + '<div style="font-size:.72rem;color:#3d6b5a">' + (esc((u.prenom + ' ' + u.nom).trim()) || '&nbsp;') + ' · dernière connexion : ' + loginLbl(u) + '</div>';
+
+  // ── Inscriptions bêta : statut + accès profils, éditables sur la page ──
+  const INSC_STATUTS = [
+    { v: 'nouveau', l: '🆕 nouveau' },
+    { v: 'approuvé', l: '✅ approuvé' },
+    { v: 'compte_créé', l: '👤 compte créé' },
+  ];
+  const statutColor = (s) => s === 'compte_créé' ? '#0a7a4b' : (s === 'approuvé' ? '#a06010' : '#2a5db0');
+
+  function inscriptionRow(i) {
+    const roleBoxes = ROLES.map((r) => {
+      const checked = i['acces_' + r] ? 'checked' : '';
+      return '<label style="display:inline-flex;align-items:center;gap:.2rem;font-weight:600;font-size:.72rem;color:#334;margin:0 .35rem 0 0;white-space:nowrap;cursor:pointer">'
+        + '<input type="checkbox" ' + checked + ' onchange="setAcces(\'' + jsStr(i.id) + '\',\'' + r + '\',this.checked,this)" style="width:auto;margin:0;cursor:pointer"> '
+        + (ROLE_IC[r] || '👤') + ' ' + r + '</label>';
+    }).join('');
+    const opts = INSC_STATUTS.map((s) => '<option value="' + esc(s.v) + '"' + (i.statut === s.v ? ' selected' : '') + '>' + esc(s.l) + '</option>').join('');
+    const sel = '<select onchange="setStatut(\'' + jsStr(i.id) + '\',this.value,this)" style="width:auto;margin:0;padding:.32rem .5rem;border-radius:8px;border:1.5px solid rgba(1,130,98,.3);font-size:.78rem;font-weight:700;cursor:pointer;color:' + statutColor(i.statut) + '">' + opts + '</select>';
+    return '<div class="row" style="flex-wrap:wrap;align-items:center;gap:.45rem">'
+      + '<div style="flex:1;min-width:170px"><b style="font-size:.85rem">' + esc(i.email) + '</b>'
+      + '<div style="font-size:.72rem;color:#3d6b5a">' + (esc((i.prenom + ' ' + i.nom).trim()) || '&nbsp;') + (i.role_label ? ' · ' + esc(i.role_label) : '') + '</div></div>'
+      + '<div style="display:flex;flex-wrap:wrap;align-items:center">' + roleBoxes + '</div>'
+      + sel
+      + '</div>';
+  }
+
+  async function loadInscriptions() {
+    const secret = adminSecret(); if (!secret) return;
+    const box = document.getElementById('insc-out');
+    const btn = document.getElementById('load-insc');
+    btn.disabled = true; btn.textContent = 'Chargement…';
+    box.style.display = 'block'; box.textContent = 'Patiente…';
+    try {
+      const res = await fetch(ADMIN_USERS_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+        body: JSON.stringify({ action: 'list_inscriptions' }),
+      });
+      const data = await res.json();
+      if (!res.ok) { box.innerHTML = '<span class="ko">Erreur : ' + (data.error || res.status) + '</span>'; return; }
+      const list = data.inscriptions || [];
+      if (!list.length) { box.innerHTML = 'Aucune inscription.'; return; }
+      const nbApprouve = list.filter((i) => i.statut === 'approuvé').length;
+      box.innerHTML = '<b>' + list.length + ' inscription(s)</b>'
+        + (nbApprouve ? ' · <span style="color:#a06010">' + nbApprouve + ' à créer</span>' : '')
+        + list.map(inscriptionRow).join('');
+    } catch (e) {
+      box.innerHTML = '<span class="ko">Erreur réseau : ' + e + '</span>';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Afficher les inscriptions';
+    }
+  }
+
+  async function updateInscription(id, patch) {
+    const secret = adminSecret(); if (!secret) return { ok: false };
+    try {
+      const res = await fetch(ADMIN_USERS_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+        body: JSON.stringify(Object.assign({ action: 'update_inscription', id: id }, patch)),
+      });
+      const data = await res.json();
+      if (!res.ok) { await uiAlert('Mise à jour impossible : ' + (data.error || res.status)); return { ok: false }; }
+      return { ok: true, data: data };
+    } catch (e) { await uiAlert('Erreur réseau : ' + e); return { ok: false }; }
+  }
+
+  async function setStatut(id, statut, el) {
+    el.disabled = true;
+    const r = await updateInscription(id, { statut: statut });
+    el.disabled = false;
+    if (r.ok) { el.style.color = statutColor(statut); }
+    else { loadInscriptions(); }
+  }
+
+  async function setAcces(id, role, checked, el) {
+    el.disabled = true;
+    const patch = {}; patch['acces_' + role] = checked;
+    const r = await updateInscription(id, patch);
+    el.disabled = false;
+    if (!r.ok) { el.checked = !checked; }
+  }
 
   // Ligne « Gestion » : profils (↺ onboarding / ✕ retirer) + relance globale.
   function gestionRow(u) {

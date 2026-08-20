@@ -221,6 +221,57 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, deleted: userId, purge });
     }
 
+    // ── Inscriptions bêta : lister et éditer (statut + accès profils) ──
+    // Permet de tout piloter depuis la page admin, sans passer par Supabase :
+    // approuver un inscrit et choisir ses profils, avant de créer les comptes.
+    if (action === 'list_inscriptions') {
+      const r = await sb('/rest/v1/inscription_beta?select=*');
+      const rows = await r.json();
+      if (!r.ok) return res.status(500).json({ error: 'Lecture inscription_beta impossible', http: r.status, detail: rows });
+      const list = (Array.isArray(rows) ? rows : []).map((row) => ({
+        id: row.id,
+        email: row.email || '',
+        prenom: row.prenom || '',
+        nom: row.nom || '',
+        role: row.role || '',
+        role_label: row.role_label || '',
+        statut: row.statut || 'nouveau',
+        acces_pilote: !!row.acces_pilote,
+        acces_batisseur: !!row.acces_batisseur,
+        acces_semeur: !!row.acces_semeur,
+        created_at: row.created_at || null,
+        compte_cree_at: row.compte_cree_at || null,
+      }));
+      // Tri : nouveaux d'abord, puis approuvés, puis créés ; récents en tête.
+      const rank = { 'nouveau': 0, 'approuvé': 1, 'compte_créé': 2 };
+      list.sort((a, b) => {
+        const ra = (rank[a.statut] != null) ? rank[a.statut] : 3;
+        const rb = (rank[b.statut] != null) ? rank[b.statut] : 3;
+        return ra - rb || String(b.created_at || '').localeCompare(String(a.created_at || ''));
+      });
+      return res.status(200).json({ total: list.length, inscriptions: list });
+    }
+
+    if (action === 'update_inscription') {
+      const id = String(body.id || '').trim();
+      if (!id) return res.status(400).json({ error: 'id manquant' });
+      const patch = {};
+      const VALID_STATUTS = ['nouveau', 'approuvé', 'compte_créé'];
+      if (typeof body.statut === 'string' && VALID_STATUTS.indexOf(body.statut) !== -1) patch.statut = body.statut;
+      ['acces_pilote', 'acces_batisseur', 'acces_semeur'].forEach((k) => {
+        if (typeof body[k] === 'boolean') patch[k] = body[k];
+      });
+      if (!Object.keys(patch).length) return res.status(400).json({ error: 'Rien à mettre à jour' });
+      const r = await sb('/rest/v1/inscription_beta?id=eq.' + encodeURIComponent(id), {
+        method: 'PATCH',
+        headers: { Prefer: 'return=representation' },
+        body: JSON.stringify(patch),
+      });
+      const updated = await r.json();
+      if (!r.ok) return res.status(500).json({ error: 'Mise à jour impossible', http: r.status, detail: updated });
+      return res.status(200).json({ ok: true, inscription: Array.isArray(updated) ? updated[0] : updated });
+    }
+
     return res.status(400).json({ error: 'Action inconnue : ' + action });
   } catch (e) {
     return res.status(500).json({ error: 'server_error', detail: String(e) });
