@@ -1,34 +1,35 @@
 -- ============================================================================
---  Graines de bienvenue → 10 (Bâtisseur & Pilote)
+--  Graines de bienvenue : 10 pour Bâtisseur & Pilote, AUCUNE pour le Semeur
 -- ----------------------------------------------------------------------------
---  Le don de bienvenue passe de son ancien montant (100, puis 20) à 10 graines
---  pour les profils Bâtisseur et Pilote. Ce script aligne les écritures
---  HISTORIQUES du grand livre (graines_tx) sur ce nouveau montant.
+--  - Bâtisseur & Pilote : le don de bienvenue passe à 10 graines (ex-100, 20…).
+--  - Semeur : plus de graines du tout — on retire leurs écritures de bienvenue
+--    historiques du grand livre.
 --
---  IMPORTANT : on ne touche PAS au Semeur, dont l'entrée « welcome » (500) est
---  un budget de financement, pas un don de bienvenue au sens Bâtisseur/Pilote.
---
---  À exécuter dans le SQL Editor de Supabase (base concernée : prod OU staging).
---  Idempotent : relançable sans risque (met simplement delta à 10).
+--  Ce script aligne les écritures HISTORIQUES (table graines_tx) sur ces règles.
+--  À exécuter dans le SQL Editor de Supabase, sur chaque base concernée
+--  (prod ET staging). Idempotent : relançable sans risque.
 -- ============================================================================
 
 -- 1) Aperçu de ce qui sera modifié (facultatif — lance-le d'abord pour vérifier).
-select party_type, count(*) as nb_entrees, sum(delta) as total_avant
+select party_type, count(*) as nb_entrees, sum(delta) as total_bienvenue_avant
 from public.graines_tx
 where type = 'welcome'
-  and party_type in ('batisseur', 'pilote')
-  and delta <> 10
-group by party_type;
+group by party_type
+order by party_type;
 
--- 2) Migration : ramener chaque don de bienvenue Bâtisseur/Pilote à 10.
+-- 2a) Bâtisseur & Pilote : ramener chaque don de bienvenue à 10.
 update public.graines_tx
 set delta = 10
 where type = 'welcome'
   and party_type in ('batisseur', 'pilote')
   and delta <> 10;
 
--- 3) Vérification : après migration, tous les dons Bâtisseur/Pilote valent 10,
---    le Semeur reste à 500.
+-- 2b) Semeur : supprimer les graines de bienvenue (plus de graines pour eux).
+delete from public.graines_tx
+where type = 'welcome'
+  and party_type = 'semeur';
+
+-- 3) Vérification : bâtisseur/pilote → 10, aucune ligne de bienvenue semeur.
 select party_type, delta, count(*) as nb
 from public.graines_tx
 where type = 'welcome'

@@ -10146,9 +10146,8 @@ function evadGrainesMove(party, delta, txType, label, refTable, refId) {
 function _evadWelcomeAmount(party) {
   // Bâtisseur & Pilote : 10 graines de bienvenue, bloquées jusqu'à leur 1ère
   // Vadité validée (preuve d'une quête) — voir evadWelcomeLocked /
-  // evadWelcomeUnlocked.
+  // evadWelcomeUnlocked. Semeur : aucune graine de bienvenue.
   if (party.type === 'batisseur') return 10;
-  if (party.type === 'semeur') return 500;
   if (party.type === 'pilote') return 10;
   return 0;
 }
