@@ -10144,12 +10144,12 @@ function evadGrainesMove(party, delta, txType, label, refTable, refId) {
   return row;
 }
 function _evadWelcomeAmount(party) {
-  // Bâtisseur & Pilote : 20 graines de bienvenue, bloquées jusqu'à leur 1ère
+  // Bâtisseur & Pilote : 10 graines de bienvenue, bloquées jusqu'à leur 1ère
   // Vadité validée (preuve d'une quête) — voir evadWelcomeLocked /
   // evadWelcomeUnlocked.
-  if (party.type === 'batisseur') return 20;
+  if (party.type === 'batisseur') return 10;
   if (party.type === 'semeur') return 500;
-  if (party.type === 'pilote') return 20;
+  if (party.type === 'pilote') return 10;
   return 0;
 }
 // Don de bienvenue (une seule fois par profil) : amorce l'économie regen.
