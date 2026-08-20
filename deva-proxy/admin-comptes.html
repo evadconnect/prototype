@@ -35,45 +35,102 @@
 </style>
 </head>
 <body>
-  <!-- 1) Connexion admin -->
-  <div class="card">
-    <h1>🔑 Connexion admin</h1>
-    <p class="sub">Colle le secret admin ci-dessous : il est mémorisé pour toutes les actions de cette page (création, gestion, suppression).</p>
-    <label for="secret">Secret admin</label>
-    <input id="secret" type="password" placeholder="Colle le secret admin" autocomplete="off">
+  <!-- ═══ VUE 1 : connexion admin ═══ -->
+  <div id="login-view">
+    <div class="card">
+      <h1>🔑 Connexion admin</h1>
+      <p class="sub">Entre le secret admin pour accéder à la gestion des comptes bêta.</p>
+      <label for="secret">Secret admin</label>
+      <input id="secret" type="password" placeholder="Colle le secret admin" autocomplete="off" onkeydown="if(event.key==='Enter')enterAdmin()">
+      <div id="login-err" class="ko" style="display:none;font-size:.82rem;margin-top:.6rem"></div>
+      <button id="enter-btn" onclick="enterAdmin()">Entrer →</button>
+    </div>
   </div>
 
-  <!-- 2) Création de compte -->
-  <div class="card" style="margin-top:1.2rem">
-    <h1>➕ Création de compte</h1>
-    <p class="sub">Approuve les inscrits et choisis leurs profils ici, puis crée leurs comptes (identifiants envoyés par email). <b>Plus besoin de passer par Supabase.</b></p>
-    <button id="load-insc" onclick="loadInscriptions()">Afficher les inscriptions</button>
-    <div id="insc-out" style="margin-top:1rem;display:none"></div>
-    <button id="go" onclick="run()">Créer les comptes « approuvé »</button>
-    <p class="hint">1) Coche les <b>profils</b> à donner à l'inscrit · 2) passe son <b>statut</b> à <b>approuvé</b> · 3) clique <b>« Créer les comptes approuvé »</b>. Les inscrits déjà en <code>compte&nbsp;créé</code> sont ignorés.</p>
-    <div id="out"></div>
-  </div>
+  <!-- ═══ VUE 2 : panneau admin (après connexion) ═══ -->
+  <div id="panel-view" style="display:none">
+    <div style="max-width:640px;margin:0 auto 1rem;display:flex;align-items:center;justify-content:space-between;gap:.6rem">
+      <div style="font-weight:800;color:var(--forest);font-size:1.05rem">🌱 Espace admin EVAD</div>
+      <button onclick="lockAdmin()" style="width:auto;margin:0;padding:.45rem 1rem;background:#fff;color:var(--moss);border:1px solid rgba(0,0,0,.15);font-size:.82rem;font-weight:700">🔒 Verrouiller</button>
+    </div>
 
-  <!-- 3) Gestion de compte -->
-  <div class="card" style="margin-top:1.2rem">
-    <h1>⚙️ Gestion de compte</h1>
-    <p class="sub">État des fiches par profil. « Fiche faite » (✓) = l'utilisateur arrive directement au tableau de bord (plus d'onboarding).</p>
-    <button id="load" onclick="loadUsers()">Afficher les comptes</button>
-    <p class="hint">Clique une puce <b>✓</b> pour relancer l'onboarding de <b>ce profil-là</b> ; le petit <b>✕</b> à côté d'un profil <b>retire cet accès</b> (supprime sa fiche, garde les autres profils) ; « ↺ Onboarding (tout) » relance tous ses profils. Nota : un <b>Pilote</b> dont la fiche lieu existe déjà en base sera automatiquement re-marqué « fiche faite » à sa connexion — pour le faire repartir de zéro, retire son accès pilote (✕) ou supprime sa fiche.</p>
-    <div id="users-out" style="margin-top:1rem;display:none"></div>
-  </div>
+    <!-- Lecture des inscriptions -->
+    <div class="card">
+      <h1>📋 Inscriptions</h1>
+      <p class="sub">Choisis les <b>profils</b> à ouvrir et passe le statut de <b>nouveau</b> à <b>à créer</b>, puis crée les comptes (identifiants envoyés par email). <b>Sans passer par Supabase.</b></p>
+      <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.7rem">
+        <div id="insc-filters" style="display:flex;flex-wrap:wrap;gap:.35rem"></div>
+        <input id="insc-search" type="text" placeholder="🔍 email ou nom" oninput="renderInscriptions()" style="flex:1;min-width:150px;width:auto;margin:0;padding:.5rem .8rem;font-size:.85rem">
+      </div>
+      <button id="load-insc" onclick="loadInscriptions()">↻ Actualiser les inscriptions</button>
+      <div id="insc-out" style="margin-top:1rem;display:none"></div>
+      <button id="go" onclick="run()">✅ Créer les comptes « à créer »</button>
+      <p class="hint">Un inscrit « à créer » reçoit son compte + un email d'identifiants. Ceux déjà en <code>créé</code> sont ignorés.</p>
+      <div id="out"></div>
+    </div>
 
-  <!-- 4) Suppression de compte -->
-  <div class="card" style="margin-top:1.2rem">
-    <h1>🗑 Suppression de compte</h1>
-    <p class="sub">Efface <b>définitivement</b> un compte : authentification + toutes ses données (fiches, quêtes, graines…). Action irréversible.</p>
-    <button id="load-del" onclick="loadUsers()">Afficher les comptes</button>
-    <div id="users-del-out" style="margin-top:1rem;display:none"></div>
+    <!-- Gestion de compte -->
+    <div class="card" style="margin-top:1.2rem">
+      <h1>⚙️ Gestion de compte</h1>
+      <p class="sub">État des fiches par profil. « Fiche faite » (✓) = l'utilisateur arrive directement au tableau de bord (plus d'onboarding).</p>
+      <button id="load" onclick="loadUsers()">Afficher les comptes</button>
+      <p class="hint">Clique une puce <b>✓</b> pour relancer l'onboarding de <b>ce profil-là</b> ; le petit <b>✕</b> à côté d'un profil <b>retire cet accès</b> (supprime sa fiche, garde les autres profils) ; « ↺ Onboarding (tout) » relance tous ses profils. Nota : un <b>Pilote</b> dont la fiche lieu existe déjà en base sera automatiquement re-marqué « fiche faite » à sa connexion — pour le faire repartir de zéro, retire son accès pilote (✕) ou supprime sa fiche.</p>
+      <div id="users-out" style="margin-top:1rem;display:none"></div>
+    </div>
+
+    <!-- Suppression de compte -->
+    <div class="card" style="margin-top:1.2rem">
+      <h1>🗑 Suppression de compte</h1>
+      <p class="sub">Efface <b>définitivement</b> un compte : authentification + toutes ses données (fiches, quêtes, graines…). Action irréversible.</p>
+      <button id="load-del" onclick="loadUsers()">Afficher les comptes</button>
+      <div id="users-del-out" style="margin-top:1rem;display:none"></div>
+    </div>
   </div>
 
 <script>
   const ENDPOINT = 'https://prototype-theta-mocha.vercel.app/api/create-accounts';
   const ADMIN_USERS_ENDPOINT = 'https://prototype-theta-mocha.vercel.app/api/admin-users';
+
+  // ── Connexion en deux temps : page mot de passe → panneau admin ──
+  // On valide le secret par un appel réel (list_inscriptions) avant d'ouvrir le
+  // panneau ; en cas de secret incorrect, l'API répond 401.
+  async function enterAdmin() {
+    const secret = document.getElementById('secret').value.trim();
+    const err = document.getElementById('login-err');
+    const btn = document.getElementById('enter-btn');
+    if (!secret) { err.textContent = 'Entre le secret admin.'; err.style.display = 'block'; return; }
+    err.style.display = 'none';
+    btn.disabled = true; btn.textContent = 'Vérification…';
+    try {
+      const res = await fetch(ADMIN_USERS_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+        body: JSON.stringify({ action: 'list_inscriptions' }),
+      });
+      if (res.status === 401) { err.textContent = 'Secret incorrect.'; err.style.display = 'block'; return; }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { err.textContent = 'Erreur : ' + (data.error || res.status); err.style.display = 'block'; return; }
+      _inscriptions = data.inscriptions || [];
+      document.getElementById('login-view').style.display = 'none';
+      document.getElementById('panel-view').style.display = 'block';
+      renderInscFilters();
+      renderInscriptions();
+    } catch (e) {
+      err.textContent = 'Erreur réseau : ' + e; err.style.display = 'block';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Entrer →';
+    }
+  }
+
+  function lockAdmin() {
+    document.getElementById('panel-view').style.display = 'none';
+    document.getElementById('login-view').style.display = 'block';
+    const s = document.getElementById('secret'); if (s) { s.value = ''; s.focus(); }
+    _inscriptions = [];
+    ['insc-out', 'users-out', 'users-del-out', 'out'].forEach((id) => {
+      const e = document.getElementById(id); if (e) { e.innerHTML = ''; e.style.display = 'none'; }
+    });
+  }
 
   async function run() {
     const btn = document.getElementById('go');
@@ -110,8 +167,8 @@
     } catch (e) {
       out.innerHTML = '<span class="ko">Erreur réseau : ' + e + '</span>';
     } finally {
-      btn.disabled = false; btn.textContent = 'Créer les comptes « approuvé »';
-      // Rafraîchit la liste des inscriptions (statuts passés à « compte créé »).
+      btn.disabled = false; btn.textContent = '✅ Créer les comptes « à créer »';
+      // Rafraîchit la liste des inscriptions (statuts passés à « créé »).
       try { const b = document.getElementById('insc-out'); if (b && b.style.display !== 'none') loadInscriptions(); } catch (e2) {}
     }
   }
@@ -178,13 +235,50 @@
   const identite = (u) => '<b style="font-size:.85rem">' + esc(u.email) + '</b>'
     + '<div style="font-size:.72rem;color:#3d6b5a">' + (esc((u.prenom + ' ' + u.nom).trim()) || '&nbsp;') + ' · dernière connexion : ' + loginLbl(u) + '</div>';
 
-  // ── Inscriptions bêta : statut + accès profils, éditables sur la page ──
+  // ── Inscriptions bêta : lecture filtrable + statut/accès éditables ──
+  // Statuts (valeur en base → libellé UI) : nouveau → à créer → créé.
   const INSC_STATUTS = [
     { v: 'nouveau', l: '🆕 nouveau' },
-    { v: 'approuvé', l: '✅ approuvé' },
-    { v: 'compte_créé', l: '👤 compte créé' },
+    { v: 'approuvé', l: '✅ à créer' },
+    { v: 'compte_créé', l: '👤 créé' },
   ];
   const statutColor = (s) => s === 'compte_créé' ? '#0a7a4b' : (s === 'approuvé' ? '#a06010' : '#2a5db0');
+
+  let _inscriptions = [];
+  let _inscFilter = 'tous';
+
+  // Barre de filtres par statut (avec compteurs).
+  function renderInscFilters() {
+    const box = document.getElementById('insc-filters'); if (!box) return;
+    const counts = { tous: _inscriptions.length };
+    INSC_STATUTS.forEach((s) => { counts[s.v] = _inscriptions.filter((i) => i.statut === s.v).length; });
+    const chips = [{ v: 'tous', l: 'Tous' }].concat(INSC_STATUTS);
+    box.innerHTML = chips.map((c) => {
+      const on = _inscFilter === c.v;
+      const style = 'width:auto;margin:0;padding:.4rem .8rem;font-size:.78rem;font-weight:700;border-radius:100px;cursor:pointer;'
+        + (on ? 'background:var(--forest);color:#fff;border:1px solid var(--forest)'
+              : 'background:#fff;color:var(--moss);border:1px solid rgba(1,130,98,.3)');
+      return '<button onclick="setInscFilter(\'' + c.v + '\')" style="' + style + '">' + esc(c.l) + ' (' + (counts[c.v] || 0) + ')</button>';
+    }).join('');
+  }
+  function setInscFilter(f) { _inscFilter = f; renderInscFilters(); renderInscriptions(); }
+
+  // Applique filtre + recherche, puis rend la liste.
+  function renderInscriptions() {
+    const box = document.getElementById('insc-out'); if (!box) return;
+    box.style.display = 'block';
+    if (!_inscriptions.length) { box.innerHTML = 'Aucune inscription.'; return; }
+    const q = (document.getElementById('insc-search').value || '').trim().toLowerCase();
+    let list = _inscriptions;
+    if (_inscFilter !== 'tous') list = list.filter((i) => i.statut === _inscFilter);
+    if (q) list = list.filter((i) => ((i.email || '') + ' ' + (i.prenom || '') + ' ' + (i.nom || '')).toLowerCase().indexOf(q) !== -1);
+    const aCreer = _inscriptions.filter((i) => i.statut === 'approuvé').length;
+    const tete = '<div style="font-size:.82rem;color:#3d6b5a;margin-bottom:.4rem"><b>' + list.length + '</b> affichée(s)'
+      + (aCreer ? ' · <span style="color:#a06010"><b>' + aCreer + '</b> à créer</span>' : '') + '</div>';
+    box.innerHTML = tete + (list.length
+      ? list.map(inscriptionRow).join('')
+      : '<div style="color:#3d6b5a;font-size:.85rem;padding:.6rem 0">Aucun inscrit dans ce filtre.</div>');
+  }
 
   function inscriptionRow(i) {
     const roleBoxes = ROLES.map((r) => {
@@ -217,16 +311,13 @@
       });
       const data = await res.json();
       if (!res.ok) { box.innerHTML = '<span class="ko">Erreur : ' + (data.error || res.status) + '</span>'; return; }
-      const list = data.inscriptions || [];
-      if (!list.length) { box.innerHTML = 'Aucune inscription.'; return; }
-      const nbApprouve = list.filter((i) => i.statut === 'approuvé').length;
-      box.innerHTML = '<b>' + list.length + ' inscription(s)</b>'
-        + (nbApprouve ? ' · <span style="color:#a06010">' + nbApprouve + ' à créer</span>' : '')
-        + list.map(inscriptionRow).join('');
+      _inscriptions = data.inscriptions || [];
+      renderInscFilters();
+      renderInscriptions();
     } catch (e) {
       box.innerHTML = '<span class="ko">Erreur réseau : ' + e + '</span>';
     } finally {
-      btn.disabled = false; btn.textContent = 'Afficher les inscriptions';
+      btn.disabled = false; btn.textContent = '↻ Actualiser les inscriptions';
     }
   }
 
@@ -248,8 +339,11 @@
     el.disabled = true;
     const r = await updateInscription(id, { statut: statut });
     el.disabled = false;
-    if (r.ok) { el.style.color = statutColor(statut); }
-    else { loadInscriptions(); }
+    if (r.ok) {
+      const it = _inscriptions.find((x) => String(x.id) === String(id)); if (it) it.statut = statut;
+      renderInscFilters();
+      renderInscriptions();   // met à jour compteurs + tri/filtre
+    } else { loadInscriptions(); }
   }
 
   async function setAcces(id, role, checked, el) {
@@ -257,7 +351,9 @@
     const patch = {}; patch['acces_' + role] = checked;
     const r = await updateInscription(id, patch);
     el.disabled = false;
-    if (!r.ok) { el.checked = !checked; }
+    if (r.ok) {
+      const it = _inscriptions.find((x) => String(x.id) === String(id)); if (it) it['acces_' + role] = checked;
+    } else { el.checked = !checked; }
   }
 
   // Ligne « Gestion » : profils (↺ onboarding / ✕ retirer) + relance globale.
