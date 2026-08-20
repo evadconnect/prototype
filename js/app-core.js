@@ -154,6 +154,60 @@ let obRole = 'pilote';
 let obStep = 0;
 let obSelectedScreen = null;
 
+/* ─── La spirale VADE dans l'étape 1, HORS PRODUCTION ───────────────────────
+   L'étape 1 décrivait déjà un cycle en quatre temps, sans le nommer. On la
+   nomme : Valoriser, Activer, Développer, Élever, les quatre temps de la
+   charte des ICI, déclinés pour chaque profil. Pas d'étape en plus, donc un
+   parcours qui ne s'allonge pas, et la spirale acquise dès le premier écran.
+   Le contenu concret de chaque puce est conservé, seul le cadrage change.
+
+   ⚠️ Le « E » n'est pas tranché : l'app dit « Élever » (js/regen-loop.js), la
+   terminologie du site dit « Essaimer ». On suit ici le mot de l'app ; le jour
+   où le choix est fait, il n'y a qu'un endroit à corriger.
+
+   On ne touche pas aux littéraux d'origine : ils restent ceux de la production. */
+const OB_STEP1_VADE = {
+  pilote: {
+    desc: 'Ton lieu avance en spirale, quatre temps qui se répètent et montent : valoriser, activer, développer, élever.',
+    steps: [
+      { num: 'V', title: 'Valoriser · publie ton lieu', text: 'Décris ton projet, ses espaces, sa phase. Tu rends visible ce que ton lieu porte déjà, avant même d\'agir.' },
+      { num: 'A', title: 'Activer · ouvre tes quêtes', text: 'Propose des actions concrètes. Les Bâtisseurs s\'en saisissent et contribuent avec leurs compétences.' },
+      { num: 'D', title: 'Développer · fais grandir la preuve', text: 'Chaque contribution laisse une preuve vérifiable. Les Semeurs financent ce qui est prouvé, pas ce qui est promis.' },
+      { num: 'E', title: 'Élever · nourris le commun', text: 'Tes preuves enrichissent le référentiel partagé. Ton lieu monte d\'un cran, et le suivant part de plus haut.' }
+    ]
+  },
+  batisseur: {
+    desc: 'Ta contribution avance en spirale, quatre temps qui se répètent et montent : valoriser, activer, développer, élever.',
+    steps: [
+      { num: 'V', title: 'Valoriser · repère où tu comptes', text: 'Décris tes savoir-faire, ta dispo et ta zone. Deva te montre les lieux où tes compétences font la différence.' },
+      { num: 'A', title: 'Activer · rejoins une quête', text: 'Filtre par compétence, date ou lieu. Engage-toi en un clic et coordonne avec le Pilote.' },
+      { num: 'D', title: 'Développer · prouve ce que tu as fait', text: 'Photo, mesure ou témoignage : ta preuve est vérifiée, puis enregistrée de façon infalsifiable.' },
+      { num: 'E', title: 'Élever · nourris le commun', text: 'Tes preuves sont vérifiées par les pairs et ton retour d\'expérience enrichit les fiches partagées.' }
+    ]
+  },
+  semeur: {
+    desc: 'Ton financement avance en spirale, quatre temps qui se répètent et montent : valoriser, activer, développer, élever.',
+    steps: [
+      { num: 'V', title: 'Valoriser · repère les lieux', text: 'Décris tes critères ESG et ton enveloppe. Deva te suggère les lieux compatibles et leur point de départ.' },
+      { num: 'A', title: 'Activer · engage ton capital', text: 'Définis les paliers avec le Pilote. Les fonds se débloquent au fil des étapes validées, jamais d\'avance.' },
+      { num: 'D', title: 'Développer · suis la preuve', text: 'Chaque étape est validée par les Bâtisseurs et vérifiée par EVAD, avec une preuve infalsifiable à la clé.' },
+      { num: 'E', title: 'Élever · capitalise', text: 'Un rapport auditable à la clôture, intégrable à ton CSRD, et un référentiel commun qui s\'enrichit de ton passage.' }
+    ]
+  }
+};
+
+(function appliquerSpiraleVade() {
+  try {
+    if (!window.EVAD_SUPABASE_ENV || window.EVAD_SUPABASE_ENV.isProd) return;
+    Object.keys(OB_STEP1_VADE).forEach(function (role) {
+      const cible = OB_DATA[role] && OB_DATA[role].steps && OB_DATA[role].steps[0];
+      if (!cible) return;
+      cible.desc = OB_STEP1_VADE[role].desc;
+      cible.steps = OB_STEP1_VADE[role].steps;
+    });
+  } catch (e) {}
+})();
+
 function showOnboarding(role) {
   obRole = role || currentRole || 'pilote';
   obStep = 0;
