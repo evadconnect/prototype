@@ -394,67 +394,78 @@ function obRenderSVG() {
    celui-là même qu'affiche la colonne de gauche : impossible que le dessin et
    le texte racontent deux histoires différentes. */
 function svgSpiraleVade(svg, c, ca, role) {
-  const cream = '#f2ecdb', sub = 'rgba(226,226,226,.55)';
+  const cream = '#f2ecdb', sub = 'rgba(226,226,226,.5)';
   const src = (typeof OB_STEP1_VADE !== 'undefined' && OB_STEP1_VADE[role]) ? OB_STEP1_VADE[role].steps : [];
-  const cx = 180, cy = 178;
-  // Spirale d'Archimède : l'angle tourne d'un tour complet pendant que le rayon
-  // grandit. Un simple cercle ne dirait pas que le tour suivant repart plus haut.
-  const a0 = 160, a1 = 430, r0 = 46, r1 = 126;
-  const pos = function (a) {
-    const r = r0 + (a - a0) / (a1 - a0) * (r1 - r0);
+  // Couleurs canoniques des quatre temps (celles de REGEN_LOOP_NODES),
+  // éclaircies pour tenir sur le fond sombre de l'onboarding.
+  const TEMPS = [
+    { lettre: 'V', nom: 'Valoriser',  col: '#4aa88a', a: -90 },
+    { lettre: 'A', nom: 'Activer',    col: '#5a9fd0', a: 0 },
+    { lettre: 'D', nom: 'Développer', col: '#e8a55a', a: 90 },
+    { lettre: 'E', nom: 'Essaimer',   col: '#9b8bc4', a: 180 }
+  ];
+  const EMOJIS = { pilote: '🏡', batisseur: '🌿', semeur: '🌾' };
+  const cx = 210, cy = 182, R = 104, rn = 25;
+  const pt = function (a, r) {
     const rad = a * Math.PI / 180;
     return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
   };
+  // Arc entre deux temps, en s'arrêtant au bord des pastilles pour ne pas
+  // passer dessous : l'anneau reste lisible.
+  const marge = (rn + 6) / R * 180 / Math.PI;
+  const arc = function (a1, a2, col, i) {
+    const p1 = pt(a1 + marge, R), p2 = pt(a2 - marge, R);
+    return `<path d="M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} A ${R} ${R} 0 0 1 ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}" fill="none" stroke="${col}" stroke-width="2.4" stroke-linecap="round" stroke-opacity="0"><animate attributeName="stroke-opacity" values="0;.85" dur=".5s" begin="${0.35 + i * 0.18}s" fill="freeze"/></path>`;
+  };
 
-  let chemin = '';
-  for (let a = a0; a <= a1 + 0.1; a += 4) {
-    const p = pos(a);
-    chemin += (chemin ? ' L ' : 'M ') + p.x.toFixed(1) + ' ' + p.y.toFixed(1);
+  // Sortie de spirale : après Essaimer, le trait s'échappe vers le haut en
+  // s'écartant du centre. C'est ce qui distingue une spirale d'un cercle.
+  let sortie = '';
+  for (let a = 180 + marge; a <= 252; a += 3) {
+    const r = R + (a - 180) / 72 * 44;
+    const p = pt(a, r);
+    sortie += (sortie ? ' L ' : 'M ') + p.x.toFixed(1) + ' ' + p.y.toFixed(1);
   }
-
-  const temps = [a0, a0 + 90, a0 + 180, a0 + 270].map(function (a, i) {
-    const p = pos(a);
-    const st = src[i] || {};
-    // « Valoriser · publie ton lieu » : le moment, puis son détail.
-    const parts = String(st.title || '').split(' · ');
-    return {
-      x: Math.round(p.x), y: Math.round(p.y),
-      lettre: st.num || ['V', 'A', 'D', 'E'][i],
-      moment: parts[0] || '',
-      detail: parts.slice(1).join(' · '),
-      i: i
-    };
-  });
 
   svg.setAttribute('viewBox', '0 0 420 360');
   svg.innerHTML = `
     <defs>
-      <marker id="sv-fin" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="${ca}"/></marker>
-      <filter id="sv-glow" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <marker id="sv-fin" markerWidth="10" markerHeight="10" refX="7" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#9b8bc4"/></marker>
+      <radialGradient id="sv-coeur"><stop offset="0" stop-color="${ca}" stop-opacity=".18"/><stop offset="1" stop-color="${ca}" stop-opacity="0"/></radialGradient>
     </defs>
 
-    <g transform="translate(210,30)">
-      <rect x="-84" y="-16" width="168" height="30" rx="15" fill="${ca}" fill-opacity=".14" stroke="${ca}" stroke-opacity=".5"/>
-      <text x="0" y="5" text-anchor="middle" font-size="11.5" font-weight="800" fill="${cream}" font-family="Satoshi,sans-serif">🌀 La spirale VADE</text>
-    </g>
-
-    <path d="${chemin}" fill="none" stroke="${ca}" stroke-opacity=".4" stroke-width="2" stroke-dasharray="5 5" marker-end="url(#sv-fin)">
-      <animate attributeName="stroke-opacity" values="0;.4" dur="1s" begin=".1s" fill="freeze"/>
-    </path>
-
-    ${temps.map(function (t) {
-      const dernier = t.i === temps.length - 1;
-      const aDroite = t.x >= cx;
-      const lx = aDroite ? t.x + 27 : t.x - 27;
-      return `<g opacity="0"><animate attributeName="opacity" values="0;1" dur=".5s" begin="${0.3 + t.i * 0.22}s" fill="freeze"/>` +
-        `<circle cx="${t.x}" cy="${t.y}" r="20" fill="${ca}" fill-opacity="${(0.18 + t.i * 0.26).toFixed(2)}" stroke="${ca}" stroke-opacity=".85"${dernier ? ' filter="url(#sv-glow)"' : ''}/>` +
-        `<text x="${t.x}" y="${t.y + 6}" text-anchor="middle" font-size="15" font-weight="900" fill="${cream}" font-family="Satoshi,sans-serif">${t.lettre}</text>` +
-        `<text x="${lx}" y="${t.y - 2}" text-anchor="${aDroite ? 'start' : 'end'}" font-size="10.5" font-weight="700" fill="${cream}" font-family="Satoshi,sans-serif">${t.moment}</text>` +
-        `<text x="${lx}" y="${t.y + 11}" text-anchor="${aDroite ? 'start' : 'end'}" font-size="8" fill="${sub}" font-family="Satoshi,sans-serif">${t.detail}</text>` +
-        `</g>`;
+    <circle cx="${cx}" cy="${cy}" r="66" fill="url(#sv-coeur)"/>
+    <text x="${cx}" y="${cy - 10}" text-anchor="middle" font-size="9" font-weight="700" letter-spacing="4" fill="${sub}" font-family="Satoshi,sans-serif">SPIRALE</text>
+    <text x="${cx}" y="${cy + 16}" text-anchor="middle" font-size="26" font-weight="900" letter-spacing="1" fill="${cream}" font-family="Satoshi,sans-serif">VADE</text>
+    ${['pilote', 'batisseur', 'semeur'].map(function (r, i) {
+      const actif = r === role;
+      const x = cx - 26 + i * 26;
+      return `<g opacity="${actif ? 1 : .38}"><circle cx="${x}" cy="${cy + 38}" r="11" fill="${actif ? ca : 'rgba(255,255,255,.06)'}" fill-opacity="${actif ? .3 : 1}" stroke="${actif ? ca : 'rgba(255,255,255,.14)'}"/><text x="${x}" y="${cy + 42}" text-anchor="middle" font-size="11">${EMOJIS[r]}</text></g>`;
     }).join('')}
 
-    <text x="210" y="346" text-anchor="middle" font-size="10.5" font-weight="700" fill="${cream}" font-family="Satoshi,sans-serif">Le tour suivant repart plus haut 🌀</text>
+    ${TEMPS.map(function (t, i) { return arc(t.a, TEMPS[(i + 1) % 4].a + (i === 3 ? 360 : 0), t.col, i); }).join('')}
+
+    <path d="${sortie}" fill="none" stroke="#9b8bc4" stroke-width="2.4" stroke-linecap="round" marker-end="url(#sv-fin)" stroke-opacity="0">
+      <animate attributeName="stroke-opacity" values="0;.9" dur=".6s" begin="1.05s" fill="freeze"/>
+    </path>
+    <text x="150" y="34" text-anchor="middle" font-size="10.5" font-weight="700" fill="#b6a9db" font-family="Satoshi,sans-serif" opacity="0">un cran plus haut<animate attributeName="opacity" values="0;1" dur=".5s" begin="1.35s" fill="freeze"/></text>
+
+    ${TEMPS.map(function (t, i) {
+      const p = pt(t.a, R);
+      // Le libellé se pose à l'extérieur de l'anneau, dans la direction du temps.
+      // Pas de détail ici : à gauche et à droite il déborderait du cadre, et le
+      // dessin doit rester lisible d'un coup d'œil. Le détail de chaque temps
+      // est dans la colonne de texte, juste à côté.
+      const lp = pt(t.a, R + rn + 16);
+      const centre = Math.abs(Math.cos(t.a * Math.PI / 180)) < 0.3;
+      const ancre = centre ? 'middle' : (Math.cos(t.a * Math.PI / 180) > 0 ? 'start' : 'end');
+      const dy = t.a === -90 ? -6 : (t.a === 90 ? 14 : 0);
+      return `<g opacity="0"><animate attributeName="opacity" values="0;1" dur=".5s" begin="${0.3 + i * 0.18}s" fill="freeze"/>` +
+        `<circle cx="${p.x}" cy="${p.y}" r="${rn}" fill="#0d1a14" stroke="${t.col}" stroke-width="2.2"/>` +
+        `<text x="${p.x}" y="${p.y + 8}" text-anchor="middle" font-size="20" font-weight="900" fill="${t.col}" font-family="Satoshi,sans-serif">${t.lettre}</text>` +
+        `<text x="${lp.x.toFixed(0)}" y="${(lp.y + dy).toFixed(0)}" text-anchor="${ancre}" font-size="11.5" font-weight="700" fill="${cream}" font-family="Satoshi,sans-serif">${t.nom}</text>` +
+        `</g>`;
+    }).join('')}
   `;
 }
 
