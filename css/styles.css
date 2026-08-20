@@ -3678,7 +3678,10 @@ body {
 #deva-chat-overlay {
   position: fixed;
   inset: 0;
-  z-index: 999;
+  /* Au-dessus des tiroirs plein écran (fiche quête en création : 10030),
+     sinon Deva passait DERRIÈRE le formulaire qu'elle est censée aider à
+     remplir : la fenêtre s'ouvrait, mais on ne la voyait plus. */
+  z-index: 10039;
   pointer-events: none;
 }
 #deva-chat-window {
@@ -3694,7 +3697,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  z-index: 1000;
+  z-index: 10040;
   opacity: 0;
   transform: translateY(16px) scale(.97);
   pointer-events: none;
