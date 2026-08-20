@@ -574,17 +574,42 @@ function pqDevaContexte() {
   };
 }
 
-// Un modèle de langage répond rarement en JSON pur : on récupère le premier
-// objet complet du texte plutôt que d'échouer sur une phrase d'introduction.
+// Un modèle de langage répond rarement en JSON pur : il l'entoure de texte, et
+// surtout la réponse est PLAFONNÉE par le proxy, donc souvent coupée en plein
+// milieu. On répare alors ce qui est arrivé plutôt que de tout jeter : on
+// tronque au dernier élément complet et on referme les accolades ouvertes.
+// Vérifié sur une vraie réponse coupée : 4 accolades ouvertes, 2 fermées.
 function pqDevaExtraireJson(texte) {
   if (!texte) return null;
   var t = String(texte).replace(/```json/gi, '```').split('```').join('\n');
   var d = t.indexOf('{');
   if (d < 0) return null;
-  var prof = 0;
+
+  var pile = [], dansTexte = false, echap = false, dernierSur = -1;
   for (var i = d; i < t.length; i++) {
-    if (t[i] === '{') prof++;
-    else if (t[i] === '}') { prof--; if (prof === 0) { try { return JSON.parse(t.slice(d, i + 1)); } catch (e) { return null; } } }
+    var c = t[i];
+    if (dansTexte) {
+      if (echap) { echap = false; continue; }
+      if (c === '\\') { echap = true; continue; }
+      if (c === '"') dansTexte = false;
+      continue;
+    }
+    if (c === '"') { dansTexte = true; continue; }
+    if (c === '{' || c === '[') { pile.push(c === '{' ? '}' : ']'); continue; }
+    if (c === '}' || c === ']') {
+      pile.pop();
+      dernierSur = i + 1;                       // juste après un élément complet
+      if (!pile.length) { try { return JSON.parse(t.slice(d, i + 1)); } catch (e) { return null; } }
+      continue;
+    }
+    if (c === ',' && pile.length) dernierSur = i;   // avant la virgule
+  }
+
+  // Réponse coupée : on garde le plus grand préfixe valide et on referme.
+  if (dernierSur > d) {
+    var bout = t.slice(d, dernierSur).replace(/[\s,]+$/, '');
+    for (var j = pile.length - 1; j >= 0; j--) bout += pile[j];
+    try { return JSON.parse(bout); } catch (e) { return null; }
   }
   return null;
 }
@@ -614,7 +639,9 @@ async function pqCreerDevaAide() {
   try {
     const r = await fetch(DEVA_API_URL, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: [
+      // max_tokens : le proxy plafonne à 300 pour la conversation, trop court pour
+      // un formulaire entier. On demande davantage, le proxy borne de son côté.
+      body: JSON.stringify({ max_tokens: 800, messages: [
         { role: 'system', content: consigne },
         { role: 'user', content: JSON.stringify(ctx) }
       ] })

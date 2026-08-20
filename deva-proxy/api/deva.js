@@ -54,6 +54,12 @@ export default async function handler(req, res) {
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
     const messages = Array.isArray(body.messages) ? body.messages.slice(-20) : [];
+    // Longueur de réponse : 300 jetons suffisent à la conversation et gardent
+    // Deva frugale. Un appelant qui a besoin d'une réponse structurée (le
+    // formulaire de quête demande un objet JSON complet) peut en demander
+    // davantage, borné ici. Sans cette borne haute, une réponse coupée en plein
+    // milieu arrivait au client, illisible et inutilisable.
+    const maxTokens = Math.min(Math.max(parseInt(body.max_tokens, 10) || 300, 100), 900);
 
     const r = await fetch('https://api.mistral.ai/v1/chat/completions', {
       method: 'POST',
@@ -63,7 +69,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'mistral-small-latest',   // ← change pour 'mistral-large-latest' si tu veux + de qualité
-        max_tokens: 300,
+        max_tokens: maxTokens,
         temperature: 0.6,
         messages: [{ role: 'system', content: DEVA_SYSTEM }, ...messages]
       })
