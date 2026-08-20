@@ -14,6 +14,25 @@ const OB_STEP2 = {
   ]
 };
 
+// Étape 2 du Bâtisseur, HORS PRODUCTION : Vadance et Vadité mesurent la
+// promesse et la preuve d'un LIEU, c'est le sujet du Pilote et du Semeur. Le
+// Bâtisseur, lui, a besoin de comprendre ce qui lui revient et ce qu'il peut
+// en faire. On lui parle donc des graines et de la Récolte.
+// Le texte est écrit avec le vocabulaire du code (graines, la Récolte) : le
+// lexique d'essai les affiche en Vadins et Vaderie hors production, et la
+// formulation resterait juste le jour où ces noms seraient adoptés.
+const OB_STEP2_BATISSEUR = {
+  eyebrow: 'Étape 2 · Ce qui te revient',
+  headline: 'Les graines\n& la Récolte.',
+  desc: 'Ce que tu fais pousser sur un lieu te revient, et te rouvre des portes ailleurs dans le réseau.',
+  type: 'cycle',
+  steps: [
+    { num: '🌱', title: 'Les graines, la reconnaissance', text: 'Chaque contribution réalisée et prouvée t\'est reconnue en graines. Elles ne s\'achètent pas, ne se convertissent pas en euros : elles disent ce que tu as fait pousser.' },
+    { num: '🤲', title: 'la Récolte, les portes ouvertes', text: 'Tes graines déverrouillent des accès que les lieux ouvrent : un atelier entre membres, un prêt d\'outillage, un hébergement pendant un chantier. Tu ne règles rien, tu ouvres une porte.' },
+    { num: '📊', title: 'La preuve fait la mesure', text: 'Déclaré, documenté, validé par les pairs, audité : plus ta preuve est solide, plus ta contribution compte. C\'est la preuve qui fait la valeur, jamais le temps passé.' }
+  ]
+};
+
 const OB_DATA = {
   pilote: {
     color: '#2e6b47',
@@ -74,7 +93,8 @@ const OB_DATA = {
           { num: '4', title: 'Reçois et dépense tes graines', text: 'Déverrouille des accès locaux avec tes graines : ateliers, hébergements, formations, coups de main.' }
         ]
       },
-      OB_STEP2
+      // Hors production, le Bâtisseur a son étape 2 à lui (voir plus haut).
+      ((typeof window !== 'undefined' && window.EVAD_SUPABASE_ENV && !window.EVAD_SUPABASE_ENV.isProd) ? OB_STEP2_BATISSEUR : OB_STEP2)
     ]
   },
   semeur: {
@@ -272,9 +292,57 @@ function obRenderSVG() {
     else if (obRole === 'batisseur') svgBatCycle(svg, c, ca);
     else svgSemeurCycle(svg, c, ca);
   } else {
-    // Étape 2 (tous profils) : illustration Vadance (promesse) vs Vadité (preuve)
-    svgVadanceVadite(svg, c, ca);
+    // Étape 2. Le Bâtisseur a son propre sujet hors production (graines et
+    // Récolte) : lui montrer le graphique Vadance/Vadité contredirait son texte.
+    var _obBatGraines = false;
+    try { _obBatGraines = obRole === 'batisseur' && window.EVAD_SUPABASE_ENV && !window.EVAD_SUPABASE_ENV.isProd; } catch (e) {}
+    if (_obBatGraines) svgGrainesRecolte(svg, c, ca);
+    else svgVadanceVadite(svg, c, ca);
   }
+}
+
+/* Étape 2 du Bâtisseur (hors production) : ce qu'il reçoit en reconnaissance,
+   et les portes que ça lui ouvre. Les montants reprennent le barème d'accès de
+   la spécification des graines : atelier 40, outillage 25, hébergement 60. */
+function svgGrainesRecolte(svg, c, ca) {
+  const cream = '#f2ecdb', sub = 'rgba(230,214,180,.62)';
+  const portes = [
+    { ic: '📚', label: 'un atelier',      cout: 40, y: 150 },
+    { ic: '🛠', label: 'un outil prêté',  cout: 25, y: 216 },
+    { ic: '🏡', label: 'un hébergement',  cout: 60, y: 282 }
+  ];
+  svg.setAttribute('viewBox', '0 0 420 360');
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="gr-grad" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${ca}" stop-opacity=".55"/><stop offset="1" stop-color="${ca}" stop-opacity="1"/></linearGradient>
+      <filter id="gr-glow" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <marker id="gr-fleche" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="${ca}" fill-opacity=".75"/></marker>
+    </defs>
+
+    <g transform="translate(210,46)">
+      <rect x="-104" y="-17" width="208" height="32" rx="16" fill="${ca}" fill-opacity=".14" stroke="${ca}" stroke-opacity=".5"/>
+      <text x="0" y="5" text-anchor="middle" font-size="12" font-weight="800" fill="${cream}" font-family="Satoshi,sans-serif">🌱 Une contribution prouvée</text>
+    </g>
+
+    <g transform="translate(96,206)">
+      <circle r="52" fill="url(#gr-grad)" filter="url(#gr-glow)" opacity="0"><animate attributeName="opacity" values="0;1" dur=".7s" begin=".15s" fill="freeze"/></circle>
+      <text x="0" y="-4" text-anchor="middle" font-size="30" font-weight="900" fill="${cream}" font-family="Satoshi,sans-serif">40</text>
+      <text x="0" y="16" text-anchor="middle" font-size="11" font-weight="700" fill="${cream}" font-family="Satoshi,sans-serif">graines</text>
+      <text x="0" y="74" text-anchor="middle" font-size="9.5" fill="${sub}" font-family="Satoshi,sans-serif">en reconnaissance de ton acte</text>
+    </g>
+
+    ${portes.map(function (p, i) {
+      return `<g opacity="0"><animate attributeName="opacity" values="0;1" dur=".5s" begin="${0.5 + i * 0.18}s" fill="freeze"/>` +
+        `<line x1="154" y1="206" x2="228" y2="${p.y}" stroke="${ca}" stroke-opacity=".35" stroke-dasharray="4 4" marker-end="url(#gr-fleche)"/>` +
+        `<rect x="236" y="${p.y - 22}" width="150" height="44" rx="12" fill="${ca}" fill-opacity=".1" stroke="${ca}" stroke-opacity=".4"/>` +
+        `<text x="252" y="${p.y + 5}" font-size="15">${p.ic}</text>` +
+        `<text x="276" y="${p.y - 1}" font-size="10.5" font-weight="700" fill="${cream}" font-family="Satoshi,sans-serif">${p.label}</text>` +
+        `<text x="276" y="${p.y + 12}" font-size="9" fill="${sub}" font-family="Satoshi,sans-serif">${p.cout} graines</text>` +
+        `</g>`;
+    }).join('')}
+
+    <text x="210" y="344" text-anchor="middle" font-size="11" font-weight="700" fill="${cream}" font-family="Satoshi,sans-serif">Ce que tu fais pousser t'ouvre des portes 🌱</text>
+  `;
 }
 
 /* Étape 2 d'onboarding : Vadance (promesse, barre translucide) vs Vadité
