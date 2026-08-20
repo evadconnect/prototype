@@ -524,7 +524,15 @@ function piloteQueteCreerOuvrir(editId) {
   const submitEl = document.getElementById('pq-create-submit');
   if (submitEl) submitEl.textContent = editQ ? '💾 Enregistrer' : '✅ Valider la quête';
 
-  document.getElementById('pq-create-modal').style.display = 'block';
+  // Afficher, forcer un reflux, puis animer. Le reflux fait démarrer la
+  // transition depuis translateX(-100%) ; sans lui le panneau apparaîtrait en
+  // place. On n'utilise pas requestAnimationFrame : il ne se déclenche pas
+  // quand l'onglet est en arrière-plan, et le panneau resterait alors hors champ.
+  const _m = document.getElementById('pq-create-modal');
+  _m.style.display = 'block';
+  _m.scrollTop = 0;
+  void _m.offsetWidth;
+  _m.classList.add('pq-ouvert');
   setTimeout(() => { const t = document.getElementById('pq-create-titre'); if (t) t.focus(); }, 60);
 }
 
@@ -684,7 +692,12 @@ function pqDevaAppliquer(p) {
 
 function piloteQueteCreerFermer() {
   const m = document.getElementById('pq-create-modal');
-  if (m) m.style.display = 'none';
+  if (m) {
+    // Glissement inverse, puis retrait : sans le délai, le panneau disparaît
+    // d'un coup et l'animation d'ouverture paraît bancale par contraste.
+    m.classList.remove('pq-ouvert');
+    setTimeout(() => { m.style.display = 'none'; }, 320);
+  }
   pqCreerEditId = null;
   // Le rattachement à un espace ne vaut que pour la création en cours.
   if (typeof window !== 'undefined') window._creerQueteEspIdx = null;

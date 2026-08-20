@@ -2247,10 +2247,18 @@ body {
 /* ─── PANNEAU CRÉATION / ÉDITION DE QUÊTE (Pilote) ─── */
 /* Tiroir latéral qui laisse la sidebar visible (comme #espace-modal). Le
    décalage gauche suit la largeur de la sidebar ; plein écran en mobile. */
+/* Formulaire de quête : panneau latéral qui glisse de la gauche vers la droite,
+   et non un tiroir qui recouvre toute la page. On garde l'écran d'origine
+   visible à droite, comme pour le détail de quête de l'assistant Bâtisseur. */
 #pq-create-modal {
-  position:fixed; top:0; right:0; bottom:0; left:220px; z-index:10030;
-  box-shadow:-10px 0 40px -12px rgba(14,26,18,0.22);
+  position:fixed; top:0; bottom:0; left:220px; right:auto;
+  width:min(620px, 58%);
+  z-index:10030;
+  box-shadow:12px 0 34px -10px rgba(14,26,18,0.28);
+  transform:translateX(-100%);
+  transition:transform .32s cubic-bezier(.22,1,.36,1);
 }
+#pq-create-modal.pq-ouvert { transform:translateX(0); }
 .espace-modal-header {
   padding:1.2rem 1.4rem 0.9rem; border-bottom:1px solid rgba(46,102,66,0.1);
   display:flex; align-items:center; justify-content:space-between;
@@ -2593,7 +2601,7 @@ body {
   /* Panneau espace : aligné sur la sidebar icône-seule (64px) */
   #espace-modal { left: 64px; }
   /* Panneau quête : idem, aligné sur la sidebar icône-seule */
-  #pq-create-modal { left: 64px; }
+  #pq-create-modal { left: 64px; width: min(560px, 72%); }
   .nav-logo { text-align: center; padding: 0.4rem 0 1rem !important; }
   .nav-logo-title { font-size: 1.1rem !important; }
   .nav-logo-sub,
@@ -2693,7 +2701,7 @@ body {
   }
   /* Sidebar masquée en mobile → panneaux espace + quête en plein écran */
   #espace-modal { left: 0; }
-  #pq-create-modal { left: 0; box-shadow: none; }
+  #pq-create-modal { left: 0; width: auto; right: 0; box-shadow: none; }
 
   /* ── Onboarding : empiler en colonne (sinon le panneau fixe 480px déborde
      et coupe le texte à droite). Couvre les deux variantes d'onboarding. ── */

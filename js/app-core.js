@@ -858,8 +858,10 @@ function _lieuPanelOn(m) {
       'max-width:none;margin:0;height:100%;overflow-y:auto;border-radius:0;position:relative;' +
       'background:#fff;box-shadow:12px 0 30px rgba(14,26,18,.14);' +
       'transform:translateX(-100%);transition:transform .32s cubic-bezier(.22,1,.36,1)');
-    // Deux images : sans ce délai, le panneau apparaît en place sans glisser.
-    requestAnimationFrame(function () { box.style.transform = 'translateX(0)'; });
+    // Reflux forcé : sans lui le panneau apparaît en place, et
+    // requestAnimationFrame ne se déclencherait pas en arrière-plan.
+    void box.offsetWidth;
+    box.style.transform = 'translateX(0)';
   }
   m.dataset.evadPanel = '1';
   return true;
@@ -9031,9 +9033,10 @@ function openQueteModalFromFiche(id) {
 
   ov.style.display = 'block';
   box.scrollTop = 0;
-  // Affichage puis animation sur deux images : appliquer les deux d'un coup
-  // ferait apparaître le panneau en place, sans glissement.
-  requestAnimationFrame(function () { box.style.transform = 'translateX(0)'; });
+  // Reflux forcé plutôt que requestAnimationFrame, qui ne se déclenche pas
+  // dans un onglet en arrière-plan : le panneau resterait alors hors champ.
+  void box.offsetWidth;
+  box.style.transform = 'translateX(0)';
 }
 
 // Recopie le contenu rendu de la fiche quête dans le panneau (sync après une
