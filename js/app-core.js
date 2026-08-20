@@ -173,7 +173,11 @@ const OB_STEP1_VADE = {
       { num: 'A', title: 'Activer · les Bâtisseurs s\'engagent', text: 'Ils rejoignent tes quêtes, contribuent en compétences et génèrent des preuves vérifiables.' },
       { num: 'D', title: 'Développer · les Semeurs financent', text: 'Entreprises et fondations soutiennent ton projet en échange de preuves d\'impact fiables.' },
       { num: 'E', title: 'Essaimer · ton impact fait école', text: 'Chaque preuve validée fait grandir ton lieu, débloque de nouveaux financements et inspire les lieux suivants.' }
-    ]
+    ],
+    outro: {
+      title: 'Un cran plus haut, concrètement',
+      text: 'Le tour suivant ne repart pas de zéro. Ton lieu redémarre avec une Vadité déjà acquise, des espaces documentés et des Bâtisseurs qui te connaissent. Tu proposes des quêtes plus ambitieuses, et les Semeurs engagent sur des preuves plutôt que sur des promesses.'
+    }
   },
   batisseur: {
     desc: 'Ta contribution s\'inscrit dans une spirale : quatre temps qui se répètent, et qui montent d\'un cran à chaque tour.',
@@ -182,7 +186,11 @@ const OB_STEP1_VADE = {
       { num: 'A', title: 'Activer · rejoins une quête sur la carte', text: 'Filtre par compétence, date ou lieu. Engage-toi en un clic et coordonne avec le Pilote.' },
       { num: 'D', title: 'Développer · certifie ta contribution', text: 'Photo, mesure ou témoignage : ta preuve est vérifiée, puis enregistrée de façon infalsifiable.' },
       { num: 'E', title: 'Essaimer · nourris le commun', text: 'Tes preuves sont vérifiées par les pairs et ton retour d\'expérience enrichit les fiches partagées.' }
-    ]
+    ],
+    outro: {
+      title: 'Un cran plus haut, concrètement',
+      text: 'Le tour suivant ne repart pas de zéro. Tes preuves passées valent recommandation : les Pilotes t\'engagent plus vite, des quêtes plus exigeantes s\'ouvrent à toi, et ta fiche gagne en poids à chaque contribution vérifiée.'
+    }
   },
   semeur: {
     desc: 'Ton financement s\'inscrit dans une spirale : quatre temps qui se répètent, et qui montent d\'un cran à chaque tour.',
@@ -191,7 +199,11 @@ const OB_STEP1_VADE = {
       { num: 'A', title: 'Activer · engage un lieu', text: 'Définis les paliers avec le Pilote. Les fonds se débloquent au fil des étapes validées, jamais d\'avance.' },
       { num: 'D', title: 'Développer · suis les étapes & les preuves', text: 'Chaque étape est validée par les Bâtisseurs et vérifiée par EVAD, avec une preuve infalsifiable à la clé.' },
       { num: 'E', title: 'Essaimer · ton exemple fait école', text: 'Un rapport auditable à la clôture, intégrable à ton CSRD, et une méthode que les lieux suivants reprennent.' }
-    ]
+    ],
+    outro: {
+      title: 'Un cran plus haut, concrètement',
+      text: 'Le tour suivant ne repart pas de zéro. Tu réengages sur un lieu dont l\'indice de confiance est connu : le risque est mieux borné, les jalons se calibrent sur l\'historique, et ton reporting reprend une méthode déjà éprouvée.'
+    }
   }
 };
 
@@ -203,6 +215,7 @@ const OB_STEP1_VADE = {
       if (!cible) return;
       cible.desc = OB_STEP1_VADE[role].desc;
       cible.steps = OB_STEP1_VADE[role].steps;
+      cible.outro = OB_STEP1_VADE[role].outro;
     });
   } catch (e) {}
 })();
@@ -295,6 +308,18 @@ function obRender() {
       </button>`;
     });
     html += '</div>';
+  }
+
+  // Bloc de fin, facultatif : sert à expliquer ce que le dessin montre sans
+  // pouvoir le dire, ici la montée d'un cran entre deux tours de spirale.
+  if (step.outro) {
+    html += `<div style="display:flex;align-items:flex-start;gap:.7rem;margin-top:1.1rem;padding:.85rem 1rem;background:${d.colorBg};border:1px solid ${d.colorLight};border-radius:14px">
+      <div style="font-size:1.1rem;line-height:1.2;flex-shrink:0">🌀</div>
+      <div>
+        <div style="font-size:.8rem;font-weight:700;color:${d.accent};margin-bottom:.25rem">${step.outro.title}</div>
+        <div style="font-size:.75rem;color:rgba(255,255,255,0.66);line-height:1.6">${step.outro.text}</div>
+      </div>
+    </div>`;
   }
 
   content.innerHTML = html;
