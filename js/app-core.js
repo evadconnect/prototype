@@ -10144,11 +10144,12 @@ function evadGrainesMove(party, delta, txType, label, refTable, refId) {
   return row;
 }
 function _evadWelcomeAmount(party) {
-  // Bâtisseur & Pilote : 10 graines de bienvenue, bloquées jusqu'à leur 1ère
-  // preuve de quête validée (voir evadWelcomeLocked / evadWelcomeUnlocked).
-  if (party.type === 'batisseur') return 10;
+  // Bâtisseur & Pilote : 20 graines de bienvenue, bloquées jusqu'à leur 1ère
+  // Vadité validée (preuve d'une quête) — voir evadWelcomeLocked /
+  // evadWelcomeUnlocked.
+  if (party.type === 'batisseur') return 20;
   if (party.type === 'semeur') return 500;
-  if (party.type === 'pilote') return 10;
+  if (party.type === 'pilote') return 20;
   return 0;
 }
 // Don de bienvenue (une seule fois par profil) : amorce l'économie regen.
@@ -10330,7 +10331,7 @@ function evadWalletRender() {
         <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.6)">Solde disponible</div>
         <div style="font-family:'Satoshi',sans-serif;font-size:2rem;font-weight:900;line-height:1.1">🌱 ${dispo}</div>
         ${bloque > 0 ? `<div style="font-size:.64rem;color:rgba(255,255,255,.75);margin-top:.35rem;line-height:1.55">
-          ${wLocked > 0 ? `🔒 ${wLocked} graines de bienvenue · débloquées après ta 1<sup>re</sup> preuve de quête validée` : ''}
+          ${wLocked > 0 ? `🔒 ${wLocked} graines de bienvenue · débloquées dès ta 1<sup>re</sup> Vadité validée (preuve d'une quête)` : ''}
           ${(bloque - wLocked) > 0 ? `${wLocked > 0 ? '<br>' : ''}🔒 ${bloque - wLocked} bloquées · achats en attente` : ''}
         </div>` : ''}
       </div>
