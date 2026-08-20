@@ -335,6 +335,17 @@ function piloteQueteCreerEnsureDom() {
   // Colonne de contenu centrée.
   + '<div style="max-width:640px;margin:0 auto;padding:1.3rem 1.4rem 3rem">'
   +   '<div style="font-size:.78rem;line-height:1.5;color:var(--moss);margin-bottom:.5rem">Une action concrète sur ton lieu. Une fois publiée, les bâtisseurs pourront la rejoindre.</div>'
+  // Coup de main de Deva : affiché hors production seulement (voir
+  // piloteQueteCreerOuvrir). Elle propose, elle ne décide pas : rien n'est
+  // écrasé, tout reste modifiable, et la quête n'est jamais validée pour toi.
+  +   '<div id="pq-deva-aide" style="display:none;background:rgba(1,130,98,.05);border:1px solid rgba(1,130,98,.18);border-radius:12px;padding:.7rem .8rem;margin-bottom:.9rem">'
+  +     '<div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">'
+  +       '<span style="font-size:1.1rem">🌱</span>'
+  +       '<div style="flex:1;min-width:140px;font-size:.72rem;color:var(--moss);line-height:1.45">Deva peut proposer une première version : champs, étapes, matériel et preuve.</div>'
+  +       '<button type="button" id="pq-deva-btn" onclick="pqCreerDevaAide()" style="flex-shrink:0;background:var(--forest);color:#fff;border:none;border-radius:100px;padding:.45rem 1rem;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit">✨ Deva m\'aide</button>'
+  +     '</div>'
+  +     '<div id="pq-deva-etat" style="font-size:.7rem;color:var(--moss);margin-top:.5rem;line-height:1.5"></div>'
+  +   '</div>'
   +   '<label style="' + labelStyle + '" for="pq-create-titre">Titre de la quête *</label>'
   +   '<input id="pq-create-titre" style="' + inputStyle + '" placeholder="Ex : Planter la haie champêtre du verger">'
   +   '<label style="' + labelStyle + '" for="pq-create-desc">📝 Description</label>'
@@ -483,6 +494,13 @@ function piloteQueteCreerOuvrir(editId) {
     b.style.fontWeight = sel ? '800' : '600';
   });
   const hint = document.getElementById('pq-create-hint'); if (hint) hint.textContent = '';
+  // Coup de main de Deva : dev.evad.org, préview et local. Jamais en production.
+  const devaBox = document.getElementById('pq-deva-aide');
+  if (devaBox) {
+    var horsProd = !!(window.EVAD_SUPABASE_ENV && !window.EVAD_SUPABASE_ENV.isProd);
+    devaBox.style.display = horsProd ? 'block' : 'none';
+    var etat = document.getElementById('pq-deva-etat'); if (etat) etat.textContent = '';
+  }
 
   // Dates possibles : celles de la quête, sinon une ligne vide.
   const datesBox = document.getElementById('pq-create-dates'); if (datesBox) datesBox.innerHTML = '';
@@ -508,6 +526,160 @@ function piloteQueteCreerOuvrir(editId) {
 
   document.getElementById('pq-create-modal').style.display = 'block';
   setTimeout(() => { const t = document.getElementById('pq-create-titre'); if (t) t.focus(); }, 60);
+}
+
+/* ── Coup de main de Deva sur le formulaire de quête (hors production) ──────
+   Deva propose une première version : elle remplit les champs LAISSÉS VIDES et
+   suggère la preuve et les indicateurs qu'elle valide. Trois règles tenues ici :
+     - elle n'écrase jamais ce que le Pilote a déjà écrit ;
+     - elle ajoute des indicateurs, elle n'en retire aucun ;
+     - elle ne valide pas la quête à sa place, le bouton reste à lui.
+   Le modèle ne calcule aucune graine : le nombre proposé reste une suggestion
+   affichée dans un champ modifiable, comme le reste. */
+function pqDevaEtat(msg, erreur) {
+  const el = document.getElementById('pq-deva-etat');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.style.color = erreur ? 'var(--terracotta)' : 'var(--moss)';
+}
+
+// Contexte transmis : le lieu, l'espace visé, ce qui est déjà saisi, et les
+// listes fermées dans lesquelles Deva doit choisir (compétences, indicateurs).
+function pqDevaContexte() {
+  const val = (id) => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
+  const lieu = (typeof myLieuData !== 'undefined' && myLieuData) ? myLieuData : {};
+  const espSel = document.getElementById('pq-create-espace');
+  const cmp = document.getElementById('pq-create-competence');
+  const competences = cmp ? Array.from(cmp.options).map(o => o.text) : [];
+  const icis = Array.from(document.querySelectorAll('#pq-create-icis [data-ici]'))
+    .map(b => ({ id: b.getAttribute('data-ici'), nom: b.textContent.trim() }));
+  return {
+    lieu: { nom: lieu.nom || '', type: lieu.type || lieu.autreType || '', ville: lieu.localisation || lieu.ville || '' },
+    espace: espSel && espSel.selectedIndex >= 0 ? (espSel.options[espSel.selectedIndex] || {}).text || '' : '',
+    deja_saisi: {
+      titre: val('pq-create-titre'), description: val('pq-create-desc'),
+      duree: val('pq-create-duree'), participants: val('pq-create-nb'),
+      impact: val('pq-create-impact'), materiel: val('pq-create-materiel')
+    },
+    competences_possibles: competences,
+    indicateurs_possibles: icis
+  };
+}
+
+// Un modèle de langage répond rarement en JSON pur : on récupère le premier
+// objet complet du texte plutôt que d'échouer sur une phrase d'introduction.
+function pqDevaExtraireJson(texte) {
+  if (!texte) return null;
+  var t = String(texte).replace(/```json/gi, '```').split('```').join('\n');
+  var d = t.indexOf('{');
+  if (d < 0) return null;
+  var prof = 0;
+  for (var i = d; i < t.length; i++) {
+    if (t[i] === '{') prof++;
+    else if (t[i] === '}') { prof--; if (prof === 0) { try { return JSON.parse(t.slice(d, i + 1)); } catch (e) { return null; } } }
+  }
+  return null;
+}
+
+async function pqCreerDevaAide() {
+  const btn = document.getElementById('pq-deva-btn');
+  if (btn && btn.disabled) return;
+  if (typeof DEVA_API_URL === 'undefined' || !DEVA_API_URL) {
+    pqDevaEtat('Deva n\'est pas reliée à son moteur sur cet environnement.', true);
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.style.opacity = '.6'; btn.textContent = '… Deva réfléchit'; }
+  pqDevaEtat('Deva regarde ton lieu et prépare une proposition…');
+
+  const ctx = pqDevaContexte();
+  const consigne =
+      'Tu aides un Pilote de lieu régénératif à rédiger une quête, une action concrète que des Bâtisseurs viendront réaliser sur place. '
+    + 'Réponds UNIQUEMENT par un objet JSON, sans phrase autour, avec ces clés : '
+    + 'titre (string court), description (string, 2 phrases max), duree (string, ex "1 journée"), participants (string, ex "2-4 pers."), '
+    + 'graines (entier, reconnaissance par demi-journée et par personne, entre 10 et 60), competence (string, EXACTEMENT une valeur de competences_possibles), '
+    + 'impact (string court et mesurable), materiel (tableau de strings), etapes (tableau de 3 à 5 objets {titre, desc}), '
+    + 'preuve (string : ce que le Bâtisseur devra fournir pour prouver que l\'action est faite, concret et vérifiable), '
+    + 'indicateurs (tableau d\'id pris EXACTEMENT dans indicateurs_possibles, ceux que cette preuve permet de mesurer, 1 à 3). '
+    + 'N\'invente aucune valeur hors des listes fournies. Écris en français, tutoiement, sans vocabulaire marchand : '
+    + 'jamais de prix, de paiement, de salaire ni de rémunération. Les graines sont reçues en reconnaissance, jamais gagnées ni payées.';
+
+  try {
+    const r = await fetch(DEVA_API_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [
+        { role: 'system', content: consigne },
+        { role: 'user', content: JSON.stringify(ctx) }
+      ] })
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    const prop = pqDevaExtraireJson(data && data.reply);
+    if (!prop) throw new Error('réponse illisible');
+    const rempli = pqDevaAppliquer(prop);
+    pqDevaEtat(rempli.length
+      ? 'Deva a proposé : ' + rempli.join(', ') + '. Tout reste modifiable, et c\'est toi qui valides.'
+      : 'Tes champs étaient déjà remplis : Deva n\'a rien remplacé.');
+  } catch (e) {
+    pqDevaEtat('Deva n\'a pas pu répondre (' + (e.message || 'erreur') + '). Réessaie dans un instant.', true);
+  }
+  if (btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '✨ Deva m\'aide'; }
+}
+
+// Remplit les champs VIDES uniquement, et rend la liste de ce qui a été touché.
+function pqDevaAppliquer(p) {
+  const faits = [];
+  const setSiVide = (id, v, label) => {
+    const el = document.getElementById(id);
+    if (!el || v == null || String(v).trim() === '') return;
+    if (String(el.value || '').trim() !== '') return;
+    el.value = String(v).trim();
+    faits.push(label);
+  };
+  setSiVide('pq-create-titre', p.titre, 'le titre');
+  setSiVide('pq-create-desc', p.description, 'la description');
+  setSiVide('pq-create-duree', p.duree, 'la durée');
+  setSiVide('pq-create-nb', p.participants, 'le nombre de participants');
+  setSiVide('pq-create-graines', p.graines, 'les graines');
+  setSiVide('pq-create-impact', p.impact, 'l\'impact visé');
+  if (Array.isArray(p.materiel) && p.materiel.length) setSiVide('pq-create-materiel', p.materiel.join('\n'), 'le matériel');
+
+  // Compétence : seulement si le Pilote est resté sur « Aucune en particulier ».
+  const cmp = document.getElementById('pq-create-competence');
+  if (cmp && cmp.selectedIndex === 0 && p.competence) {
+    const i = Array.from(cmp.options).findIndex(o => o.text === p.competence || o.value === p.competence);
+    if (i > 0) { cmp.selectedIndex = i; faits.push('la compétence'); }
+  }
+
+  // Preuve : remplacée si vide OU si c'est encore la phrase par défaut.
+  const prv = document.getElementById('pq-create-preuve');
+  const defaut = 'Photos de l\'action réalisée + indicateurs mesurés.';
+  if (prv && p.preuve && (!prv.value.trim() || prv.value.trim() === defaut)) {
+    prv.value = String(p.preuve).trim();
+    faits.push('la preuve');
+  }
+
+  // Étapes : seulement si aucune n'est renseignée (le formulaire en pose une vide).
+  if (Array.isArray(p.etapes) && p.etapes.length && typeof pqCreerAddEtape === 'function') {
+    const titres = Array.from(document.querySelectorAll('#pq-create-etapes-list .pq-etape-titre'));
+    const vide = titres.every(t => !String(t.value || '').trim());
+    if (vide) {
+      const box = document.getElementById('pq-create-etapes-list');
+      if (box) box.innerHTML = '';
+      p.etapes.slice(0, 6).forEach(e => pqCreerAddEtape(e && e.titre, e && e.desc, false));
+      faits.push('les étapes');
+    }
+  }
+
+  // Indicateurs : on ajoute la sélection proposée, on n'en retire jamais.
+  if (Array.isArray(p.indicateurs) && p.indicateurs.length) {
+    let n = 0;
+    p.indicateurs.forEach(id => {
+      const b = document.querySelector('#pq-create-icis [data-ici="' + String(id).replace(/"/g, '') + '"]');
+      if (b && b.getAttribute('data-sel') !== '1') { pqCreerToggleIci(b); n++; }
+    });
+    if (n) faits.push(n + ' indicateur' + (n > 1 ? 's' : ''));
+  }
+  return faits;
 }
 
 function piloteQueteCreerFermer() {
