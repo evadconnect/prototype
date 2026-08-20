@@ -1,10 +1,10 @@
 /* ─── BOUCLE VADE réutilisable (Bâtisseur & Semeur) ───
-   Valoriser → Activer → Développer → Élever (charte des ICI). */
+   Valoriser → Activer → Développer → Essaimer (charte des ICI). */
 const REGEN_LOOP_NODES = [
   {letter:'V', name:'Valoriser',  color:'#018262', x:150, y:35},
   {letter:'A', name:'Activer',    color:'#2d6a9f', x:265, y:150},
   {letter:'D', name:'Développer', color:'#c8732a', x:150, y:265},
-  {letter:'E', name:'Élever',     color:'#6b5b95', x:35,  y:150},
+  {letter:'E', name:'Essaimer',     color:'#6b5b95', x:35,  y:150},
 ];
 const REGEN_PROFILE_CONTENT = {
   batisseur: { label:'Bâtisseur', steps:[
@@ -14,7 +14,7 @@ const REGEN_PROFILE_CONTENT = {
      taches:['Parcourir les quêtes ouvertes sur la carte','Rejoindre une quête alignée avec tes valeurs','Mobiliser ta communauté autour de l\'action']},
     {title:'Développer : prouver l\'impact', desc:'Réaliser les quêtes-preuve, documenter les preuves, gagner du Vade.', tags:['📊 Preuve','🪙 Vade'], outils:['Quêtes-preuve','Preuves','Monnaie Vade'],
      taches:['Contribuer sur le terrain','Documenter les preuves (photos, registres)','Recevoir ton Vade en contrepartie']},
-    {title:'Élever : nourrir le commun', desc:'Faire vérifier, partager tes retours, enrichir le référentiel commun.', tags:['🔍 Pairs','🌍 Commun'], outils:['Vérification pairs','Bibliothèque','Amendement du commun'],
+    {title:'Essaimer : nourrir le commun', desc:'Faire vérifier, partager tes retours, enrichir le référentiel commun.', tags:['🔍 Pairs','🌍 Commun'], outils:['Vérification pairs','Bibliothèque','Amendement du commun'],
      taches:['Faire vérifier tes preuves par les pairs','Partager ton retour d\'expérience','Enrichir les fiches des communs']},
   ]},
   semeur: { label:'Semeur', steps:[
@@ -24,7 +24,7 @@ const REGEN_PROFILE_CONTENT = {
      taches:['Engager des euros sur un ou plusieurs projets','Définir les paliers et jalons signés','Préciser ta thèse d\'investissement']},
     {title:'Développer : suivre la preuve', desc:'Suivre le fil en direct, vérifier la Vadité (impact réellement prouvé).', tags:['📊 Vadité','📈 Indice de confiance'], outils:['Mesure d\'impact','Attestation Vadité','Suivi en direct'],
      taches:['Suivre l\'avancée des quêtes en direct','Vérifier les preuves et l\'indice de confiance','Sécuriser la Vadité de ton financement']},
-    {title:'Élever : recevoir la Vadité', desc:'Recevoir l\'attestation Vadité et le dividende d\'impact, capitaliser.', tags:['📑 Attestation','📄 CSRD'], outils:['Attestation Vadité','Export CSRD','Dividende d\'impact'],
+    {title:'Essaimer : recevoir la Vadité', desc:'Recevoir l\'attestation Vadité et le dividende d\'impact, capitaliser.', tags:['📑 Attestation','📄 CSRD'], outils:['Attestation Vadité','Export CSRD','Dividende d\'impact'],
      taches:['Recevoir la Vadité (ΔVadance / CSRD)','Produire ton reporting CSRD','Toucher ton dividende d\'impact']},
   ]},
 };
@@ -43,7 +43,7 @@ function regenLoopBuild(prefix, profileKey){
     <div style="background:white;border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:1.3rem 1.4rem 1.5rem">
       <div style="margin-bottom:.4rem">
         <div style="font-family:'Satoshi', sans-serif;font-size:.95rem;font-weight:800;color:var(--ink)">🔄 Boucle VADE</div>
-        <div style="font-size:.63rem;color:var(--moss);opacity:.65;margin-top:.15rem;line-height:1.4">Valoriser → Activer → Développer → Élever : le même parcours pour les trois profils, clique une étape, puis coche les tâches à faire</div>
+        <div style="font-size:.63rem;color:var(--moss);opacity:.65;margin-top:.15rem;line-height:1.4">Valoriser → Activer → Développer → Essaimer : le même parcours pour les trois profils, clique une étape, puis coche les tâches à faire</div>
       </div>
       <div style="display:flex;justify-content:center">
         <div style="position:relative;width:300px;height:300px;margin:.4rem 0 .2rem">

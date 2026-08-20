@@ -156,42 +156,41 @@ let obSelectedScreen = null;
 
 /* ─── La spirale VADE dans l'étape 1, HORS PRODUCTION ───────────────────────
    L'étape 1 décrivait déjà un cycle en quatre temps, sans le nommer. On la
-   nomme : Valoriser, Activer, Développer, Élever, les quatre temps de la
+   nomme : Valoriser, Activer, Développer, Essaimer, les quatre temps de la
    charte des ICI, déclinés pour chaque profil. Pas d'étape en plus, donc un
    parcours qui ne s'allonge pas, et la spirale acquise dès le premier écran.
    Le contenu concret de chaque puce est conservé, seul le cadrage change.
 
-   ⚠️ Le « E » n'est pas tranché : l'app dit « Élever » (js/regen-loop.js), la
-   terminologie du site dit « Essaimer ». On suit ici le mot de l'app ; le jour
-   où le choix est fait, il n'y a qu'un endroit à corriger.
+   Le « E » est Essaimer, décidé le 2026-08-20 : ce que le lieu a appris se
+   répand ailleurs, il ne monte pas d'un étage. Même mot que sur le site.
 
    On ne touche pas aux littéraux d'origine : ils restent ceux de la production. */
 const OB_STEP1_VADE = {
   pilote: {
-    desc: 'Ton lieu avance en spirale, quatre temps qui se répètent et montent : valoriser, activer, développer, élever.',
+    desc: 'Ton lieu avance en spirale, quatre temps qui se répètent et montent : valoriser, activer, développer, essaimer.',
     steps: [
       { num: 'V', title: 'Valoriser · publie ton lieu', text: 'Décris ton projet, ses espaces, sa phase. Tu rends visible ce que ton lieu porte déjà, avant même d\'agir.' },
       { num: 'A', title: 'Activer · ouvre tes quêtes', text: 'Propose des actions concrètes. Les Bâtisseurs s\'en saisissent et contribuent avec leurs compétences.' },
       { num: 'D', title: 'Développer · fais grandir la preuve', text: 'Chaque contribution laisse une preuve vérifiable. Les Semeurs financent ce qui est prouvé, pas ce qui est promis.' },
-      { num: 'E', title: 'Élever · nourris le commun', text: 'Tes preuves enrichissent le référentiel partagé. Ton lieu monte d\'un cran, et le suivant part de plus haut.' }
+      { num: 'E', title: 'Essaimer · nourris le commun', text: 'Tes preuves enrichissent le référentiel partagé. Ton lieu monte d\'un cran, et le suivant part de plus haut.' }
     ]
   },
   batisseur: {
-    desc: 'Ta contribution avance en spirale, quatre temps qui se répètent et montent : valoriser, activer, développer, élever.',
+    desc: 'Ta contribution avance en spirale, quatre temps qui se répètent et montent : valoriser, activer, développer, essaimer.',
     steps: [
       { num: 'V', title: 'Valoriser · repère où tu comptes', text: 'Décris tes savoir-faire, ta dispo et ta zone. Deva te montre les lieux où tes compétences font la différence.' },
       { num: 'A', title: 'Activer · rejoins une quête', text: 'Filtre par compétence, date ou lieu. Engage-toi en un clic et coordonne avec le Pilote.' },
       { num: 'D', title: 'Développer · prouve ce que tu as fait', text: 'Photo, mesure ou témoignage : ta preuve est vérifiée, puis enregistrée de façon infalsifiable.' },
-      { num: 'E', title: 'Élever · nourris le commun', text: 'Tes preuves sont vérifiées par les pairs et ton retour d\'expérience enrichit les fiches partagées.' }
+      { num: 'E', title: 'Essaimer · nourris le commun', text: 'Tes preuves sont vérifiées par les pairs et ton retour d\'expérience enrichit les fiches partagées.' }
     ]
   },
   semeur: {
-    desc: 'Ton financement avance en spirale, quatre temps qui se répètent et montent : valoriser, activer, développer, élever.',
+    desc: 'Ton financement avance en spirale, quatre temps qui se répètent et montent : valoriser, activer, développer, essaimer.',
     steps: [
       { num: 'V', title: 'Valoriser · repère les lieux', text: 'Décris tes critères ESG et ton enveloppe. Deva te suggère les lieux compatibles et leur point de départ.' },
       { num: 'A', title: 'Activer · engage ton capital', text: 'Définis les paliers avec le Pilote. Les fonds se débloquent au fil des étapes validées, jamais d\'avance.' },
       { num: 'D', title: 'Développer · suis la preuve', text: 'Chaque étape est validée par les Bâtisseurs et vérifiée par EVAD, avec une preuve infalsifiable à la clé.' },
-      { num: 'E', title: 'Élever · capitalise', text: 'Un rapport auditable à la clôture, intégrable à ton CSRD, et un référentiel commun qui s\'enrichit de ton passage.' }
+      { num: 'E', title: 'Essaimer · ton exemple fait école', text: 'Un rapport auditable à la clôture, intégrable à ton CSRD, et une méthode que les lieux suivants reprennent à leur compte.' }
     ]
   }
 };
@@ -8638,7 +8637,7 @@ const EVAD_GLOSSARY = {
   vadite:  { ic: '✅', term: 'Vadité (preuve)', short: 'La part de cette promesse déjà prouvée par des documents.', ex: 'Chaque preuve déposée (facture, photo, mesure) fait monter la Vadité.' },
   taux:    { ic: '⚖️', term: 'Indice de confiance', short: 'Vadité ÷ Vadance : à quel point tu tiens tes promesses.', ex: '100 % = tout ce que tu promets est déjà prouvé.' },
   ici:     { ic: '📈', term: 'ICI · Indicateurs de Changement d’Impact', short: 'Les effets concrets et mesurables de ton lieu.', ex: 'Ex. 900 kg CO₂ évités/an · 12 personnes formées · 500 m² renaturés.' },
-  vade:    { ic: '🔄', term: 'Boucle VADE', short: 'Ton parcours : Valoriser → Activer → Développer → Élever.', ex: 'Les mêmes 4 étapes pour les trois profils EVAD.' },
+  vade:    { ic: '🔄', term: 'Boucle VADE', short: 'Ton parcours : Valoriser → Activer → Développer → Essaimer.', ex: 'Les mêmes 4 étapes pour les trois profils EVAD.' },
 };
 
 // Pastille « ? » cliquable à insérer juste après un terme jargon.
@@ -11978,7 +11977,7 @@ function updateApercuFromQuetes() {
 }
 
 /* ─── PARCOURS VADE (boucle + détail par étape) ─── */
-/* Boucle VADE (charte des ICI) : Valoriser → Activer → Développer → Élever.
+/* Boucle VADE (charte des ICI) : Valoriser → Activer → Développer → Essaimer.
    Un même parcours, un cran plus haut à chaque tour ; chaque étape outillée. */
 const VADE_STEPS = [
   {
@@ -12018,8 +12017,8 @@ const VADE_STEPS = [
     ],
   },
   {
-    letter: 'E', name: 'Élever', color: '#6b5b95',
-    title: 'Élever le commun',
+    letter: 'E', name: 'Essaimer', color: '#6b5b95',
+    title: 'Essaimer le commun',
     desc: 'Faire vérifier par les pairs et l’audit, puis faire remonter les retours dans le référentiel.',
     tags: ['🔍 Audit tiers', '🌍 Commun ouvert'],
     outils: ['Audit tiers', 'Passeport du lieu', 'Amendement du commun'],

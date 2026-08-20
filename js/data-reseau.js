@@ -7,7 +7,7 @@ const VADE_PHASES = {
   valoriser:  {label:'Valoriser',  letter:'V', color:'#018262'},
   activer:    {label:'Activer',    letter:'A', color:'#2d6a9f'},
   developper: {label:'Développer', letter:'D', color:'#c8732a'},
-  elever:     {label:'Élever',     letter:'E', color:'#6b5b95'},
+  elever:     {label:'Essaimer',     letter:'E', color:'#6b5b95'},
 };
 const RESEAU_POSTS = [];
 
