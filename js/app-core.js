@@ -389,10 +389,11 @@ function obRenderSVG() {
 }
 
 /* Étape 1 (hors production) · la spirale VADE.
-   Quatre temps sur une spirale qui s'ouvre : chaque tour reprend les mêmes
-   moments, mais plus loin du centre. Les libellés sont lus dans OB_STEP1_VADE,
-   celui-là même qu'affiche la colonne de gauche : impossible que le dessin et
-   le texte racontent deux histoires différentes. */
+   Quatre temps posés en anneau OUVERT : il n'y a volontairement pas d'arc
+   entre Essaimer et Valoriser. Un anneau fermé dirait une boucle, qui tourne
+   sans fin au même niveau ; ici le trait s'échappe vers le haut après Essaimer,
+   et c'est le tour suivant qui reprend à Valoriser, plus haut. Les lettres sont
+   lues dans OB_STEP1_VADE, celui-là même qu'affiche la colonne de gauche. */
 function svgSpiraleVade(svg, c, ca, role) {
   const cream = '#f2ecdb', sub = 'rgba(226,226,226,.5)';
   const src = (typeof OB_STEP1_VADE !== 'undefined' && OB_STEP1_VADE[role]) ? OB_STEP1_VADE[role].steps : [];
@@ -404,7 +405,6 @@ function svgSpiraleVade(svg, c, ca, role) {
     { lettre: 'D', nom: 'Développer', col: '#e8a55a', a: 90 },
     { lettre: 'E', nom: 'Essaimer',   col: '#9b8bc4', a: 180 }
   ];
-  const EMOJIS = { pilote: '🏡', batisseur: '🌿', semeur: '🌾' };
   const cx = 210, cy = 182, R = 104, rn = 25;
   const pt = function (a, r) {
     const rad = a * Math.PI / 180;
@@ -431,24 +431,14 @@ function svgSpiraleVade(svg, c, ca, role) {
   svg.innerHTML = `
     <defs>
       <marker id="sv-fin" markerWidth="10" markerHeight="10" refX="7" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#9b8bc4"/></marker>
-      <radialGradient id="sv-coeur"><stop offset="0" stop-color="${ca}" stop-opacity=".18"/><stop offset="1" stop-color="${ca}" stop-opacity="0"/></radialGradient>
     </defs>
 
-    <circle cx="${cx}" cy="${cy}" r="66" fill="url(#sv-coeur)"/>
-    <text x="${cx}" y="${cy - 10}" text-anchor="middle" font-size="9" font-weight="700" letter-spacing="4" fill="${sub}" font-family="Satoshi,sans-serif">SPIRALE</text>
-    <text x="${cx}" y="${cy + 16}" text-anchor="middle" font-size="26" font-weight="900" letter-spacing="1" fill="${cream}" font-family="Satoshi,sans-serif">VADE</text>
-    ${['pilote', 'batisseur', 'semeur'].map(function (r, i) {
-      const actif = r === role;
-      const x = cx - 26 + i * 26;
-      return `<g opacity="${actif ? 1 : .38}"><circle cx="${x}" cy="${cy + 38}" r="11" fill="${actif ? ca : 'rgba(255,255,255,.06)'}" fill-opacity="${actif ? .3 : 1}" stroke="${actif ? ca : 'rgba(255,255,255,.14)'}"/><text x="${x}" y="${cy + 42}" text-anchor="middle" font-size="11">${EMOJIS[r]}</text></g>`;
-    }).join('')}
-
-    ${TEMPS.map(function (t, i) { return arc(t.a, TEMPS[(i + 1) % 4].a + (i === 3 ? 360 : 0), t.col, i); }).join('')}
+    ${TEMPS.slice(0, 3).map(function (t, i) { return arc(t.a, TEMPS[i + 1].a, t.col, i); }).join('')}
 
     <path d="${sortie}" fill="none" stroke="#9b8bc4" stroke-width="2.4" stroke-linecap="round" marker-end="url(#sv-fin)" stroke-opacity="0">
       <animate attributeName="stroke-opacity" values="0;.9" dur=".6s" begin="1.05s" fill="freeze"/>
     </path>
-    <text x="150" y="34" text-anchor="middle" font-size="10.5" font-weight="700" fill="#b6a9db" font-family="Satoshi,sans-serif" opacity="0">un cran plus haut<animate attributeName="opacity" values="0;1" dur=".5s" begin="1.35s" fill="freeze"/></text>
+    <text x="120" y="28" text-anchor="middle" font-size="10.5" font-weight="700" fill="#b6a9db" font-family="Satoshi,sans-serif" opacity="0">un cran plus haut<animate attributeName="opacity" values="0;1" dur=".5s" begin="1.35s" fill="freeze"/></text>
 
     ${TEMPS.map(function (t, i) {
       const p = pt(t.a, R);
