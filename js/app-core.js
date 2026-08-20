@@ -12135,6 +12135,7 @@ function semFillProfile() {
 
 // Reflète le profil financeur créé dans le topbar, l'aperçu, le KPI ESRS et le portefeuille.
 function semReflectProfile() {
+  if (typeof semRenderCran === 'function') semRenderCran();
   const sd = (typeof semFicheData !== 'undefined') ? semFicheData : null;
   if (!sd) return;
   const has = (sd.nom || '').trim() !== '';
@@ -12147,6 +12148,35 @@ function semReflectProfile() {
   const ke = document.getElementById('sem-kpi-esrs'); if (ke) ke.textContent = esrs || '-';
   const pf = document.getElementById('sem-portefeuille-list');
   if (pf && has) pf.innerHTML = '<div style="padding:1rem;text-align:center;font-size:.72rem;color:var(--moss);opacity:.6">Aucun lieu financé pour l\'instant. Finance un lieu aligné ' + (sd.zone || 'ton territoire') + ' depuis la carte 🌱</div>';
+}
+
+// Le prochain cran du Semeur : profil RSE → cadres ESRS → financer un lieu.
+function semNextCran() {
+  const sd = (typeof semFicheData !== 'undefined' && semFicheData) ? semFicheData : {};
+  const hasFiche = (sd.nom || '').trim() !== '';
+  const esrs = (sd.selectedCadres || []).length || (sd.axes || []).length || (sd.selectedODD || []).length;
+  const goFiche = "showScreen('fiche-sem')";
+  const goQuetes = "semeurTab('quetes',document.getElementById('stab-quetes'))";
+  if (!hasFiche) return { icon:'✦',  title:'Configure ton profil RSE',            why:'Renseigne ton organisation : Deva alignera les lieux à financer sur tes objectifs extra-financiers.',                        from:0, to:1, val:0, unit:'profil',        cta:'Configurer mon profil',          onclick:goFiche };
+  if (!esrs)     return { icon:'📋', title:'Cible tes cadres ESRS',                why:'Choisis les axes et cadres CSRD que tu veux couvrir : on te proposera les lieux les plus alignés.',                          from:0, to:2, val:0, unit:'cadres ciblés', cta:'Compléter mon profil',           onclick:goFiche };
+  return              { icon:'💰', title:'Finance ton premier lieu à impact', why:'Ton profil est prêt. Soutiens une quête : les fonds se débloquent au fil des preuves validées, avec un reporting auditable.', from:0, to:1, val:0, unit:'lieu financé', cta:'Voir les quêtes à financer',    onclick:goQuetes };
+}
+
+// Remplit le bloc « Ton prochain cran » de l'aperçu Semeur.
+function semRenderCran() {
+  const c = (typeof semNextCran === 'function') ? semNextCran() : null;
+  if (!c) return;
+  const set = (id, fn) => { const el = document.getElementById(id); if (el) fn(el); };
+  set('sem-cran-icon',  el => el.textContent = c.icon);
+  set('sem-cran-title', el => el.textContent = c.title);
+  set('sem-cran-why',   el => el.textContent = c.why);
+  set('sem-cran-from',  el => el.textContent = c.unit + ' ' + c.val);
+  set('sem-cran-to',    el => el.textContent = 'objectif ' + c.to);
+  set('sem-cran-bar',   el => {
+    const pct = (c.to > c.from) ? Math.max(0, Math.min(100, Math.round(((c.val - c.from) / (c.to - c.from)) * 100))) : 0;
+    el.style.width = pct + '%';
+  });
+  set('sem-cran-cta',   el => { el.textContent = c.cta + ' →'; el.setAttribute('onclick', c.onclick); });
 }
 
 /* ─── QUÊTES À FINANCER (SEMEUR) ─── */
