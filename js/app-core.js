@@ -47,7 +47,7 @@ const OB_STEP2_SEMEUR = {
   type: 'cycle',
   steps: [
     { num: '📉', title: 'Une annonce est décotée', text: 'Un résultat simplement déclaré ne compte que pour un quart. Documenté, la moitié. Validé par les pairs, trois quarts. Audité seulement, il compte en entier.' },
-    { num: '⚖️', title: 'L\'indice de confiance, l\'anti-greenwashing', text: 'La part de la promesse réellement prouvée, affichée sur chaque lieu. Un écart qui se creuse se voit, avant que tu engages quoi que ce soit.' },
+    { num: '⚖️', title: 'L\'indice de confiance', text: 'La part de la promesse réellement prouvée, affichée sur chaque lieu. Un écart qui se creuse se voit, avant que tu engages quoi que ce soit.' },
     { num: '🔍', title: 'Chaque preuve est opposable', text: 'Horodatée, rattachée à un indicateur, rattachée à son auteur. Ce que tu inscris dans ton rapport, tu peux le montrer à un auditeur.' }
   ]
 };
@@ -366,7 +366,6 @@ function svgAntiGreenwashing(svg, c, ca) {
     <g transform="translate(210,44)">
       <rect x="-112" y="-17" width="224" height="32" rx="16" fill="${ca}" fill-opacity=".14" stroke="${ca}" stroke-opacity=".5"/>
       <text x="0" y="5" text-anchor="middle" font-size="12" font-weight="800" fill="${cream}" font-family="Satoshi,sans-serif">⚖️ Indice de confiance · ${indice} %</text>
-      <text x="0" y="30" text-anchor="middle" font-size="9" fill="${sub}" font-family="Satoshi,sans-serif">l'indicateur anti-greenwashing d'EVAD</text>
     </g>
 
     <line x1="56" y1="${base}" x2="384" y2="${base}" stroke="rgba(255,255,255,.18)"/>
