@@ -49,8 +49,10 @@ alter table public.recolte_acces
   add column if not exists hors_exploitation boolean not null default false;
 
 update public.recolte_acces
-   set hors_exploitation = coalesce((donnees->>'hors_exploitation')::boolean, false)
- where donnees ? 'hors_exploitation';
+   set hors_exploitation = case lower(coalesce(donnees->>'hors_exploitation',''))
+                             when 'true' then true when 't' then true when '1' then true
+                             else false end
+ where (donnees->>'hors_exploitation') is not null;
 
 -- 4) Renommer les index (cosmétique, sans échec si déjà fait)
 alter index if exists offres_mkt_lieu_idx   rename to recolte_acces_lieu_idx;
