@@ -251,6 +251,21 @@ function splashGoBdd(e) {
   }, 500);
 }
 function goBackToLinktree() {
+  // Vraie déconnexion : sans ça, Supabase garde la session en localStorage et
+  // un simple refresh la restaure (« reconnexion » au dernier compte). On ferme
+  // donc la session et on oublie le dernier rôle AVANT de revenir à l'accueil.
+  try { localStorage.removeItem('evad:last-role'); } catch (e) {}
+  try { window.EVAD_ROLES = null; window.EVAD_FICHES_FAITES = null; } catch (e) {}
+  try { if (typeof currentRole !== 'undefined') currentRole = null; } catch (e) {}
+  window.__evadRestored = true; // bloque toute restauration concurrente
+  try {
+    if (window.evadSupabase && window.evadSupabase.auth) {
+      // signOut vide la session locale immédiatement (le refresh ne la
+      // retrouvera plus), puis révoque le jeton côté serveur en tâche de fond.
+      Promise.resolve(window.evadSupabase.auth.signOut()).catch(function () {});
+    }
+  } catch (e) {}
+
   const splash = document.getElementById('evad-splash');
   // Réinitialiser tous les styles inline posés par les différents chemins d'entrée
   splash.style.opacity = '';

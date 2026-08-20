@@ -195,6 +195,13 @@ const EVAD_ROLE_META = {
 function evadUserRoles(user){
   const meta = (user && user.user_metadata) || {};
   const valid = ['pilote','batisseur','semeur'];
+  // Hors production (dev.evad.org, préview, local) : tout compte ouvre les trois
+  // profils, pour que l'équipe parcoure les trois espaces avec un seul compte
+  // sans toucher aux métadonnées. En production, les rôles restent ceux du
+  // compte : un bêta-testeur ne voit que ce à quoi il est invité.
+  try {
+    if (window.EVAD_SUPABASE_ENV && !window.EVAD_SUPABASE_ENV.isProd) return valid.slice();
+  } catch (e) {}
   let roles = Array.isArray(meta.roles) ? meta.roles.filter(function(r){ return valid.indexOf(r) !== -1; }) : [];
   if (!roles.length) roles = [ valid.indexOf(meta.role) !== -1 ? meta.role : 'batisseur' ];
   return roles;
