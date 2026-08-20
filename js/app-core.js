@@ -43,11 +43,11 @@ const OB_STEP2_BATISSEUR = {
 const OB_STEP2_SEMEUR = {
   eyebrow: 'Étape 2 · L\'anti-greenwashing',
   headline: 'Annoncer\nne suffit pas.',
-  desc: 'Un lieu peut annoncer ce qu\'il veut. EVAD ne compte que ce qu\'il peut montrer, et rend l\'écart visible par tous.',
+  desc: 'Un lieu peut annoncer ce qu\'il veut. EVAD ne compte que ce qu\'il peut montrer, et rend l\'écart visible par tous. C\'est le garde-fou anti-greenwashing du réseau, et ta protection de financeur.',
   type: 'cycle',
   steps: [
     { num: '📉', title: 'Une annonce est décotée', text: 'Un résultat simplement déclaré ne compte que pour un quart. Documenté, la moitié. Validé par les pairs, trois quarts. Audité seulement, il compte en entier.' },
-    { num: '⚖️', title: 'L\'écart est public', text: 'L\'indice de confiance, c\'est la part de la promesse réellement prouvée. Il se lit sur chaque lieu, avant que tu engages quoi que ce soit.' },
+    { num: '⚖️', title: 'L\'indice de confiance, l\'anti-greenwashing', text: 'La part de la promesse réellement prouvée, affichée sur chaque lieu. Un écart qui se creuse se voit, avant que tu engages quoi que ce soit.' },
     { num: '🔍', title: 'Chaque preuve est opposable', text: 'Horodatée, rattachée à un indicateur, rattachée à son auteur. Ce que tu inscris dans ton rapport, tu peux le montrer à un auditeur.' }
   ]
 };
@@ -316,9 +316,9 @@ function obRenderSVG() {
     // Récolte) : lui montrer le graphique Vadance/Vadité contredirait son texte.
     var _horsProd = false;
     try { _horsProd = !!(window.EVAD_SUPABASE_ENV && !window.EVAD_SUPABASE_ENV.isProd); } catch (e) {}
-    // Le Semeur garde le graphique promesse / preuve : l'indice de confiance
-    // qu'il affiche EST l'indicateur anti-greenwashing, donc le sujet de son
-    // étape. Seul le Bâtisseur a besoin d'une autre illustration.
+    // Hors production, le Bâtisseur et le Semeur ont chacun leur sujet, donc
+    // chacun son dessin. Le graphique Vadance / Vadité reste celui du Pilote,
+    // et celui des trois profils en production.
     if (_horsProd && obRole === 'batisseur') {
       svgGrainesRecolte(svg, c, ca);
     } else if (_horsProd && obRole === 'semeur') {
@@ -366,6 +366,7 @@ function svgAntiGreenwashing(svg, c, ca) {
     <g transform="translate(210,44)">
       <rect x="-112" y="-17" width="224" height="32" rx="16" fill="${ca}" fill-opacity=".14" stroke="${ca}" stroke-opacity=".5"/>
       <text x="0" y="5" text-anchor="middle" font-size="12" font-weight="800" fill="${cream}" font-family="Satoshi,sans-serif">⚖️ Indice de confiance · ${indice} %</text>
+      <text x="0" y="30" text-anchor="middle" font-size="9" fill="${sub}" font-family="Satoshi,sans-serif">l'indicateur anti-greenwashing d'EVAD</text>
     </g>
 
     <line x1="56" y1="${base}" x2="384" y2="${base}" stroke="rgba(255,255,255,.18)"/>
@@ -8805,6 +8806,7 @@ function batInitDashboard() {
 
 // Reflète le profil créé (batFicheData) dans le topbar + l'aperçu du dashboard.
 function batReflectProfile() {
+  if (typeof batRenderCran === 'function') batRenderCran();
   const fd = (typeof batFicheData !== 'undefined') ? batFicheData : null;
   if (!fd) return;
   const fullName = ((fd.prenom || '') + ' ' + (fd.nom || '')).trim();
@@ -8835,6 +8837,45 @@ function batReflectProfile() {
   if (kg) kg.textContent = graines;
   const kc = document.getElementById('bat-kpi-comp');
   if (kc) kc.textContent = nbComp || '-';
+}
+
+// Le prochain cran du Bâtisseur : un objectif clair, choisi selon son état
+// (fiche → compétences → 1re quête → 1re preuve → contribuer davantage).
+function batNextCran() {
+  const fd = (typeof batFicheData !== 'undefined' && batFicheData) ? batFicheData : {};
+  const hasName = ((fd.prenom || '') + (fd.nom || '')).trim() !== '';
+  const nbComp = (fd.skills || []).length;
+  const goFiche = "showScreen('fiche-bat')";
+  const goQuetes = "batTab('quetes',document.getElementById('btab-quetes'))";
+  const myBid = fd.id || null;
+  const joined = (typeof BAT_QUETES !== 'undefined') ? BAT_QUETES.filter(q => q.joined) : [];
+  const hasProof = (myBid && window.store)
+    ? store.where('quete_preuves', p => p && p.validee === true && p.batisseur_id === myBid).length > 0
+    : false;
+  const nbDone = joined.filter(q => q.statut === 'terminee').length;
+
+  if (!hasName)      return { icon:'✦',  title:'Crée ta fiche Bâtisseur',            why:'Présente-toi et déclare tes compétences : les lieux te proposeront des quêtes adaptées.',                     from:0, to:1,        val:0,      unit:'fiche à créer',     cta:'Créer ma fiche',      onclick:goFiche };
+  if (nbComp === 0)  return { icon:'🌿', title:'Ajoute tes compétences',             why:'Tes compétences déterminent les quêtes qui te correspondent le mieux.',                                       from:0, to:3,        val:0,      unit:'compétences',       cta:'Compléter ma fiche',  onclick:goFiche };
+  if (!joined.length) return { icon:'⚡', title:'Rejoins ta première quête',          why:'Passe à l\'action sur un lieu : c\'est le point de départ de ton impact.',                                     from:0, to:1,        val:0,      unit:'quête rejointe',    cta:'Voir les quêtes',     onclick:goQuetes };
+  if (!hasProof)     return { icon:'✅', title:'Valide ta première preuve',           why:'Réalise ta quête et fais valider la preuve : tu débloques tes graines de bienvenue et ta Vadité décolle.',    from:0, to:1,        val:0,      unit:'preuve validée',    cta:'Mes quêtes',          onclick:goQuetes };
+  return               { icon:'🚀', title:'Continue à faire pousser ton impact', why:'Bravo, ton impact est prouvé ! Rejoins de nouvelles quêtes pour aller plus loin.',                            from:0, to:nbDone + 1, val:nbDone, unit:'quêtes validées',   cta:'Voir les quêtes',     onclick:goQuetes };
+}
+
+// Remplit le bloc « Ton prochain cran » de l'aperçu Bâtisseur.
+function batRenderCran() {
+  const c = (typeof batNextCran === 'function') ? batNextCran() : null;
+  if (!c) return;
+  const set = (id, fn) => { const el = document.getElementById(id); if (el) fn(el); };
+  set('bat-cran-icon',  el => el.textContent = c.icon);
+  set('bat-cran-title', el => el.textContent = c.title);
+  set('bat-cran-why',   el => el.textContent = c.why);
+  set('bat-cran-from',  el => el.textContent = c.unit + ' ' + c.val);
+  set('bat-cran-to',    el => el.textContent = 'objectif ' + c.to);
+  set('bat-cran-bar',   el => {
+    const pct = (c.to > c.from) ? Math.max(0, Math.min(100, Math.round(((c.val - c.from) / (c.to - c.from)) * 100))) : 0;
+    el.style.width = pct + '%';
+  });
+  set('bat-cran-cta',   el => { el.textContent = c.cta + ' →'; el.setAttribute('onclick', c.onclick); });
 }
 
 // Solde de graines du bâtisseur, dérivé du profil :
