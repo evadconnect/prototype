@@ -258,10 +258,17 @@ function goBackToLinktree() {
   try { window.EVAD_ROLES = null; window.EVAD_FICHES_FAITES = null; } catch (e) {}
   try { if (typeof currentRole !== 'undefined') currentRole = null; } catch (e) {}
   window.__evadRestored = true; // bloque toute restauration concurrente
+  // Effacer tout de suite le jeton de session persistant (clé « sb-…-auth-token »)
+  // pour qu'un refresh immédiat, avant la fin du signOut asynchrone, ne retrouve
+  // aucune session.
+  try {
+    Object.keys(localStorage)
+      .filter(function (k) { return /^sb-.*-auth-token$/.test(k); })
+      .forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
+  } catch (e) {}
   try {
     if (window.evadSupabase && window.evadSupabase.auth) {
-      // signOut vide la session locale immédiatement (le refresh ne la
-      // retrouvera plus), puis révoque le jeton côté serveur en tâche de fond.
+      // signOut révoque aussi le jeton côté serveur, en tâche de fond.
       Promise.resolve(window.evadSupabase.auth.signOut()).catch(function () {});
     }
   } catch (e) {}
