@@ -167,30 +167,30 @@ let obSelectedScreen = null;
    On ne touche pas aux littéraux d'origine : ils restent ceux de la production. */
 const OB_STEP1_VADE = {
   pilote: {
-    desc: 'Ton lieu avance en spirale, quatre temps qui se répètent et montent : valoriser, activer, développer, essaimer.',
+    desc: 'Chaque action sur EVAD s\'inscrit dans une spirale : quatre temps qui se répètent, et qui montent d\'un cran à chaque tour.',
     steps: [
-      { num: 'V', title: 'Valoriser · publie ton lieu', text: 'Décris ton projet, ses espaces, sa phase. Tu rends visible ce que ton lieu porte déjà, avant même d\'agir.' },
-      { num: 'A', title: 'Activer · ouvre tes quêtes', text: 'Propose des actions concrètes. Les Bâtisseurs s\'en saisissent et contribuent avec leurs compétences.' },
-      { num: 'D', title: 'Développer · fais grandir la preuve', text: 'Chaque contribution laisse une preuve vérifiable. Les Semeurs financent ce qui est prouvé, pas ce qui est promis.' },
-      { num: 'E', title: 'Essaimer · nourris le commun', text: 'Tes preuves enrichissent le référentiel partagé. Ton lieu monte d\'un cran, et le suivant part de plus haut.' }
+      { num: 'V', title: 'Valoriser · publie ton lieu & tes quêtes', text: 'Décris ton projet, ses espaces, sa phase. Propose des missions à fort impact.' },
+      { num: 'A', title: 'Activer · les Bâtisseurs s\'engagent', text: 'Ils rejoignent tes quêtes, contribuent en compétences et génèrent des preuves vérifiables.' },
+      { num: 'D', title: 'Développer · les Semeurs financent', text: 'Entreprises et fondations soutiennent ton projet en échange de preuves d\'impact fiables.' },
+      { num: 'E', title: 'Essaimer · ton impact fait école', text: 'Chaque preuve validée fait grandir ton lieu, débloque de nouveaux financements et inspire les lieux suivants.' }
     ]
   },
   batisseur: {
-    desc: 'Ta contribution avance en spirale, quatre temps qui se répètent et montent : valoriser, activer, développer, essaimer.',
+    desc: 'Ta contribution s\'inscrit dans une spirale : quatre temps qui se répètent, et qui montent d\'un cran à chaque tour.',
     steps: [
-      { num: 'V', title: 'Valoriser · repère où tu comptes', text: 'Décris tes savoir-faire, ta dispo et ta zone. Deva te montre les lieux où tes compétences font la différence.' },
-      { num: 'A', title: 'Activer · rejoins une quête', text: 'Filtre par compétence, date ou lieu. Engage-toi en un clic et coordonne avec le Pilote.' },
-      { num: 'D', title: 'Développer · prouve ce que tu as fait', text: 'Photo, mesure ou témoignage : ta preuve est vérifiée, puis enregistrée de façon infalsifiable.' },
+      { num: 'V', title: 'Valoriser · crée ta fiche de compétences', text: 'Décris tes savoir-faire, ta dispo et ta zone d\'action. Deva te recommande les lieux compatibles.' },
+      { num: 'A', title: 'Activer · rejoins une quête sur la carte', text: 'Filtre par compétence, date ou lieu. Engage-toi en un clic et coordonne avec le Pilote.' },
+      { num: 'D', title: 'Développer · certifie ta contribution', text: 'Photo, mesure ou témoignage : ta preuve est vérifiée, puis enregistrée de façon infalsifiable.' },
       { num: 'E', title: 'Essaimer · nourris le commun', text: 'Tes preuves sont vérifiées par les pairs et ton retour d\'expérience enrichit les fiches partagées.' }
     ]
   },
   semeur: {
-    desc: 'Ton financement avance en spirale, quatre temps qui se répètent et montent : valoriser, activer, développer, essaimer.',
+    desc: 'Ton financement s\'inscrit dans une spirale : quatre temps qui se répètent, et qui montent d\'un cran à chaque tour.',
     steps: [
-      { num: 'V', title: 'Valoriser · repère les lieux', text: 'Décris tes critères ESG et ton enveloppe. Deva te suggère les lieux compatibles et leur point de départ.' },
-      { num: 'A', title: 'Activer · engage ton capital', text: 'Définis les paliers avec le Pilote. Les fonds se débloquent au fil des étapes validées, jamais d\'avance.' },
-      { num: 'D', title: 'Développer · suis la preuve', text: 'Chaque étape est validée par les Bâtisseurs et vérifiée par EVAD, avec une preuve infalsifiable à la clé.' },
-      { num: 'E', title: 'Essaimer · ton exemple fait école', text: 'Un rapport auditable à la clôture, intégrable à ton CSRD, et une méthode que les lieux suivants reprennent à leur compte.' }
+      { num: 'V', title: 'Valoriser · crée ta fiche financeur', text: 'Décris tes critères ESG, secteurs prioritaires et enveloppe. Deva te suggère les lieux compatibles.' },
+      { num: 'A', title: 'Activer · engage un lieu', text: 'Définis les paliers avec le Pilote. Les fonds se débloquent au fil des étapes validées, jamais d\'avance.' },
+      { num: 'D', title: 'Développer · suis les étapes & les preuves', text: 'Chaque étape est validée par les Bâtisseurs et vérifiée par EVAD, avec une preuve infalsifiable à la clé.' },
+      { num: 'E', title: 'Essaimer · ton exemple fait école', text: 'Un rapport auditable à la clôture, intégrable à ton CSRD, et une méthode que les lieux suivants reprennent.' }
     ]
   }
 };
@@ -361,7 +361,13 @@ function obRenderSVG() {
   const ca = d.accent;
 
   if (obStep === 0) {
-    if (obRole === 'pilote') svgPiloteCycle(svg, c, ca);
+    // Hors production, l'étape 1 est nommée en spirale VADE : le dessin la
+    // porte, plutôt que le triptyque des profils. Les libellés viennent du
+    // texte lui-même, donc les deux colonnes ne peuvent pas diverger.
+    var _spirale = false;
+    try { _spirale = !!(window.EVAD_SUPABASE_ENV && !window.EVAD_SUPABASE_ENV.isProd && typeof OB_STEP1_VADE !== 'undefined' && OB_STEP1_VADE[obRole]); } catch (e) {}
+    if (_spirale) svgSpiraleVade(svg, c, ca, obRole);
+    else if (obRole === 'pilote') svgPiloteCycle(svg, c, ca);
     else if (obRole === 'batisseur') svgBatCycle(svg, c, ca);
     else svgSemeurCycle(svg, c, ca);
   } else {
@@ -380,6 +386,76 @@ function obRenderSVG() {
       svgVadanceVadite(svg, c, ca);
     }
   }
+}
+
+/* Étape 1 (hors production) · la spirale VADE.
+   Quatre temps sur une spirale qui s'ouvre : chaque tour reprend les mêmes
+   moments, mais plus loin du centre. Les libellés sont lus dans OB_STEP1_VADE,
+   celui-là même qu'affiche la colonne de gauche : impossible que le dessin et
+   le texte racontent deux histoires différentes. */
+function svgSpiraleVade(svg, c, ca, role) {
+  const cream = '#f2ecdb', sub = 'rgba(226,226,226,.55)';
+  const src = (typeof OB_STEP1_VADE !== 'undefined' && OB_STEP1_VADE[role]) ? OB_STEP1_VADE[role].steps : [];
+  const cx = 180, cy = 178;
+  // Spirale d'Archimède : l'angle tourne d'un tour complet pendant que le rayon
+  // grandit. Un simple cercle ne dirait pas que le tour suivant repart plus haut.
+  const a0 = 160, a1 = 430, r0 = 46, r1 = 126;
+  const pos = function (a) {
+    const r = r0 + (a - a0) / (a1 - a0) * (r1 - r0);
+    const rad = a * Math.PI / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  };
+
+  let chemin = '';
+  for (let a = a0; a <= a1 + 0.1; a += 4) {
+    const p = pos(a);
+    chemin += (chemin ? ' L ' : 'M ') + p.x.toFixed(1) + ' ' + p.y.toFixed(1);
+  }
+
+  const temps = [a0, a0 + 90, a0 + 180, a0 + 270].map(function (a, i) {
+    const p = pos(a);
+    const st = src[i] || {};
+    // « Valoriser · publie ton lieu » : le moment, puis son détail.
+    const parts = String(st.title || '').split(' · ');
+    return {
+      x: Math.round(p.x), y: Math.round(p.y),
+      lettre: st.num || ['V', 'A', 'D', 'E'][i],
+      moment: parts[0] || '',
+      detail: parts.slice(1).join(' · '),
+      i: i
+    };
+  });
+
+  svg.setAttribute('viewBox', '0 0 420 360');
+  svg.innerHTML = `
+    <defs>
+      <marker id="sv-fin" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="${ca}"/></marker>
+      <filter id="sv-glow" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+
+    <g transform="translate(210,30)">
+      <rect x="-84" y="-16" width="168" height="30" rx="15" fill="${ca}" fill-opacity=".14" stroke="${ca}" stroke-opacity=".5"/>
+      <text x="0" y="5" text-anchor="middle" font-size="11.5" font-weight="800" fill="${cream}" font-family="Satoshi,sans-serif">🌀 La spirale VADE</text>
+    </g>
+
+    <path d="${chemin}" fill="none" stroke="${ca}" stroke-opacity=".4" stroke-width="2" stroke-dasharray="5 5" marker-end="url(#sv-fin)">
+      <animate attributeName="stroke-opacity" values="0;.4" dur="1s" begin=".1s" fill="freeze"/>
+    </path>
+
+    ${temps.map(function (t) {
+      const dernier = t.i === temps.length - 1;
+      const aDroite = t.x >= cx;
+      const lx = aDroite ? t.x + 27 : t.x - 27;
+      return `<g opacity="0"><animate attributeName="opacity" values="0;1" dur=".5s" begin="${0.3 + t.i * 0.22}s" fill="freeze"/>` +
+        `<circle cx="${t.x}" cy="${t.y}" r="20" fill="${ca}" fill-opacity="${(0.18 + t.i * 0.26).toFixed(2)}" stroke="${ca}" stroke-opacity=".85"${dernier ? ' filter="url(#sv-glow)"' : ''}/>` +
+        `<text x="${t.x}" y="${t.y + 6}" text-anchor="middle" font-size="15" font-weight="900" fill="${cream}" font-family="Satoshi,sans-serif">${t.lettre}</text>` +
+        `<text x="${lx}" y="${t.y - 2}" text-anchor="${aDroite ? 'start' : 'end'}" font-size="10.5" font-weight="700" fill="${cream}" font-family="Satoshi,sans-serif">${t.moment}</text>` +
+        `<text x="${lx}" y="${t.y + 11}" text-anchor="${aDroite ? 'start' : 'end'}" font-size="8" fill="${sub}" font-family="Satoshi,sans-serif">${t.detail}</text>` +
+        `</g>`;
+    }).join('')}
+
+    <text x="210" y="346" text-anchor="middle" font-size="10.5" font-weight="700" fill="${cream}" font-family="Satoshi,sans-serif">Le tour suivant repart plus haut 🌀</text>
+  `;
 }
 
 /* Étape 2 du Semeur (hors production) · l'anti-greenwashing en une image.
