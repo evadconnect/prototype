@@ -71,7 +71,7 @@ const OB_DATA = {
           { num: '1', title: 'Crée ta fiche et profil de compétences', text: 'Décris tes savoir-faire, ta dispo et ta zone d\'action. Deva te recommande les lieux compatibles.' },
           { num: '2', title: 'Rejoins une quête sur la carte', text: 'Filtre par compétence, date ou lieu. Engage-toi en un clic et coordonne avec le Pilote.' },
           { num: '3', title: 'Certifie ta contribution', text: 'Photo, mesure ou témoignage : ta preuve est vérifiée, puis enregistrée de façon infalsifiable.' },
-          { num: '4', title: 'Reçois et dépense tes graines', text: 'Échange tes graines contre des avantages locaux : paniers, stages, hébergements, formations.' }
+          { num: '4', title: 'Reçois et dépense tes graines', text: 'Déverrouille des accès locaux avec tes graines : ateliers, hébergements, formations, coups de main.' }
         ]
       },
       OB_STEP2
@@ -7684,10 +7684,10 @@ const DEVA_TOUR_PILOTE = [
   { screen: 'pilote', tab: 'quetes', title: 'Tes quêtes ⚡', text: 'Des actions concrètes pour ton lieu. Tu mobilises des bâtisseurs, ils déposent des preuves, et tu les valides.' },
   { screen: 'pilote', tab: 'dossiers', title: 'Ton jardin d\'impact 🌱', text: 'Chaque preuve validée fait pousser tes plantes. Plus tu prouves, plus ton jardin grandit.' },
   { screen: 'pilote', tab: 'fiche', title: 'Ta fiche lieu ✏️', text: 'Tu peux compléter et enrichir ton lieu ici à tout moment : plus c\'est précis, plus ta Vadance est juste.' },
-  { screen: 'pilote', tab: 'marketplace', title: 'Tes avantages 🛖', text: 'Dépose ici tes <b>biens et services payables en graines</b> (paniers, ateliers, hébergement, prêt de matériel…). Les bâtisseurs et membres du réseau viennent les échanger chez toi : l\'économie regen circule.' },
+  { screen: 'pilote', tab: 'marketplace', title: 'Ta Récolte 🤲', text: 'Ouvre ici des <b>accès que les Bâtisseurs déverrouillent avec leurs graines</b> (ateliers, hébergement, prêt de matériel…) : l\'économie regen circule.' },
   // ── Explore l'écosystème EVAD ──
   { screen: 'bdd', title: 'La bibliothèque 📚', text: 'Toutes les solutions, les indicateurs (ICI) et les ressources pour t\'inspirer et enrichir ton lieu.' },
-  { screen: 'marketplace', title: 'Les avantages 🛖', text: 'Propose des biens et services payables en graines, et dépense les tiens chez les autres lieux : l\'économie regen circule.' },
+  { screen: 'marketplace', title: 'la Récolte 🤲', text: 'Ouvre des accès déverrouillables en graines, et déverrouille ceux des autres lieux : l\'économie regen circule.' },
   // ── Fin ──
   { screen: 'pilote', tab: 'apercu', title: 'À toi de jouer ! 🌿', text: 'C\'est tout pour la visite. Une question ? Je suis toujours là, en bas à gauche. Bonne exploration !' },
 ];
@@ -7697,7 +7697,7 @@ const DEVA_TOUR_BATISSEUR = [
   { screen: 'quete', tab: 'apercu', title: 'Ton tableau de bord', text: 'Tu suis ici tes quêtes en cours, tes <b>graines</b> et ta progression, d\'un coup d\'œil.' },
   { screen: 'quete', tab: 'quetes', title: 'Tes quêtes ⚡', text: 'Rejoins des missions publiées par les Pilotes, agis sur le terrain et dépose tes preuves.' },
   { screen: 'quete', tab: 'competences', title: 'Tes compétences 🏅', text: 'Décris tes savoir-faire et ta disponibilité : on te proposera les quêtes qui te correspondent.' },
-  { screen: 'quete', tab: 'graines', title: 'Tes avantages 🛖', text: 'Échange les <b>graines</b> gagnées contre des paniers, ateliers, hébergements ou formations près de chez toi.' },
+  { screen: 'quete', tab: 'graines', title: 'Ta Récolte 🤲', text: 'Déverrouille avec tes <b>graines</b> des accès près de chez toi : ateliers, hébergements, formations, coups de main.' },
   { screen: 'bdd', title: 'La bibliothèque 📚', text: 'Toutes les solutions et ressources régénératives pour t\'inspirer.' },
   { screen: 'quete', tab: 'apercu', title: 'À toi de jouer ! 🌿', text: 'C\'est tout pour la visite. Une question ? Je suis toujours là, en bas à gauche. Bonne exploration !' }
 ];
@@ -10202,7 +10202,7 @@ function evadConfirmSale(txId) {
     evadGrainesMove({ type: tx.buyer_type, id: tx.buyer_id }, -prix, 'achat', 'Achat · ' + (tx.offer_titre || 'offre'), 'mkt_transactions', txId);
     evadGrainesMove({ type: tx.seller_type, id: tx.seller_id }, prix, 'vente', 'Vente · ' + (tx.offer_titre || 'offre') + ' à ' + (tx.buyer_nom || ''), 'mkt_transactions', txId);
   }
-  if (typeof mmBubble === 'function') mmBubble('✅ Remise confirmée · ' + (prix > 0 ? '+' + prix + ' graines reçues de ' + (tx.buyer_nom || 'l\'acheteur') : 'offre gratuite remise'));
+  if (typeof mmBubble === 'function') mmBubble('✅ Remise confirmée · ' + (prix > 0 ? '+' + prix + ' graines reçues de ' + (tx.buyer_nom || 'ce Bâtisseur') : 'accès gratuit ouvert'));
   try { window.dispatchEvent(new CustomEvent('evad:graines-changed')); } catch (e) {}
   if (typeof evadWalletRender === 'function') evadWalletRender();
 }
@@ -10930,16 +10930,16 @@ function mktOpenModal(id) {
   modal.style.display = 'flex';
 }
 
-// Escrow (double validation) : l'acheteur RÉSERVE (ses graines sont bloquées) ;
-// le vendeur confirme la remise dans son portefeuille → transfert effectif.
+// Escrow (double validation) : le Bâtisseur DÉVERROUILLE (ses graines sont
+// bloquées) ; le Pilote hôte confirme la remise de l'accès → transfert effectif.
 function mktConfirmBuy(id) {
   const o = mktAllOffres().find(x => x.id === id) || MKT_OFFRES[id];
   if (!o) return;
   const buyer = evadGrainesParty();
-  if (!buyer) { mmBubble('Crée ton profil pour échanger des graines'); return; }
+  if (!buyer) { mmBubble('Crée ton profil pour déverrouiller des accès'); return; }
   const prix = +o.prix || 0;
   const seller = evadOfferSeller(o);
-  if (seller.id && buyer.type === seller.type && buyer.id === seller.id) { mmBubble('C\'est ta propre offre 🙂'); return; }
+  if (seller.id && buyer.type === seller.type && buyer.id === seller.id) { mmBubble('C\'est ton propre accès 🙂'); return; }
   if (prix > 0 && evadGrainesDispo(buyer.type, buyer.id) < prix) { mmBubble('🔒 Graines insuffisantes'); return; }
   // Offre catalogue de démo (aucun vendeur réel) : achat direct, sans escrow.
   if (prix > 0 && !seller.id) {
@@ -10947,7 +10947,7 @@ function mktConfirmBuy(id) {
     const _m = MKT_OFFRES.find(x => x.id === id); if (_m && _m.stock != null) _m.stock = Math.max(0, _m.stock - 1);
     document.getElementById('mkt-modal').style.display = 'none';
     mktRender();
-    mmBubble(`✅ Échangé ! « ${o.titre} », −${prix} graines`);
+    mmBubble(`✅ Accès déverrouillé ! « ${o.titre} », −${prix} graines`);
     return;
   }
   const code = _mktCode();
@@ -12166,7 +12166,7 @@ function smktRender() {
       </div>
       <div class="smkt-footer">
         <div><div class="smkt-price">${o.prix > 0 ? '🌱 '+o.prix : '🎁 Gratuit'}</div><div style="font-size:.58rem;color:var(--moss);opacity:.6">${o.prix > 0 ? o.unite : 'accès libre'}</div></div>
-        <button class="smkt-btn ${canAfford ? 'smkt-btn-ok' : 'smkt-btn-no'}" onclick="event.stopPropagation();smktOpenModal(${o.id})">${canAfford ? (o.prix === 0 ? 'Réserver →' : 'Échanger →') : 'Insuffisant'}</button>
+        <button class="smkt-btn ${canAfford ? 'smkt-btn-ok' : 'smkt-btn-no'}" onclick="event.stopPropagation();smktOpenModal(${o.id})">${canAfford ? (o.prix === 0 ? 'Accéder →' : 'Déverrouiller →') : 'Insuffisant'}</button>
       </div>
     </div>`;
   }).join('');
@@ -12205,7 +12205,7 @@ function smktOpenModal(id) {
     </div>
     <div style="display:flex;gap:.6rem">
       ${canAfford
-        ? `<button class="btn btn-primary" style="flex:1;padding:.7rem" onclick="smktConfirmBuy(${o.id})">${o.prix === 0 ? '🎟 Réserver gratuitement' : '🌱 Confirmer l\'échange (−'+o.prix+' graines)'}</button>`
+        ? `<button class="btn btn-primary" style="flex:1;padding:.7rem" onclick="smktConfirmBuy(${o.id})">${o.prix === 0 ? '🎟 Accéder gratuitement' : '🌱 Déverrouiller (−'+o.prix+' graines)'}</button>`
         : `<button class="btn" style="flex:1;padding:.7rem;background:rgba(46,102,66,.08);color:var(--moss);cursor:default" disabled>🔒 graines insuffisants (manque ${o.prix - smktBalance})</button>`}
       <button class="btn btn-ghost" onclick="document.getElementById('smkt-modal').style.display='none'">Fermer</button>
     </div>`;
@@ -12223,7 +12223,7 @@ function smktConfirmBuy(id) {
   if (balMkt) balMkt.textContent = smktBalance.toLocaleString('fr-FR');
   document.getElementById('smkt-modal').style.display = 'none';
   smktRender();
-  mmBubble(`✅ Échangé ! "${o.titre}" chez ${o.lieu}, ${o.prix > 0 ? '−'+o.prix+' graines' : 'gratuit'} · Confirmation envoyée`);
+  mmBubble(`✅ Accès déverrouillé ! "${o.titre}" chez ${o.lieu}, ${o.prix > 0 ? '−'+o.prix+' graines' : 'gratuit'} · Confirmation envoyée`);
 }
 
 /* ─── MARKETPLACE BÂTISSEUR ─── */
@@ -12263,7 +12263,7 @@ function bmktRender() {
       </div>
       <div class="smkt-footer">
         <div><div class="smkt-price">${o.prix > 0 ? '🌱 '+o.prix : '🎁 Gratuit'}</div><div style="font-size:.58rem;color:var(--moss);opacity:.6">${o.prix > 0 ? o.unite : 'accès libre'}</div></div>
-        <button class="smkt-btn ${canAfford ? 'smkt-btn-ok' : 'smkt-btn-no'}" onclick="event.stopPropagation();bmktOpenModal(${o.id})">${canAfford ? (o.prix === 0 ? 'Réserver →' : 'Échanger →') : 'Insuffisant'}</button>
+        <button class="smkt-btn ${canAfford ? 'smkt-btn-ok' : 'smkt-btn-no'}" onclick="event.stopPropagation();bmktOpenModal(${o.id})">${canAfford ? (o.prix === 0 ? 'Accéder →' : 'Déverrouiller →') : 'Insuffisant'}</button>
       </div>
     </div>`;
   }).join('');
@@ -12299,7 +12299,7 @@ function bmktOpenModal(id) {
     </div>
     <div style="display:flex;gap:.6rem">
       ${canAfford
-        ? `<button class="btn btn-primary" style="flex:1;padding:.7rem" onclick="bmktConfirmBuy(${o.id})">${o.prix === 0 ? '🎟 Réserver gratuitement' : '🌱 Confirmer l\'échange (−'+o.prix+' graines)'}</button>`
+        ? `<button class="btn btn-primary" style="flex:1;padding:.7rem" onclick="bmktConfirmBuy(${o.id})">${o.prix === 0 ? '🎟 Accéder gratuitement' : '🌱 Déverrouiller (−'+o.prix+' graines)'}</button>`
         : `<button class="btn" style="flex:1;padding:.7rem;background:rgba(46,102,66,.08);color:var(--moss);cursor:default" disabled>🔒 Graines insuffisants (manque ${o.prix - mktBalance})</button>`}
       <button class="btn btn-ghost" onclick="document.getElementById('bmkt-modal').style.display='none'">Fermer</button>
     </div>`;
@@ -12314,7 +12314,7 @@ function bmktConfirmBuy(id) {
   if (balEl) balEl.textContent = mktBalance;
   document.getElementById('bmkt-modal').style.display = 'none';
   bmktRender();
-  mmBubble(`✅ Échangé ! "${o.titre}" chez ${o.lieu}, ${o.prix > 0 ? '−'+o.prix+' graines' : 'gratuit'} · Confirmation envoyée`);
+  mmBubble(`✅ Accès déverrouillé ! "${o.titre}" chez ${o.lieu}, ${o.prix > 0 ? '−'+o.prix+' graines' : 'gratuit'} · Confirmation envoyée`);
 }
 
 /* ─── BÂTISSEUR TABS JS ─── */

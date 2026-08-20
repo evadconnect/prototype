@@ -561,7 +561,7 @@
   // Chaque ligne est un mouvement signé (delta) rattaché à un « profil »
   // (party_type = pilote|batisseur|semeur, party_id = id du lieu / bâtisseur /
   // semeur). Le solde d'un profil = somme des delta. Partagé entre appareils et
-  // profils : le vendeur voit sa vente créditée, l'acheteur son débit.
+  // profils : le Pilote hôte voit son crédit, le Bâtisseur son débit.
   function remoteGrainesTxRow(row) {
     return {
       id: row.id,
@@ -658,9 +658,9 @@
   }
 
   // ── Transactions Marketplace (escrow / double validation) : mkt_transactions ──
-  // Un achat crée une transaction « en_attente » (graines de l'acheteur
-  // bloquées). Le vendeur confirme la remise → « confirmee » (transfert des
-  // graines via graines_tx). Annulable tant que non confirmée.
+  // Un déverrouillage crée une transaction « en_attente » (graines du Bâtisseur
+  // bloquées). Le Pilote hôte confirme la remise de l'accès → « confirmee »
+  // (transfert des graines via graines_tx). Annulable tant que non confirmée.
   function remoteMktTxRow(row) {
     return {
       id: row.id,
