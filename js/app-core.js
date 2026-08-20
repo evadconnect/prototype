@@ -1567,6 +1567,14 @@ function showScreen(id) {
   updateActiveNav(id);
   document.querySelector('.main').scrollTo(0,0);
 
+  // Mémoriser la dernière page stable pour y revenir au rafraîchissement. On
+  // ignore les écrans transitoires (détail de quête, assistants de création,
+  // onboarding, Compte) : y retomber après un refresh n'aurait pas de sens.
+  try {
+    const _stableScreens = { carte:1, quete:1, pilote:1, bdd:1, marketplace:1, semeur:1, reseau:1, modelisation:1, contribuer:1 };
+    if (_stableScreens[id]) localStorage.setItem('evad:last-screen', id);
+  } catch (e) {}
+
   if (!WIZARD_SCREENS.includes(id)) navWizardClear();
 
   if(id==='bdd'){ initBDD(); setTimeout(bddUpdateContext, 50); }
@@ -1581,12 +1589,12 @@ function showScreen(id) {
       if (_t) _t.innerHTML = "Besoin d'aide pour décrire ta solution ? Clique-moi, j'ai des idées 🌱";
     }
   }
-  if(id==='semeur') { semeurTab('apercu', document.getElementById('stab-apercu')); }
+  if(id==='semeur') { const _st=_evadDashEntryTab('semeur','apercu'); semeurTab(_st, document.getElementById('stab-'+_st)); }
   if(id==='carte') setTimeout(initRealMap, 80);
 
-  if(id==='quete') { batTab('apercu', document.getElementById('btab-apercu')); setTimeout(batInitDashboard, 60); }
+  if(id==='quete') { const _bt=_evadDashEntryTab('quete','apercu'); batTab(_bt, document.getElementById('btab-'+_bt)); setTimeout(batInitDashboard, 60); }
   if(id==='marketplace') setTimeout(mktRender, 50);
-  if(id==='pilote') { piloteTab('apercu', document.getElementById('ptab-apercu')); }
+  if(id==='pilote') { const _pt=_evadDashEntryTab('pilote','apercu'); piloteTab(_pt, document.getElementById('ptab-'+_pt)); }
   if(id==='fiche-bat') setTimeout(initFicheBat, 80);
   if(id==='fiche-sem') setTimeout(initFicheSem, 80);
   if(id==='quete-detail') setTimeout(renderQueteDetail, 50);
@@ -2796,8 +2804,40 @@ function evadEnterDashboard(role){
     updateRoleNavigation(role);
     if (typeof renderProfileContext === 'function') renderProfileContext();
     const dash = { pilote:'pilote', batisseur:'quete', semeur:'semeur' }[role] || 'carte';
-    if (typeof showScreen === 'function') showScreen(dash);
+    // Au rafraîchissement (pas à la connexion), revenir sur la dernière page
+    // consultée. L'onglet du tableau de bord est restauré dans showScreen, tant
+    // que __evadRestoring est vrai — on ne le remet à faux qu'ensuite.
+    const target = _evadRestoreScreen(role, dash);
+    if (typeof showScreen === 'function') showScreen(target);
+    window.__evadRestoring = false;
   }, 300);
+}
+
+// Écran à restaurer au rafraîchissement (sinon tableau de bord par défaut). Ne
+// restaure que si __evadRestoring est vrai (posé par evadRestoreSession) : à la
+// connexion normale, on garde le tableau de bord par défaut.
+function _evadRestoreScreen(role, defaultScreen){
+  if (!window.__evadRestoring) return defaultScreen;
+  let saved = null; try { saved = localStorage.getItem('evad:last-screen'); } catch (e) {}
+  const roleScreens = (ROLE_CONFIG[role] && ROLE_CONFIG[role].screens) ? ROLE_CONFIG[role].screens : {};
+  const shared = { carte:1, reseau:1, modelisation:1, contribuer:1 };
+  if (saved && saved !== 'creer'
+      && document.getElementById('screen-' + saved)
+      && (roleScreens[saved] || shared[saved])) {
+    return saved;
+  }
+  return defaultScreen;
+}
+
+// Onglet d'entrée d'un tableau de bord : l'onglet mémorisé (au refresh, s'il
+// existe encore), sinon l'onglet par défaut. En navigation normale, on garde
+// toujours le défaut.
+function _evadDashEntryTab(screen, def){
+  if (!window.__evadRestoring) return def;
+  let t = null; try { t = localStorage.getItem('evad:tab:' + screen); } catch (e) {}
+  const panelPrefix = { pilote:'pilote-panel-', quete:'bat-panel-', semeur:'semeur-panel-' }[screen];
+  if (t && panelPrefix && document.getElementById(panelPrefix + t)) return t;
+  return def;
 }
 
 function firstAllowedScreen(role){
@@ -11048,6 +11088,7 @@ function evadReflectLieuInDashboard() {
 }
 
 function piloteTab(tab, btn) {
+  try { localStorage.setItem('evad:tab:pilote', tab); } catch (e) {}
   evadReflectLieuInDashboard();
   document.querySelectorAll('.pilote-tab').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
@@ -11792,6 +11833,7 @@ function lqPiloteView(view, btn) {
 
 /* ─── SEMEUR TABS ─── */
 function semeurTab(tab, btn) {
+  try { localStorage.setItem('evad:tab:semeur', tab); } catch (e) {}
   document.querySelectorAll('.semeur-tab').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   document.querySelectorAll('.semeur-panel').forEach(p => p.classList.remove('active'));
@@ -12245,6 +12287,7 @@ function bmktConfirmBuy(id) {
 
 /* ─── BÂTISSEUR TABS JS ─── */
 function batTab(tab, btn) {
+  try { localStorage.setItem('evad:tab:quete', tab); } catch (e) {}
   document.querySelectorAll('.bat-tab').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   document.querySelectorAll('.bat-panel').forEach(p => p.classList.remove('active'));

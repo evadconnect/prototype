@@ -167,6 +167,7 @@ async function evadRestoreSession(){
   try { const { data } = await client.auth.getSession(); session = data && data.session; } catch (e) { return; }
   if (!session || !session.user) return;           // pas connecté → on laisse l'écran de connexion
   window.__evadRestored = true;
+  window.__evadRestoring = true;   // → evadEnterDashboard restaurera la dernière page/onglet
   const user = session.user;
   const roles = evadUserRoles(user);
   window.EVAD_ROLES = roles;
