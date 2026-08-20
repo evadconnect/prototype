@@ -55,7 +55,7 @@
       { screen: 'carte',       icon: '🗺',    label: 'Carte'  },
       { screen: rs.screen,     icon: rs.icon, label: rs.label },
       { screen: 'bdd',         icon: '📚',    label: 'Biblio' },
-      { screen: 'marketplace', icon: '🌾',    label: 'Récolte' },
+      { screen: 'marketplace', icon: '🤲',    label: 'Récolte' },
       { deva: true,            icon: '✦',     label: 'Deva'   }
     ];
     nav.innerHTML = items.map(function(item) {

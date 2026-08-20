@@ -118,7 +118,7 @@ function evadFeedbackEnsureDom(){
   +       '<option>🌍 Réseau</option>'
   +       '<option>📚 Bibliothèque</option>'
   +       '<option>🧊 Modélisation</option>'
-  +       '<option>🌾 la Récolte</option>'
+  +       '<option>🤲 la Récolte</option>'
   +       '<option>⚡ Les quêtes</option>'
   +       '<option>🏡 Création de fiche Pilote</option>'
   +       '<option>🌿 Création de fiche Bâtisseur</option>'

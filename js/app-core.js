@@ -1188,9 +1188,9 @@ function lieuRenderMarche() {
   offres = offres.filter(o => _lieuId ? (o.seller_id === _lieuId) : (o.lieu === _lieuNom));
 
   if (!offres.length) {
-    box.innerHTML = `<div class="acteur-section-title">🌾 la Récolte du lieu</div>
+    box.innerHTML = `<div class="acteur-section-title">🤲 la Récolte du lieu</div>
       <div style="padding:2rem 1rem;text-align:center;border:1.5px dashed rgba(46,102,66,.18);border-radius:var(--r-lg)">
-        <div style="font-size:1.4rem;margin-bottom:.5rem">🌾</div>
+        <div style="font-size:1.4rem;margin-bottom:.5rem">🤲</div>
         <div style="font-size:.75rem;font-weight:600;color:var(--ink);margin-bottom:.25rem">Aucun accès ouvert pour l'instant</div>
         <div style="font-size:.65rem;color:var(--moss);opacity:.6">Le Pilote ouvre des accès déverrouillables en graines depuis son tableau de bord (onglet la Récolte).</div>
       </div>`;
@@ -1220,7 +1220,7 @@ function lieuRenderMarche() {
     </div>`;
   }).join('');
 
-  box.innerHTML = `<div class="acteur-section-title">🌾 la Récolte du lieu · <span style="font-weight:400;opacity:.65">${offres.length} accès ouvert${offres.length > 1 ? 's' : ''}</span></div>
+  box.innerHTML = `<div class="acteur-section-title">🤲 la Récolte du lieu · <span style="font-weight:400;opacity:.65">${offres.length} accès ouvert${offres.length > 1 ? 's' : ''}</span></div>
     <div style="display:flex;flex-direction:column;gap:.6rem">${cards}</div>`;
 }
 
@@ -10519,7 +10519,7 @@ function pmktRenderOffers() {
   const noOffersAtAll = pmktOffers.length === 0;
   const exemples = ['📚 un atelier', '🤝 un coup de main', '🛠 un prêt de matériel', '🏛 une location de salle', '🏡 un hébergement'];
   const inviteHtml = '<div style="padding:1.8rem 1.6rem;text-align:center">'
-    + '<div style="font-size:2.2rem;margin-bottom:.5rem">🌾</div>'
+    + '<div style="font-size:2.2rem;margin-bottom:.5rem">🤲</div>'
     + '<div style="font-family:\'Satoshi\',sans-serif;font-size:1rem;font-weight:800;color:var(--ink);margin-bottom:.4rem">Fais vivre l\'économie de ton lieu</div>'
     + '<div style="font-size:.76rem;color:var(--moss);line-height:1.6;max-width:460px;margin:0 auto .9rem">Ouvre des <b>accès que les Bâtisseurs déverrouillent avec leurs graines</b>. Les graines circulent, et ton lieu devient un moteur d\'<b>économie locale régénérative</b>.</div>'
     + '<div style="display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;margin-bottom:1.1rem">' + exemples.map(e => '<span style="font-size:.66rem;color:var(--ink);background:rgba(46,102,66,.06);border:1px solid rgba(46,102,66,.12);border-radius:100px;padding:.25rem .6rem">' + e + '</span>').join('') + '</div>'
@@ -10689,7 +10689,7 @@ function pmktFormHtml(o) {
   // Texte d'aide sous un champ (même style partout).
   const help = (t) => `<div style="font-size:.66rem;color:var(--moss);opacity:.72;margin-top:.28rem;line-height:1.45">${t}</div>`;
   return `
-    <h2 style="font-family:'Satoshi', sans-serif;font-size:1.2rem;font-weight:900;color:var(--ink);margin-bottom:1.2rem">${o ? '✏️ Modifier l\'accès' : '🌾 Ouvrir un accès dans la Récolte'}</h2>
+    <h2 style="font-family:'Satoshi', sans-serif;font-size:1.2rem;font-weight:900;color:var(--ink);margin-bottom:1.2rem">${o ? '✏️ Modifier l\'accès' : '🤲 Ouvrir un accès dans la Récolte'}</h2>
     <div class="pmkt-form-row">
       <label class="pmkt-label">Intitulé de l'accès</label>
       <input class="pmkt-input" id="pf-titre" placeholder="Ex : atelier vannerie, samedi matin" value="${o ? o.titre : ''}">
@@ -10737,7 +10737,7 @@ function pmktFormHtml(o) {
     </label>
     <div id="pf-hint" style="font-size:.68rem;color:var(--terracotta);margin-top:.5rem;min-height:1rem"></div>
     <div style="display:flex;gap:.6rem;margin-top:.4rem">
-      <button class="btn btn-primary" style="flex:1;padding:.7rem" onclick="pmktSaveOffer()">${o ? '💾 Enregistrer les modifications' : '🌾 Ouvrir l\'accès'}</button>
+      <button class="btn btn-primary" style="flex:1;padding:.7rem" onclick="pmktSaveOffer()">${o ? '💾 Enregistrer les modifications' : '🤲 Ouvrir l\'accès'}</button>
       <button class="btn btn-ghost" onclick="document.getElementById('pmkt-modal').style.display='none'">Annuler</button>
     </div>`;
 }
@@ -10776,7 +10776,7 @@ function pmktSaveOffer() {
     const o = { id:newId, emoji, bg:'rgba(74,140,92,.1)', titre, cat, prix, stock, stockMax:stock, desc, date, hors_exploitation:horsExploitation, lieu_nom:(lieu || undefined), status:'active', vues:0, echanges:0 };
     pmktOffers.push(o);
     evadPersistOffre(o);
-    mmBubble(`Accès "${titre.substring(0,28)}…" ouvert dans la Récolte 🌾`);
+    mmBubble(`Accès "${titre.substring(0,28)}…" ouvert dans la Récolte 🤲`);
   }
   document.getElementById('pmkt-modal').style.display = 'none';
   pmktRenderOffers();
