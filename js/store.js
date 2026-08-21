@@ -491,6 +491,72 @@
       });
   }
 
+  /* ── Financements : engagements des Semeurs sur les quêtes ──
+     Partagés entre appareils et profils, sinon le Pilote ne verrait jamais
+     qui finance sa quête et le « reste à financer » resterait faux. */
+  function remoteFinancementRow(row) {
+    return {
+      id: row.id,
+      user_id: currentUserId || null,
+      quete_id: row.quete_id || null,
+      lieu_id: row.lieu_id || null,
+      semeur_id: row.semeur_id || null,
+      semeur_nom: row.semeur_nom || null,
+      montant: (typeof row.montant === 'number') ? row.montant : (parseInt(row.montant, 10) || 0),
+      statut: row.statut || 'engage',
+      donnees: row,
+      updated_at: nowISO()
+    };
+  }
+
+  function upsertFinancementRemote(row) {
+    if (!global.evadSupabase || !row || !row.id) return;
+    global.evadSupabase
+      .from('financements')
+      .upsert(remoteFinancementRow(row), { onConflict: 'id' })
+      .then(function (result) {
+        if (result.error) {
+          notifySyncError('Financement non enregistré en base : ' + result.error.message);
+        }
+      });
+  }
+
+  function deleteFinancementRemote(id) {
+    if (!global.evadSupabase || !id) return;
+    global.evadSupabase
+      .from('financements')
+      .delete()
+      .eq('id', id)
+      .then(function (result) {
+        if (result && result.error) {
+          notifySyncError('Financement non retiré de la base : ' + result.error.message);
+        }
+      });
+  }
+
+  async function hydrateFinancements() {
+    if (!global.evadSupabase) return;
+    try {
+      var result = await global.evadSupabase.from('financements').select('*');
+      if (result.error) {
+        console.warn('Lecture financements impossible : ' + result.error.message);
+        return;
+      }
+      var remoteRows = (result.data || []).map(function (row) {
+        return Object.assign({}, row.donnees || {}, {
+          id: row.id, quete_id: row.quete_id, lieu_id: row.lieu_id,
+          semeur_id: row.semeur_id, semeur_nom: row.semeur_nom,
+          montant: row.montant, statut: row.statut,
+          created_at: row.created_at, updated_at: row.updated_at
+        });
+      });
+      write('financements', remoteRows);
+      global.dispatchEvent(new CustomEvent('evad:financements-ready', { detail: { rows: remoteRows } }));
+    } catch (error) {
+      console.warn('Erreur de récupération financements :', error);
+    }
+  }
+
   function remotePreuveRow(row) {
     return {
       id: row.id,
@@ -1000,6 +1066,8 @@
         upsertCandidatureRemote(row);
       } else if (table === 'quete_preuves') {
         upsertPreuveRemote(row);
+      } else if (table === 'financements') {
+        upsertFinancementRemote(row);
       } else if (table === 'graines_tx') {
         upsertGrainesTxRemote(row);
       } else if (table === 'mkt_transactions') {
@@ -1057,6 +1125,8 @@
             upsertCandidatureRemote(rows[i]);
           } else if (table === 'quete_preuves') {
             upsertPreuveRemote(rows[i]);
+          } else if (table === 'financements') {
+            upsertFinancementRemote(rows[i]);
           } else if (table === 'graines_tx') {
             upsertGrainesTxRemote(rows[i]);
           } else if (table === 'mkt_transactions') {
@@ -1246,6 +1316,8 @@
   store.deleteQueteRemote = deleteQueteRemote;
   store.upsertQueteRemote = upsertQueteRemote;
   store.deleteCandidatureRemote = deleteCandidatureRemote;
+  store.deleteFinancementRemote = deleteFinancementRemote;
+  store.hydrateFinancements = hydrateFinancements;
   store.replaceLieuChildren = replaceLieuChildren;
   store.hydrateGraines = hydrateGraines;
   store.hydrateMktTx = hydrateMktTx;
@@ -1272,6 +1344,7 @@
         hydrateQuetes();
         hydrateCandidatures();
         hydratePreuves();
+        hydrateFinancements();
         hydrateGraines();
         hydrateMktTx();
         hydrateOffres();
@@ -1299,6 +1372,7 @@
         setTimeout(hydrateQuetes, 0);
         setTimeout(hydrateCandidatures, 0);
         setTimeout(hydratePreuves, 0);
+        setTimeout(hydrateFinancements, 0);
         setTimeout(hydrateGraines, 0);
         setTimeout(hydrateMktTx, 0);
         setTimeout(hydrateOffres, 0);

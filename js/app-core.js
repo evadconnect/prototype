@@ -10813,7 +10813,12 @@ function qdFinancer() {
   if (window.store) {
     try {
       const sid = _currentSemeurId(), qid = _persistQuete(q);
-      store.upsert('financements', { id: 'fin-' + sid + '-' + qid, semeur_id: sid, quete_id: qid, montant: q.financement.objectif });
+      const _qrowFin = qid ? store.get('quetes', qid) : null;
+      store.upsert('financements', {
+        id: 'fin-' + sid + '-' + qid, semeur_id: sid, semeur_nom: semNom,
+        quete_id: qid, lieu_id: (_qrowFin && _qrowFin.lieu_id) || null,
+        montant: q.financement.objectif, statut: 'engage'
+      });
       // Injection regen : le Semeur verse des graines (montant de la quête) au
       // lieu → ce sont elles qui alimentent la récompense du bâtisseur.
       const qrow = qid ? store.get('quetes', qid) : null;
