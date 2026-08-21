@@ -71,6 +71,26 @@
   var IGNORER = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, NOSCRIPT: 1, SVG: 1 };
   var ATTRIBUTS = ['placeholder', 'title', 'aria-label'];
 
+  // Le menu porte un nom à part : « Reconnaissance » plutôt que le nom du
+  // marché lui-même. On le traite après la traduction générale, sinon la règle
+  // « Récolte → Vaderie » repasserait devant.
+  function menuReconnaissance() {
+    try {
+      var cibles = document.querySelectorAll('[data-screen="marketplace"], [data-ecran="marketplace"]');
+      for (var i = 0; i < cibles.length; i++) {
+        var noeuds = cibles[i].childNodes;
+        for (var j = 0; j < noeuds.length; j++) {
+          var n = noeuds[j];
+          if (n.nodeType !== 3) continue;                       // texte seulement
+          if (!/Vaderie|Récolte|Reconnaissance/.test(n.nodeValue)) continue;
+          var t = n.nodeValue.replace(/\b[Ll]a\s+(Vaderie|Récolte)\b/g, 'Reconnaissance')
+                             .replace(/\b(Vaderie|Récolte)\b/g, 'Reconnaissance');
+          if (t !== n.nodeValue) n.nodeValue = t;
+        }
+      }
+    } catch (e) {}
+  }
+
   function parcourir(racine) {
     if (!racine) return;
     // Texte affiché.
@@ -101,6 +121,7 @@
         }
       }
     } catch (e) {}
+    menuReconnaissance();
   }
 
   // L'app redessine beaucoup : on repasse après chaque salve de mutations,
