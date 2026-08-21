@@ -2298,20 +2298,24 @@ body {
 .flux-chip.output { background:rgba(220,140,40,0.1);  color:#a06020; border-color:rgba(220,140,40,0.25); }
 
 /* ─── BÂTISSEUR TABS ─── */
+/* Onglets du Bâtisseur : mêmes pastilles que le Pilote et le Semeur. Ils
+   étaient soulignés d'un trait, seuls de leur espèce dans l'app. On garde le
+   défilement horizontal, utile ici où les onglets sont nombreux, et la valeur
+   de « top » propre à cet écran. */
 .bat-tabs {
-  display:flex; gap:0; padding:0 2rem;
+  display:flex; gap:0.3rem; padding:0.65rem 2rem;
   background:white; border-bottom:1px solid rgba(46,102,66,0.1);
   position:sticky; top:0; z-index:4; overflow-x:auto;
 }
 .bat-tab {
-  padding:0.72rem 1.1rem; border-radius:0;
+  padding:0.42rem 1rem; border-radius:100px;
   font-size:0.75rem; font-weight:500;
-  cursor:pointer; border:none; border-bottom:2.5px solid transparent;
+  cursor:pointer; border:1px solid transparent;
   font-family:'Satoshi', sans-serif; transition:all 0.18s;
   color:var(--moss); background:transparent; white-space:nowrap; flex-shrink:0;
 }
-.bat-tab:hover { color:var(--forest); background:rgba(46,102,66,0.04); }
-.bat-tab.active { color:var(--forest); border-bottom-color:var(--fern); font-weight:700; }
+.bat-tab:hover { background:rgba(46,102,66,0.06); }
+.bat-tab.active { background:var(--forest); color:var(--cream); font-weight:600; }
 .bat-panel { display:none; }
 .bat-panel.active { display:block; }
 .bad-cat-btn{padding:.3rem .65rem;border-radius:100px;font-size:.65rem;font-family:'Satoshi', sans-serif;cursor:pointer;border:1px solid rgba(46,102,66,.2);background:transparent;color:var(--moss);transition:all .15s;font-weight:500;}
