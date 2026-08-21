@@ -14182,7 +14182,7 @@ function semFicheRenderStep() {
         +'<div style="font-size:.72rem;font-weight:700;color:var(--ink)">💰 Projets à financer</div>'
         +'<div style="margin-left:auto;font-size:.65rem;font-weight:700;background:rgba(58,110,140,.12);color:var(--sky);padding:.1rem .5rem;border-radius:100px">'+projets.length+' projet'+(projets.length>1?'s':'')+'</div>'
       +'</div>'
-      +'<div style="font-size:.64rem;color:var(--moss);opacity:.75;margin-bottom:.9rem;line-height:1.55">Sélectionnés par Deva selon tes axes d\'impact. Clique sur « Détail » pour voir les quêtes à financer. <a onclick="semTrouverProjets()" style="color:var(--sky);cursor:pointer;text-decoration:underline">↻ Relancer</a></div>'
+      +'<div style="font-size:.64rem;color:var(--moss);opacity:.75;margin-bottom:.9rem;line-height:1.55">Sélectionnés par Deva selon tes axes d\'impact. Clique sur « Détail » pour voir leurs quêtes publiées, puis sur une quête pour l\'ouvrir et la retenir. <a onclick="semTrouverProjets()" style="color:var(--sky);cursor:pointer;text-decoration:underline">↻ Relancer</a></div>'
       + projets.map(p => {
           const col = colFor(p.match);
           const pct = p.objectif > 0 ? Math.round((p.montant / p.objectif) * 100) : 100;
@@ -14195,12 +14195,16 @@ function semFicheRenderStep() {
             panel = '<div style="margin-top:.6rem;border-top:1px solid rgba(46,102,66,.1);padding-top:.55rem">'
               +'<div style="font-size:.58rem;font-weight:700;color:var(--sky);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.45rem">⚡ Quêtes à financer · '+quetes.length+'</div>'
               + (quetes.length ? quetes.map(q => {
-                  return '<div style="display:flex;align-items:center;gap:.5rem;padding:.42rem .5rem;border-radius:8px;background:rgba(58,110,140,.04);margin-bottom:.32rem">'
+                  // Un clic ouvre le détail dans le panneau latéral, où la quête
+                  // se sélectionne ou se retire.
+                  const prise = fq.indexOf(q.id) >= 0;
+                  return '<div onclick="openSemQuetePanel('+p.idx+',\''+String(q.id).replace(/'/g,"\\'")+'\')" style="display:flex;align-items:center;gap:.5rem;padding:.42rem .5rem;border-radius:8px;cursor:pointer;transition:background .15s;background:'+(prise?'rgba(74,140,92,.1)':'rgba(58,110,140,.04)')+';margin-bottom:.32rem" onmouseover="this.style.background=\''+(prise?'rgba(74,140,92,.16)':'rgba(58,110,140,.09)')+'\'" onmouseout="this.style.background=\''+(prise?'rgba(74,140,92,.1)':'rgba(58,110,140,.04)')+'\'">'
                     +'<span style="font-size:.9rem;flex-shrink:0">'+q.ic+'</span>'
                     +'<div style="flex:1;min-width:0">'
-                      +'<div style="font-size:.68rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+q.titre+'</div>'
+                      +'<div style="font-size:.68rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+q.titre+(prise?' <span style="color:var(--fern);font-weight:800">✓</span>':'')+'</div>'
                       +'<div style="font-size:.57rem;color:var(--moss);opacity:.75">'+(q.duree?q.duree+' · ':'')+'<strong style="color:var(--amber);font-weight:800">'+q.restant+'€</strong> restant'+(q.esrs.length?' · '+q.esrs.map(e=>'ESRS '+e).join(' · '):'')+'</div>'
                     +'</div>'
+                    +'<span style="flex-shrink:0;font-size:.62rem;color:var(--sky);opacity:.7">›</span>'
                   +'</div>';
                 }).join('') : '<div style="font-size:.62rem;color:var(--moss);opacity:.6;padding:.3rem 0">Aucune quête publiée pour ce lieu.</div>')
             +'</div>';
@@ -14249,7 +14253,11 @@ function semProjetsAFinancer() {
     const montant  = Math.round(objectif * (0.15 + ((l.score || 60) % 40) / 100));
     const restant  = Math.max(0, objectif - montant);
     return { idx, nom:l.nom, type:l.type, ville:l.ville, icon:l.icon, score:l.score, match, objectif, montant, restant };
-  }).sort((a, b) => b.match - a.match);
+  })
+  // Un lieu sans quête publiée n'a rien à proposer : on ne le montre pas,
+  // plutôt que d'ouvrir un projet vide.
+  .filter(p => semProjetQuetes(p.idx).length > 0)
+  .sort((a, b) => b.match - a.match);
 }
 
 // Relance la recherche depuis la liste révélée (lien « ↻ Relancer ») :
@@ -14265,23 +14273,154 @@ function semTrouverProjets() {
 // un besoin de financement déterministe par quête.
 function semProjetQuetes(lieuIdx) {
   const l = (typeof MAP_PLACES !== 'undefined') ? MAP_PLACES[lieuIdx] : null;
-  const sols = (l && l.fiche && l.fiche.solutions) || [];
-  return sols.map((nom, j) => {
-    const sol = (typeof SOLS !== 'undefined') ? SOLS.find(s => s.nom === nom) : null;
-    if (!sol || !sol.quete) return null;
-    const tok = sol.tok || 50;
-    const objectif = 500 + tok * 8;                          // déterministe
-    const montant  = Math.round(objectif * (0.1 + ((j * 17) % 35) / 100));
-    const restant  = Math.max(0, objectif - montant);
-    return {
-      id: lieuIdx + '-' + j,
-      titre: sol.quete.titre,
-      ic: sol.img || '⚡',
-      duree: sol.quete.duree || '',
-      esrs: (sol.esrs || []).map(e => String(e).replace('ESRS ', '').trim()),
-      objectif, montant, restant
-    };
-  }).filter(Boolean);
+  const lieuId = l && l.fiche && l.fiche.id;
+  if (!lieuId || !window.store) return [];
+  // Uniquement les quêtes PUBLIÉES du lieu : un Semeur ne finance pas une
+  // intention. Avant, cette liste était dérivée des solutions de la fiche,
+  // ce qui affichait des quêtes qu'aucun Pilote n'avait mises en ligne.
+  return store.where('quetes', function (q) { return q.lieu_id === lieuId && q.statut === 'ouverte'; })
+    .map(function (q, j) {
+      const sol = (q.source && typeof SOLS !== 'undefined') ? SOLS.find(function (x) { return x.nom === q.source; }) : null;
+      const graines = parseInt(q.graines, 10) || (sol && sol.tok) || 50;
+      const objectif = 500 + graines * 8;                       // déterministe
+      const montant  = Math.round(objectif * (0.1 + ((j * 17) % 35) / 100));
+      return {
+        id: q.id, srcId: q.id, lieuIdx: lieuIdx,
+        titre: q.titre || (sol && sol.quete && sol.quete.titre) || 'Quête',
+        ic: q.sourceIc || (sol && sol.img) || '⚡',
+        duree: q.duree || (sol && sol.quete && sol.quete.duree) || '',
+        esrs: ((q.esrs && q.esrs.length) ? q.esrs : ((sol && sol.esrs) || [])).map(function (e) { return String(e).replace('ESRS ', '').trim(); }),
+        objectif: objectif, montant: montant, restant: Math.max(0, objectif - montant),
+        row: q, sol: sol
+      };
+    });
+}
+
+// Fiche quête complète attendue par renderQueteDetail, construite depuis une
+// ligne du store. Même forme que les entrées de BAT_QUETES, sans le matching.
+function _semQueteDetail(qq) {
+  const q = qq.row || {}, sol = qq.sol;
+  const l = (typeof MAP_PLACES !== 'undefined') ? MAP_PLACES[qq.lieuIdx] : null;
+  const _ind = (sol && typeof SOLS_INDICATORS !== 'undefined') ? SOLS_INDICATORS[sol.nom] : null;
+  const plan = (Array.isArray(q.plan) && q.plan.length) ? q.plan : ((_ind && _ind.plan) || []);
+  const materiel = (Array.isArray(q.materiel) && q.materiel.length) ? q.materiel : ((_ind && _ind.materiel) || []);
+  const icis = (Array.isArray(q.icis) && q.icis.length && typeof iciGetICI === 'function')
+    ? q.icis.map(function (id) { return iciGetICI(id); }).filter(Boolean)
+    : ((sol && typeof iciPourSolution === 'function') ? (iciPourSolution(sol.nom) || []) : []);
+  return {
+    id: 0, srcId: q.id, lieuId: q.lieu_id || null, statut: q.statut,
+    type: (q.sourceIc || (sol && sol.img) || '⚡') + ' ' + ((sol && sol.cat) || 'Quête'),
+    titre: qq.titre, lieu: (l && l.nom) || q.lieu_nom || 'Lieu EVAD',
+    pilote: (l && l.nom) || q.lieu_nom || 'Lieu EVAD',
+    ville: (l && l.ville) || q.adresse || '',
+    lieuLat: null, lieuLng: null,
+    desc: q.desc || (sol && sol.desc) || qq.titre,
+    impact: q.impact || (sol && sol.quete && sol.quete.impact_quete) || '',
+    competence: q.competence || '', solNom: sol ? sol.nom : '', solCat: (sol && sol.cat) || '',
+    plan: plan, materiel: materiel,
+    preuve: q.preuve || 'Photos de l\'action réalisée + indicateurs mesurés (avant / après).',
+    apprendre: q.competence ? ('Compétence : ' + q.competence) : (qq.titre || ''),
+    duree: qq.duree || '1 journée',
+    places: '0/' + (parseInt(q.nb, 10) || 6),
+    etape_actuelle: 1, etapes: plan.length || 4,
+    etapeLabels: plan.length ? plan.map(function (p) { return p.titre; }) : ['Lancement', 'Préparation', 'Réalisation', 'Certification'],
+    tokens: parseInt(q.graines, 10) || (sol && sol.tok) || 50, co2: (sol && sol.co2) || 0,
+    esrs: qq.esrs,
+    financement: { objectif: qq.objectif, montant: qq.montant, semeur: null },
+    equipe: [], joined: false, pending: false,
+    dateISO: q.dateISO || null, heure: q.heure || null,
+    icis: icis, dates: []
+  };
+}
+
+// ── Panneau latéral de l'assistant Semeur ──
+// Même geste que côté Bâtisseur : la quête s'ouvre à côté de la liste, on la
+// sélectionne ou non, et on revient sans avoir quitté l'assistant.
+function openSemQuetePanel(lieuIdx, queteId) {
+  const ov = document.getElementById('sem-quete-ov');
+  const box = document.getElementById('sem-quete-ov-box');
+  if (!ov || !box) return;
+  const qq = semProjetQuetes(lieuIdx).find(function (x) { return String(x.id) === String(queteId); });
+  if (!qq) return;
+
+  // Un seul panneau à la fois : on vide celui du Bâtisseur, qui utilise les
+  // mêmes identifiants qm-* pour que qdRerender puisse le rafraîchir.
+  const autre = document.getElementById('bat-quete-ov-box');
+  if (autre) autre.innerHTML = '';
+
+  window._batQueteInline = false;
+  window._semQueteInline = { lieuIdx: lieuIdx, queteId: queteId };
+  _qdQuestOverride = _semQueteDetail(qq);
+  _qdEditSection = null; _qdOpenSections = {};
+  _qdFrom = 'fiche-sem';
+  renderQueteDetail();
+
+  const choisie = (semFicheData._financedQuetes || []).indexOf(qq.id) >= 0;
+  box.innerHTML =
+      '<div style="position:sticky;top:0;background:#fff;padding:.95rem 1.3rem .8rem;border-bottom:1px solid rgba(46,102,66,.1);display:flex;align-items:flex-start;gap:.9rem;z-index:2">'
+    +   '<button class="btn btn-ghost" style="font-size:.72rem;padding:.32rem .8rem;flex-shrink:0" onclick="closeSemQuetePanel()">← Retour</button>'
+    +   '<div style="min-width:0">'
+    +     '<div class="topbar-title" id="qm-title" style="font-size:.95rem"></div>'
+    +     '<div class="topbar-sub" id="qm-sub"></div>'
+    +   '</div>'
+    + '</div>'
+    + '<div style="padding:1.1rem 1.3rem 1.6rem;display:flex;flex-direction:column;gap:1.1rem">'
+    +   '<div id="sem-quete-choix"></div>'
+    +   '<div id="qm-main" style="display:flex;flex-direction:column;gap:1.1rem"></div>'
+    +   '<div id="qm-panel" style="display:flex;flex-direction:column;gap:.9rem"></div>'
+    + '</div>';
+  refreshFicheQueteModal();
+  semQuetePanelBouton();
+
+  ov.style.display = 'block';
+  box.scrollTop = 0;
+  // Reflux forcé plutôt que requestAnimationFrame, qui ne se déclenche pas
+  // dans un onglet en arrière-plan.
+  void box.offsetWidth;
+  box.style.transform = 'translateX(0)';
+}
+
+// Bouton de sélection, redessiné seul pour ne pas rejouer tout le panneau.
+function semQuetePanelBouton() {
+  const zone = document.getElementById('sem-quete-choix');
+  const ctx = window._semQueteInline;
+  if (!zone || !ctx) return;
+  const choisie = (semFicheData._financedQuetes || []).indexOf(ctx.queteId) >= 0;
+  zone.innerHTML = choisie
+    ? '<button class="btn" style="width:100%;padding:.8rem;font-size:.82rem;background:rgba(74,140,92,.12);color:var(--fern);border:1px solid rgba(74,140,92,.35)" onclick="semQuetePanelToggle()">✓ Quête sélectionnée · retirer</button>'
+    : '<button class="btn btn-primary" style="width:100%;padding:.8rem;font-size:.82rem" onclick="semQuetePanelToggle()">＋ Sélectionner cette quête</button>';
+}
+
+function semQuetePanelToggle() {
+  const ctx = window._semQueteInline;
+  if (!ctx) return;
+  semFicheData._financedQuetes = semFicheData._financedQuetes || [];
+  semFicheData._finances = semFicheData._finances || [];
+  const i = semFicheData._financedQuetes.indexOf(ctx.queteId);
+  if (i >= 0) {
+    semFicheData._financedQuetes.splice(i, 1);
+    // Le lieu ne reste retenu que s'il lui reste au moins une quête choisie.
+    const reste = semProjetQuetes(ctx.lieuIdx).some(function (q) { return semFicheData._financedQuetes.indexOf(q.id) >= 0; });
+    if (!reste) {
+      const j = semFicheData._finances.indexOf(ctx.lieuIdx);
+      if (j >= 0) semFicheData._finances.splice(j, 1);
+    }
+  } else {
+    semFicheData._financedQuetes.push(ctx.queteId);
+    if (semFicheData._finances.indexOf(ctx.lieuIdx) < 0) semFicheData._finances.push(ctx.lieuIdx);
+    const l = (typeof MAP_PLACES !== 'undefined') ? MAP_PLACES[ctx.lieuIdx] : null;
+    if (typeof mmBubble === 'function') mmBubble('💰 Quête retenue chez « ' + ((l && l.nom) || 'ce lieu') + ' »');
+  }
+  semQuetePanelBouton();
+  semFicheRenderStep();
+}
+
+function closeSemQuetePanel() {
+  const ov = document.getElementById('sem-quete-ov');
+  const box = document.getElementById('sem-quete-ov-box');
+  window._semQueteInline = null;
+  if (box) box.style.transform = 'translateX(-100%)';
+  if (ov) setTimeout(function () { ov.style.display = 'none'; }, 320);
 }
 
 // Déplie / replie les quêtes à financer d'un projet.
