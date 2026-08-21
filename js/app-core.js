@@ -4470,6 +4470,22 @@ function bddRenderListQuetes(el,q){
 
 // Fiche quête (panneau détail) : les champs de la table quetes + liens croisés.
 // targetEl optionnel : permet d'afficher la fiche ailleurs (ex. modale du wizard).
+/* Budget matériel d'un modèle de quête de la Bibliothèque.
+   Il n'y a pas de prix sur les lignes de matériel : on s'appuie sur le coût
+   d'investissement structuré de la solution (cout_fixe + cout_unitaire × la
+   dimension de l'espace). Ici aucun espace n'est connu, donc on annonce la
+   part fixe comme un plancher quand un coût à la dimension existe, plutôt
+   qu'un total qui serait faux. */
+function _bddBudgetSol(s) {
+  if (!s || typeof evadCoutSolEstime !== 'function') return '—';
+  const base = evadCoutSolEstime(s, null);
+  if (!(base > 0)) return '— (non chiffré)';
+  const parDim = (s.coutUnitaire > 0);
+  const unite = s.coutDimension === 'usager' ? '/ pers.' : '/ m²';
+  return (parDim ? 'à partir de ' : '') + Math.round(base) + ' €'
+       + (parDim ? ' <span style="opacity:.7;font-weight:400">+ ' + s.coutUnitaire + ' € ' + unite + '</span>' : '');
+}
+
 function bddQueteDetailByIdx(i, targetEl){
   const s=SOLS[i]; if(!s||!s.quete) return;
   const el=targetEl||document.getElementById('bdd-detail'); if(!el) return;
@@ -4508,6 +4524,7 @@ function bddQueteDetailByIdx(i, targetEl){
         +champ('Durée', s.quete.duree||'-')
         +champ('Participants', s.quete.nb||'-')
         +champ('Graines gagnées', '🌱 '+(s.tok||50))
+        +champ('Budget matériel', _bddBudgetSol(s))
         +champ('Date de rencontre', 'À définir à la publication')
       +'</div>'
       // Description
