@@ -550,8 +550,17 @@
           created_at: row.created_at, updated_at: row.updated_at
         });
       });
-      write('financements', remoteRows);
-      global.dispatchEvent(new CustomEvent('evad:financements-ready', { detail: { rows: remoteRows } }));
+      // ⚠️ Ne pas écraser bêtement le local : les engagements pris AVANT que
+      // cette table existe ne vivent que dans le navigateur. Un simple write
+      // les effacerait au premier chargement. On pousse donc ceux que le
+      // distant ne connaît pas, puis on garde l'union.
+      var connus = {};
+      remoteRows.forEach(function (r) { connus[r.id] = true; });
+      var orphelins = read('financements').filter(function (r) { return r && r.id && !connus[r.id]; });
+      orphelins.forEach(function (r) { try { upsertFinancementRemote(r); } catch (e) {} });
+      var fusion = remoteRows.concat(orphelins);
+      write('financements', fusion);
+      global.dispatchEvent(new CustomEvent('evad:financements-ready', { detail: { rows: fusion } }));
     } catch (error) {
       console.warn('Erreur de récupération financements :', error);
     }
