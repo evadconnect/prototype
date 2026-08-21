@@ -8970,7 +8970,7 @@ function batReflectProfile() {
   const has = fullName !== '';
   const sub = document.getElementById('bat-topbar-sub');
   if (sub) sub.textContent = has
-    ? (fullName + " · Bâtisseur d'impact" + (fd.ville ? ' · ' + fd.ville : '') + ' · profil complété ✓')
+    ? ("Bâtisseur d'impact" + (fd.ville ? ' · ' + fd.ville : '') + ' · profil complété ✓')
     : "Bâtisseur d'impact · Complète ton profil pour commencer";
   const title = document.getElementById('bat-topbar-title');
   if (title) title.textContent = has ? ('🌿 ' + fullName) : '🌿 Mon profil';
