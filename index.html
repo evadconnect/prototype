@@ -927,50 +927,8 @@
         <div id="apercu-plancher-alert" style="display:none;background:rgba(200,115,42,.08);border:1px solid rgba(200,115,42,.3);border-radius:var(--r);padding:.7rem .85rem;font-size:.68rem;color:#9a4a1a;line-height:1.5;margin-top:.5rem"></div>
       </div>
 
-      <!-- BOUCLE VADE -->
-      <div id="regen-parcours" style="background:white;border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:1.3rem 1.4rem 1.5rem;margin-bottom:.9rem">
-        <div style="margin-bottom:.4rem">
-          <div style="font-family:'Satoshi', sans-serif;font-size:.95rem;font-weight:800;color:var(--ink)">🔄 Boucle VADE · ton parcours</div>
-          <div style="font-size:.63rem;color:var(--moss);opacity:.65;margin-top:.15rem;line-height:1.4">Valoriser → Activer → Développer → Essaimer. Tu as déjà franchi les premières étapes en créant ton lieu ✅, clique une étape pour voir les tâches restantes.</div>
-        </div>
-
-        <div style="display:flex;justify-content:center">
-          <div style="position:relative;width:300px;height:300px;margin:.4rem 0 .2rem">
-            <svg width="300" height="300" viewBox="0 0 300 300" style="position:absolute;inset:0;pointer-events:none">
-              <circle cx="150" cy="150" r="115" fill="none" stroke="rgba(46,102,66,.18)" stroke-width="1.5"/>
-              <g fill="var(--sage)">
-                <path d="M -5 -4 L 5 0 L -5 4 Z" transform="translate(231.3 68.7) rotate(45)"/>
-                <path d="M -5 -4 L 5 0 L -5 4 Z" transform="translate(231.3 231.3) rotate(135)"/>
-                <path d="M -5 -4 L 5 0 L -5 4 Z" transform="translate(68.7 231.3) rotate(225)"/>
-                <path d="M -5 -4 L 5 0 L -5 4 Z" transform="translate(68.7 68.7) rotate(315)"/>
-              </g>
-            </svg>
-            <div style="position:absolute;left:150px;top:150px;transform:translate(-50%,-50%);width:152px;height:152px;border-radius:50%;background:white;border:1px solid rgba(46,102,66,.1);box-shadow:0 2px 14px rgba(46,102,66,.07);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
-              <div style="font-size:.5rem;color:var(--sage);text-transform:uppercase;letter-spacing:.16em;font-weight:700">Tâches faites</div>
-              <div id="regen-center-score" style="font-family:'Satoshi', sans-serif;font-size:1.5rem;font-weight:900;color:#018262;line-height:1;margin:.2rem 0 .05rem">0<span style="font-size:.62rem;font-weight:700;opacity:.45">/12</span></div>
-              <div id="regen-center-sub" style="font-size:.6rem;color:var(--moss);opacity:.65">🌱 à démarrer</div>
-            </div>
-            <div onclick="regenSelect(0)" style="position:absolute;left:150px;top:35px;transform:translate(-50%,-22px);text-align:center;cursor:pointer">
-              <div id="rn-circ-0" style="width:44px;height:44px;border-radius:50%;background:white;border:2.5px solid #018262;color:#018262;display:flex;align-items:center;justify-content:center;font-family:'Satoshi', sans-serif;font-weight:900;font-size:1.05rem;margin:0 auto;transition:all .2s">V</div>
-              <div id="rn-lbl-0" style="font-size:.62rem;color:var(--moss);font-weight:600;margin-top:.3rem">Valoriser</div>
-            </div>
-            <div onclick="regenSelect(1)" style="position:absolute;left:265px;top:150px;transform:translate(-50%,-22px);text-align:center;cursor:pointer">
-              <div id="rn-circ-1" style="width:44px;height:44px;border-radius:50%;background:white;border:2.5px solid #2d6a9f;color:#2d6a9f;display:flex;align-items:center;justify-content:center;font-family:'Satoshi', sans-serif;font-weight:900;font-size:1.05rem;margin:0 auto;transition:all .2s">A</div>
-              <div id="rn-lbl-1" style="font-size:.62rem;color:var(--moss);font-weight:600;margin-top:.3rem">Activer</div>
-            </div>
-            <div onclick="regenSelect(2)" style="position:absolute;left:150px;top:265px;transform:translate(-50%,-22px);text-align:center;cursor:pointer">
-              <div id="rn-circ-2" style="width:44px;height:44px;border-radius:50%;background:white;border:2.5px solid #c8732a;color:#c8732a;display:flex;align-items:center;justify-content:center;font-family:'Satoshi', sans-serif;font-weight:900;font-size:1.05rem;margin:0 auto;transition:all .2s">D</div>
-              <div id="rn-lbl-2" style="font-size:.62rem;color:var(--moss);font-weight:600;margin-top:.3rem">Développer</div>
-            </div>
-            <div onclick="regenSelect(3)" style="position:absolute;left:35px;top:150px;transform:translate(-50%,-22px);text-align:center;cursor:pointer">
-              <div id="rn-circ-3" style="width:44px;height:44px;border-radius:50%;background:white;border:2.5px solid #6b5b95;color:#6b5b95;display:flex;align-items:center;justify-content:center;font-family:'Satoshi', sans-serif;font-weight:900;font-size:1.05rem;margin:0 auto;transition:all .2s">E</div>
-              <div id="rn-lbl-3" style="font-size:.62rem;color:var(--moss);font-weight:600;margin-top:.3rem">Essaimer</div>
-            </div>
-          </div>
-        </div>
-
-        <div id="regen-detail" style="border-top:1px solid rgba(46,102,66,.1);margin-top:.4rem;padding-top:1.2rem"></div>
-      </div>
+      <!-- SPIRALE VADE (composant unifié, cf. js/regen-loop.js) -->
+      <div id="regenP" style="margin-bottom:.9rem"></div>
 
       <!-- RACCOURCIS -->
       <div style="font-size:.6rem;font-weight:700;color:var(--moss);opacity:.55;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.5rem">Raccourcis</div>
@@ -1513,7 +1471,7 @@
 
 <script src="js/data-reseau.js?v=294"></script>
 
-<script src="js/regen-loop.js?v=294"></script>
+<script src="js/regen-loop.js?v=295"></script>
 
 <!-- Modale ajout/édition offre Pilote -->
 <div id="pmkt-modal" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(14,26,18,0.75);backdrop-filter:blur(6px);align-items:center;justify-content:center">
