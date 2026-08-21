@@ -71,7 +71,7 @@
   var IGNORER = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, NOSCRIPT: 1, SVG: 1 };
   var ATTRIBUTS = ['placeholder', 'title', 'aria-label'];
 
-  // Le menu porte un nom à part : « Reconnaissance » plutôt que le nom du
+  // Le menu porte un nom à part : « Reconnaissances » plutôt que le nom du
   // marché lui-même. On le traite après la traduction générale, sinon la règle
   // « Récolte → Vaderie » repasserait devant.
   function menuReconnaissance() {
@@ -82,9 +82,9 @@
         for (var j = 0; j < noeuds.length; j++) {
           var n = noeuds[j];
           if (n.nodeType !== 3) continue;                       // texte seulement
-          if (!/Vaderie|Récolte|Reconnaissance/.test(n.nodeValue)) continue;
-          var t = n.nodeValue.replace(/\b[Ll]a\s+(Vaderie|Récolte)\b/g, 'Reconnaissance')
-                             .replace(/\b(Vaderie|Récolte)\b/g, 'Reconnaissance');
+          if (!/Vaderie|Récolte|Reconnaissances?/.test(n.nodeValue)) continue;
+          var t = n.nodeValue.replace(/\b[Ll]a\s+(Vaderie|Récolte)\b/g, 'Reconnaissances')
+                             .replace(/\b(Vaderie|Récolte)\b/g, 'Reconnaissances');
           if (t !== n.nodeValue) n.nodeValue = t;
         }
       }
