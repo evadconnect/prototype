@@ -169,10 +169,10 @@ const OB_STEP1_VADE = {
   pilote: {
     desc: 'Chaque action sur EVAD s\'inscrit dans une spirale : quatre temps qui se répètent, et qui montent d\'un cran à chaque tour.',
     steps: [
-      { num: 'V', title: 'Valoriser · publie ton lieu & tes quêtes', text: 'Décris ton projet, ses espaces, sa phase. Propose des missions à fort impact.' },
-      { num: 'A', title: 'Activer · les Bâtisseurs s\'engagent', text: 'Ils rejoignent tes quêtes, contribuent en compétences et génèrent des preuves vérifiables.' },
-      { num: 'D', title: 'Développer · les Semeurs financent', text: 'Entreprises et fondations soutiennent ton projet en échange de preuves d\'impact fiables.' },
-      { num: 'E', title: 'Essaimer · ton impact fait école', text: 'Chaque preuve validée fait grandir ton lieu, débloque de nouveaux financements et inspire les lieux suivants.' }
+      { num: 'V', title: 'Valoriser le potentiel de ton lieu', text: 'Connaître la base : tes espaces, tes ressources, tes forces et tes limites. Ce socle pose ta Vadance, la promesse d\'impact que ton lieu s\'engage à devenir.' },
+      { num: 'A', title: 'Activer les solutions', text: 'Puiser dans la bibliothèque commune, low-tech, permaculture, gouvernance, et la traduire en quêtes concrètes. La promesse s\'outille et se met en mouvement.' },
+      { num: 'D', title: 'Développer l\'écosystème', text: 'Publier tes quêtes, mobiliser les Bâtisseurs, sécuriser le financement des Semeurs et documenter chaque preuve. La Vadance se change en résultats mesurés sur le terrain.' },
+      { num: 'E', title: 'Essaimer preuves et pratiques', text: 'La promesse devient Vadité. Ce que ton lieu a appris rejoint les communs, et relance la spirale un cran plus haut.' }
     ],
     outro: {
       title: 'Un cran plus haut, concrètement',
@@ -182,10 +182,10 @@ const OB_STEP1_VADE = {
   batisseur: {
     desc: 'Ta contribution s\'inscrit dans une spirale : quatre temps qui se répètent, et qui montent d\'un cran à chaque tour.',
     steps: [
-      { num: 'V', title: 'Valoriser · crée ta fiche de compétences', text: 'Décris tes savoir-faire, ta dispo et ta zone d\'action. Deva te recommande les lieux compatibles.' },
-      { num: 'A', title: 'Activer · rejoins une quête sur la carte', text: 'Filtre par compétence, date ou lieu. Engage-toi en un clic et coordonne avec le Pilote.' },
-      { num: 'D', title: 'Développer · certifie ta contribution', text: 'Photo, mesure ou témoignage : ta preuve est vérifiée, puis enregistrée de façon infalsifiable.' },
-      { num: 'E', title: 'Essaimer · nourris le commun', text: 'Tes preuves sont vérifiées par les pairs et ton retour d\'expérience enrichit les fiches partagées.' }
+      { num: 'V', title: 'Valoriser ce que tu sais faire', text: 'Connaître ta base : tes savoir-faire, ta disponibilité, ta zone d\'action. Ce socle dit où ta contribution comptera vraiment, et Deva te montre les lieux qui l\'attendent.' },
+      { num: 'A', title: 'Activer tes compétences', text: 'Choisir une quête ouverte, s\'engager et se coordonner avec le Pilote. Tes compétences quittent la fiche pour le terrain.' },
+      { num: 'D', title: 'Développer l\'impact du lieu', text: 'Réaliser l\'action et la documenter : photo, mesure, témoignage. Chaque preuve vérifiée fait monter la Vadité du lieu, pas seulement sa promesse.' },
+      { num: 'E', title: 'Essaimer ce que tu as appris', text: 'Tes preuves sont validées par les pairs et ton retour d\'expérience rejoint les communs. Le lieu suivant repart de ce que tu as appris.' }
     ],
     outro: {
       title: 'Un cran plus haut, concrètement',
@@ -195,10 +195,10 @@ const OB_STEP1_VADE = {
   semeur: {
     desc: 'Ton financement s\'inscrit dans une spirale : quatre temps qui se répètent, et qui montent d\'un cran à chaque tour.',
     steps: [
-      { num: 'V', title: 'Valoriser · crée ta fiche financeur', text: 'Décris tes critères ESG, secteurs prioritaires et enveloppe. Deva te suggère les lieux compatibles.' },
-      { num: 'A', title: 'Activer · engage un lieu', text: 'Définis les paliers avec le Pilote. Les fonds se débloquent au fil des étapes validées, jamais d\'avance.' },
-      { num: 'D', title: 'Développer · suis les étapes & les preuves', text: 'Chaque étape est validée par les Bâtisseurs et vérifiée par EVAD, avec une preuve infalsifiable à la clé.' },
-      { num: 'E', title: 'Essaimer · ton exemple fait école', text: 'Un rapport auditable à la clôture, intégrable à ton CSRD, et une méthode que les lieux suivants reprennent.' }
+      { num: 'V', title: 'Valoriser les lieux à fort potentiel', text: 'Connaître la base : tes critères ESG, tes secteurs, ton enveloppe. Deva te montre les lieux compatibles et leur Vadance, la promesse qu\'ils s\'engagent à tenir.' },
+      { num: 'A', title: 'Activer ton capital', text: 'Engager sur des paliers signés avec le Pilote. Les fonds se débloquent au fil des étapes validées, jamais d\'avance : la promesse s\'outille sans que tu avances à l\'aveugle.' },
+      { num: 'D', title: 'Développer l\'écosystème que tu finances', text: 'Suivre les quêtes en direct, vérifier les preuves et leur niveau. La Vadance devient Vadité, et c\'est cette part-là, et elle seule, qui entre dans ton rapport.' },
+      { num: 'E', title: 'Essaimer une méthode', text: 'Ton rapport auditable clôt le cycle, et la méthode éprouvée rejoint les communs. Les lieux suivants la reprennent, ton exemple fait école.' }
     ],
     outro: {
       title: 'Un cran plus haut, concrètement',
