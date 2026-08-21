@@ -9957,6 +9957,10 @@ function renderQueteDetail() {
     ? `<span contenteditable="true" onblur="qdSet('${f}',this.textContent${num?',1':''})" style="outline:1px dashed ${dark?'rgba(255,255,255,.5)':'rgba(46,102,66,.4)'};border-radius:4px;padding:0 .25rem;cursor:text;min-width:1ch;display:inline-block">${v}</span>`
     : `${v}`;
 
+  // Vrai quand la fiche quête est affichée dans le panneau de l'assistant
+  // Semeur : on y masque l'engagement financier et le contact Pilote.
+  const _qdSemAssistant = !!window._semQueteInline;
+
   // Topbar
   document.getElementById('qd-topbar-title').textContent = q.titre;
   document.getElementById('qd-topbar-sub').textContent = q.lieu + ' · ' + q.ville + ' · ' + q.duree;
@@ -10289,7 +10293,10 @@ function renderQueteDetail() {
         <div style="font-size:.7rem;color:rgba(255,255,255,.55);line-height:1.5">Cette quête couvre ${(q.esrs||[]).length} indicateur${(q.esrs||[]).length>1?'s':''} de ton référentiel. Financer = preuve auditable certifiée EVAD.</div>
       </div>
 
-      <!-- Financer -->
+      <!-- Financer · masqué dans l'assistant de fiche Semeur : à ce stade on
+           choisit les quêtes qui l'intéressent, on ne s'engage pas encore, et
+           le panneau a déjà son bouton « Sélectionner cette quête ». -->
+      ${_qdSemAssistant ? '' : `
       <div style="background:white;border:1px solid rgba(46,102,66,.12);border-radius:var(--r-lg);padding:.9rem 1rem">
         <div style="font-size:.68rem;font-weight:600;color:var(--ink);margin-bottom:.6rem">💰 Engager un financement</div>
         ${funded
@@ -10327,14 +10334,16 @@ function renderQueteDetail() {
             </div>
           </div>
         </div>
-      </div>
+      </div>`}
 
-      <!-- Contact Pilote -->
+      <!-- Contact Pilote · masqué lui aussi dans l'assistant : le nom du lieu
+           est déjà en tête de la fiche quête. -->
+      ${_qdSemAssistant ? '' : `
       <div style="background:rgba(46,102,66,.05);border:1px solid rgba(46,102,66,.15);border-radius:var(--r-lg);padding:.85rem 1rem">
         <div style="font-size:.68rem;font-weight:600;color:var(--ink);margin-bottom:.3rem">🏡 Pilote responsable</div>
         <div style="font-size:.73rem;color:var(--moss);margin-bottom:.6rem">${q.pilote}</div>
         <button class="btn btn-ghost" style="width:100%;font-size:.7rem" onclick="qdContactPilote()">Contacter le Pilote →</button>
-      </div>
+      </div>`}
     `;
   } else if (currentRole === 'pilote') {
     panel.innerHTML = `
