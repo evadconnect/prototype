@@ -10002,7 +10002,9 @@ function renderQueteDetail() {
 
   // Financement bar
   const fin = q.financement;
-  const finHtml = fin && fin.objectif>0 ? (() => {
+  // Dans l'assistant Semeur, la barre de financement fait doublon avec le
+  // montant du bandeau et avec le total en bas de la liste des projets.
+  const finHtml = (!_qdSemAssistant && fin && fin.objectif>0) ? (() => {
     const pct = Math.round((fin.montant/fin.objectif)*100);
     return `<div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-lg);padding:.9rem 1rem">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
@@ -10075,10 +10077,17 @@ function renderQueteDetail() {
         <div style="font-size:.72rem;color:rgba(255,255,255,.5)">⏱ ${edDark('duree', q.duree)}</div>
       </div>
       ${EDinfos ? '' : `<button onclick="qdVoirLieu()" style="display:inline-flex;align-items:center;gap:.35rem;margin-bottom:1rem;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:.4rem .85rem;font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit">🏡 Voir le lieu →</button>`}
+      ${_qdSemAssistant ? `
+      <!-- Le Semeur ne reçoit pas de graines : ce qui le concerne, c'est le
+           montant qui reste à financer. -->
+      <div style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.07);border-radius:var(--r);padding:.5rem .9rem">
+        <span style="font-family:'Satoshi', sans-serif;font-size:1.3rem;font-weight:900;color:var(--amber)">${Math.max(0, (q.financement && q.financement.objectif || 0) - (q.financement && q.financement.montant || 0))}€</span>
+        <span style="font-size:.6rem;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em">restant à financer</span>
+      </div>` : `
       <div style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.07);border-radius:var(--r);padding:.5rem .9rem">
         <span style="font-family:'Satoshi', sans-serif;font-size:1.3rem;font-weight:900;color:var(--amber)">🌱 ${edDark('tokens', q.tokens, true)}</span>
         <span style="font-size:.6rem;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em">graines${q.grainesParDemiJour ? ' / demi-j / pers.' : ''}</span>
-      </div>
+      </div>`}
     </div>
 
     <!-- Description -->
@@ -12455,9 +12464,45 @@ function semOpenQuete(id) {
   showQueteFiche(q, 'semeur');
 }
 
+// Les quêtes cochées pendant la création de fiche remontent ici, en tête de
+// l'onglet « Quêtes à financer », avec leur total. C'est la suite logique du
+// choix fait dans l'assistant : on ne le refait pas, on le retrouve.
+function semRenderQuetesRetenues() {
+  const list = document.getElementById('sem-quetes-list');
+  if (!list) return;
+  let box = document.getElementById('sem-quetes-retenues');
+  const sel = (typeof semQuetesSelectionnees === 'function') ? semQuetesSelectionnees() : [];
+  if (!sel.length) { if (box) box.remove(); return; }
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'sem-quetes-retenues';
+    list.parentNode.insertBefore(box, list);
+  }
+  const total = sel.reduce(function (t, q) { return t + (q.restant || 0); }, 0);
+  box.style.cssText = 'background:white;border:1px solid rgba(58,110,140,.25);border-radius:var(--r-xl);overflow:hidden;margin-bottom:1rem';
+  box.innerHTML =
+      '<div style="padding:.8rem 1rem;border-bottom:1px solid rgba(58,110,140,.15);display:flex;align-items:baseline;justify-content:space-between;gap:.6rem">'
+    +   '<div style="font-size:.78rem;font-weight:700;color:var(--ink)">⭐ Mes quêtes retenues</div>'
+    +   '<div style="font-family:\'Satoshi\',sans-serif;font-size:1.15rem;font-weight:900;color:var(--sky)">' + total + '€</div>'
+    + '</div>'
+    + '<div style="padding:.6rem .9rem;display:flex;flex-direction:column;gap:.4rem">'
+    +   sel.map(function (q) {
+          return '<div style="display:flex;align-items:center;gap:.6rem;padding:.42rem .5rem;border-radius:8px;background:rgba(58,110,140,.05)">'
+            + '<span style="font-size:.95rem;flex-shrink:0">' + q.ic + '</span>'
+            + '<div style="flex:1;min-width:0">'
+            +   '<div style="font-size:.72rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + q.titre + '</div>'
+            +   '<div style="font-size:.6rem;color:var(--moss);opacity:.75">📍 ' + q.lieuNom + (q.duree ? ' · ' + q.duree : '') + '</div>'
+            + '</div>'
+            + '<div style="flex-shrink:0;font-size:.75rem;font-weight:800;color:var(--amber)">' + q.restant + '€</div>'
+          + '</div>';
+        }).join('')
+    + '</div>';
+}
+
 function semRenderQuetes() {
   const list = document.getElementById('sem-quetes-list');
   if (!list) return;
+  semRenderQuetesRetenues();
   semBuildQuetesAFinancer();
   let quetes = [...SEM_QUETES];
   if (semQCurrentFilter === 'urgent') quetes = quetes.filter(q => q.urgence === 'urgent');
@@ -14207,10 +14252,13 @@ function semFicheRenderStep() {
                   // Un clic ouvre le détail dans le panneau latéral, où la quête
                   // se sélectionne ou se retire.
                   const prise = fq.indexOf(q.id) >= 0;
-                  return '<div onclick="openSemQuetePanel('+p.idx+',\''+String(q.id).replace(/'/g,"\\'")+'\')" style="display:flex;align-items:center;gap:.5rem;padding:.42rem .5rem;border-radius:8px;cursor:pointer;transition:background .15s;background:'+(prise?'rgba(74,140,92,.1)':'rgba(58,110,140,.04)')+';margin-bottom:.32rem" onmouseover="this.style.background=\''+(prise?'rgba(74,140,92,.16)':'rgba(58,110,140,.09)')+'\'" onmouseout="this.style.background=\''+(prise?'rgba(74,140,92,.1)':'rgba(58,110,140,.04)')+'\'">'
+                  const qid = String(q.id).replace(/'/g,"\\'");
+                  return '<div onclick="openSemQuetePanel('+p.idx+',\''+qid+'\')" style="display:flex;align-items:center;gap:.5rem;padding:.42rem .5rem;border-radius:8px;cursor:pointer;transition:background .15s;background:'+(prise?'rgba(74,140,92,.1)':'rgba(58,110,140,.04)')+';margin-bottom:.32rem" onmouseover="this.style.background=\''+(prise?'rgba(74,140,92,.16)':'rgba(58,110,140,.09)')+'\'" onmouseout="this.style.background=\''+(prise?'rgba(74,140,92,.1)':'rgba(58,110,140,.04)')+'\'">'
+                    // La coche sélectionne sans ouvrir le détail.
+                    +'<button type="button" onclick="semQueteCocher('+p.idx+',\''+qid+'\',event)" aria-label="Sélectionner cette quête" style="flex-shrink:0;width:18px;height:18px;border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.7rem;line-height:1;padding:0;font-family:inherit;border:1.5px solid '+(prise?'var(--fern)':'rgba(46,102,66,.3)')+';background:'+(prise?'var(--fern)':'#fff')+';color:#fff">'+(prise?'✓':'')+'</button>'
                     +'<span style="font-size:.9rem;flex-shrink:0">'+q.ic+'</span>'
                     +'<div style="flex:1;min-width:0">'
-                      +'<div style="font-size:.68rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+q.titre+(prise?' <span style="color:var(--fern);font-weight:800">✓</span>':'')+'</div>'
+                      +'<div style="font-size:.68rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+q.titre+'</div>'
                       +'<div style="font-size:.57rem;color:var(--moss);opacity:.75">'+(q.duree?q.duree+' · ':'')+'<strong style="color:var(--amber);font-weight:800">'+q.restant+'€</strong> restant'+(q.esrs.length?' · '+q.esrs.map(e=>'ESRS '+e).join(' · '):'')+'</div>'
                     +'</div>'
                     +'<span style="flex-shrink:0;font-size:.62rem;color:var(--sky);opacity:.7">›</span>'
@@ -14236,7 +14284,22 @@ function semFicheRenderStep() {
             +'</div>'
             + panel
           +'</div>';
-        }).join('');
+        }).join('')
+      // Total des quêtes retenues, recalculé à chaque coche.
+      + (function () {
+          const sel = semQuetesSelectionnees();
+          const total = sel.reduce(function (t, q) { return t + (q.restant || 0); }, 0);
+          if (!sel.length) {
+            return '<div style="margin-top:.6rem;padding:.7rem .85rem;border:1px dashed rgba(58,110,140,.3);border-radius:var(--r-lg);font-size:.66rem;color:var(--moss);opacity:.8;text-align:center">Coche les quêtes que tu veux financer : leur total s\'affichera ici.</div>';
+          }
+          return '<div style="margin-top:.6rem;padding:.8rem .9rem;background:rgba(58,110,140,.07);border:1px solid rgba(58,110,140,.25);border-radius:var(--r-lg)">'
+            +'<div style="display:flex;align-items:baseline;justify-content:space-between;gap:.6rem">'
+              +'<div style="font-size:.7rem;font-weight:700;color:var(--ink)">💰 Total à financer</div>'
+              +'<div style="font-family:\'Satoshi\',sans-serif;font-size:1.25rem;font-weight:900;color:var(--sky)">'+total+'€</div>'
+            +'</div>'
+            +'<div style="font-size:.62rem;color:var(--moss);opacity:.75;margin-top:.2rem">'+sel.length+' quête'+(sel.length>1?'s':'')+' retenue'+(sel.length>1?'s':'')+' · tu les retrouveras dans ton tableau de bord, onglet « Quêtes à financer »</div>'
+          +'</div>';
+        })();
     semStarFinal();
     semStarProjets(projets);   // affiche aussi les projets dans la constellation
   }
@@ -14430,6 +14493,48 @@ function closeSemQuetePanel() {
   window._semQueteInline = null;
   if (box) box.style.transform = 'translateX(-100%)';
   if (ov) setTimeout(function () { ov.style.display = 'none'; }, 320);
+}
+
+// Quêtes retenues par le Semeur, avec leur lieu et leur montant. Dérivées des
+// projets plutôt que stockées en double : la sélection ne garde que des
+// identifiants, le reste est recalculé, donc rien ne peut se désynchroniser.
+function semQuetesSelectionnees() {
+  const ids = semFicheData._financedQuetes || [];
+  if (!ids.length || typeof MAP_PLACES === 'undefined') return [];
+  const out = [];
+  MAP_PLACES.forEach(function (l, idx) {
+    semProjetQuetes(idx).forEach(function (q) {
+      if (ids.indexOf(q.id) >= 0) out.push(Object.assign({}, q, { lieuNom: l.nom, lieuIdx: idx }));
+    });
+  });
+  return out;
+}
+
+// Total à financer des quêtes retenues.
+function semTotalSelection() {
+  return semQuetesSelectionnees().reduce(function (t, q) { return t + (q.restant || 0); }, 0);
+}
+
+// Coche d'une quête depuis la liste des projets, sans ouvrir le panneau.
+function semQueteCocher(lieuIdx, queteId, ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  semFicheData._financedQuetes = semFicheData._financedQuetes || [];
+  semFicheData._finances = semFicheData._finances || [];
+  const i = semFicheData._financedQuetes.indexOf(queteId);
+  if (i >= 0) {
+    semFicheData._financedQuetes.splice(i, 1);
+    const reste = semProjetQuetes(lieuIdx).some(function (q) { return semFicheData._financedQuetes.indexOf(q.id) >= 0; });
+    if (!reste) {
+      const j = semFicheData._finances.indexOf(lieuIdx);
+      if (j >= 0) semFicheData._finances.splice(j, 1);
+    }
+  } else {
+    semFicheData._financedQuetes.push(queteId);
+    if (semFicheData._finances.indexOf(lieuIdx) < 0) semFicheData._finances.push(lieuIdx);
+  }
+  semFicheRenderStep();
+  // Le panneau ouvert sur cette quête doit refléter la coche.
+  if (window._semQueteInline && window._semQueteInline.queteId === queteId && typeof semQuetePanelBouton === 'function') semQuetePanelBouton();
 }
 
 // Déplie / replie les quêtes à financer d'un projet.
