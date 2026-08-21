@@ -359,9 +359,12 @@ function piloteQueteCreerEnsureDom() {
   +   '<div style="display:flex;gap:.6rem">'
   +     '<div style="flex:1"><label style="' + labelStyle + '" for="pq-create-graines">🌱 Graines / demi-journée / pers.</label>'
   +     '<input id="pq-create-graines" type="number" min="0" style="' + inputStyle + '" placeholder="25"></div>'
+  +     '<div style="flex:1"><label style="' + labelStyle + '" for="pq-create-budget">💶 Budget à financer (€)</label>'
+  +     '<input id="pq-create-budget" type="number" min="0" step="10" style="' + inputStyle + '" placeholder="ex : 1200"></div>'
   +     '<div style="flex:1"><label style="' + labelStyle + '" for="pq-create-espace">📍 Espace concerné</label>'
-  +     '<select id="pq-create-espace" style="' + inputStyle + ';cursor:pointer"></select></div>'
+  +     '<select id="pq-create-espace" onchange="pqCreerBudgetSuggerer(true)" style="' + inputStyle + ';cursor:pointer"></select></div>'
   +   '</div>'
+  +   '<div id="pq-budget-hint" style="font-size:.66rem;color:var(--moss);opacity:.8;margin-top:-.15rem;line-height:1.45"></div>'
   +   '<label style="' + labelStyle + '">📅 Dates possibles <span style="font-weight:400;opacity:.7">(une ou plusieurs)</span></label>'
   +   '<div id="pq-create-dates"></div>'
   +   '<button type="button" onclick="pqCreerAddDate()" style="margin-top:.35rem;background:rgba(46,102,66,.07);border:1px dashed rgba(46,102,66,.3);color:var(--forest);border-radius:8px;padding:.4rem .75rem;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit">+ Ajouter une date</button>'
@@ -456,6 +459,54 @@ function pqCreerRenderEspaces(selIdx) {
     + esps.map((e, i) => '<option value="' + i + '"' + (String(selIdx) === String(i) ? ' selected' : '') + '>' + String(e.nom || ('Espace ' + (i + 1))).replace(/[<>]/g, '') + '</option>').join('');
 }
 
+/* ── Budget suggéré d'après le matériel de la solution ────────────────────
+   Les lignes de matériel sont du texte libre, sans prix : on ne peut pas les
+   additionner. En revanche la Bibliothèque porte, pour chaque solution, un
+   coût d'investissement structuré (cout_fixe + cout_unitaire × dimension de
+   l'espace), qui est précisément le coût du matériel à mettre en œuvre. C'est
+   lui qu'on propose, en le disant.
+   Rien n'est imposé : on ne remplit que si le champ est vide, et le Pilote
+   reste libre de corriger. Sans solution d'origine (quête sur mesure), on ne
+   propose rien plutôt que d'inventer un chiffre. */
+function pqBudgetEstime() {
+  if (typeof evadCoutSolEstime !== 'function' || typeof SOLS === 'undefined') return null;
+  const editQ = (pqCreerEditId != null && typeof PILOTE_QUETES_DEMO !== 'undefined')
+    ? PILOTE_QUETES_DEMO.find(x => x.id === pqCreerEditId) : null;
+  const nom = (editQ && editQ.source) || window._creerQueteSource || null;
+  if (!nom) return null;
+  const sol = SOLS.find(x => x.nom === nom);
+  if (!sol) return null;
+  const sel = document.getElementById('pq-create-espace');
+  const esps = _pqEspacesSource();
+  const esp = (sel && sel.value !== '') ? esps[parseInt(sel.value, 10)] : null;
+  const cout = evadCoutSolEstime(sol, esp);
+  if (!(cout > 0)) return null;
+  return { montant: Math.round(cout / 10) * 10, sol: sol, esp: esp };
+}
+
+// Remplit le champ et explique d'où vient le chiffre. `force` recalcule même
+// si le champ porte déjà une suggestion (changement d'espace).
+function pqCreerBudgetSuggerer(force) {
+  const champ = document.getElementById('pq-create-budget');
+  const hint = document.getElementById('pq-budget-hint');
+  if (!champ) return;
+  const est = pqBudgetEstime();
+  if (!est) {
+    if (hint) hint.textContent = champ.value ? '' : 'Quête sur mesure : indique le budget matériel nécessaire, il sera proposé aux Semeurs.';
+    return;
+  }
+  const suggere = champ.dataset.suggere === '1';
+  if (!champ.value || (force && suggere)) {
+    champ.value = est.montant;
+    champ.dataset.suggere = '1';
+  }
+  if (hint) {
+    hint.textContent = 'Estimé à ' + est.montant + ' € d\'après le matériel de « ' + est.sol.nom + ' »'
+      + (est.esp ? ' pour l\'espace « ' + (est.esp.nom || 'sans nom') + ' »' : ' (aucun espace choisi)')
+      + '. Corrige-le si besoin.';
+  }
+}
+
 function piloteQueteCreerOuvrir(editId) {
   piloteQueteCreerEnsureDom();
   // Quête à éditer (si un id est fourni et qu'elle existe).
@@ -469,6 +520,7 @@ function piloteQueteCreerOuvrir(editId) {
   set('pq-create-duree', editQ && editQ.duree && editQ.duree !== '-' ? editQ.duree : '');
   set('pq-create-nb', editQ && editQ.nb && editQ.nb !== '-' ? editQ.nb : '');
   set('pq-create-graines', editQ ? (editQ.grainesParDemiJour || editQ.graines || '') : '');
+  set('pq-create-budget', editQ && editQ.budget ? editQ.budget : '');
   set('pq-create-impact', editQ ? editQ.impact : '');
   set('pq-create-materiel', editQ && Array.isArray(editQ.materiel) ? editQ.materiel.join('\n') : '');
 
@@ -517,6 +569,9 @@ function piloteQueteCreerOuvrir(editId) {
   const _preEsp = editQ ? (editQ.espIdx != null ? editQ.espIdx : '')
     : ((typeof window !== 'undefined' && window._creerQueteEspIdx != null) ? window._creerQueteEspIdx : '');
   if (typeof pqCreerRenderEspaces === 'function') pqCreerRenderEspaces(_preEsp);
+  const _bud = document.getElementById('pq-create-budget');
+  if (_bud) delete _bud.dataset.suggere;
+  pqCreerBudgetSuggerer(false);
 
   // Titre + bouton adaptés au mode.
   const titleEl = document.getElementById('pq-create-title');
@@ -780,6 +835,10 @@ function piloteQueteCreerSave() {
     nb: val('pq-create-nb') || '-',
     graines: grainesUnite,
     grainesParDemiJour: grainesUnite,
+    // Budget en euros : c'est lui que le Semeur voit comme « reste à financer ».
+    // Il voyage jusqu'à Supabase dans la colonne « donnees » sans migration,
+    // remoteQueteRow y recopiant la quête entière.
+    budget: parseInt(val('pq-create-budget'), 10) || 0,
     dateISO: datesISO[0] || null,
     datesISO: datesISO,
     competence: competence,

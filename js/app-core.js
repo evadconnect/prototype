@@ -10081,8 +10081,8 @@ function renderQueteDetail() {
       <!-- Le Semeur ne reçoit pas de graines : ce qui le concerne, c'est le
            montant qui reste à financer. -->
       <div style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.07);border-radius:var(--r);padding:.5rem .9rem">
-        <span style="font-family:'Satoshi', sans-serif;font-size:1.3rem;font-weight:900;color:var(--amber)">${Math.max(0, (q.financement && q.financement.objectif || 0) - (q.financement && q.financement.montant || 0))}€</span>
-        <span style="font-size:.6rem;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em">restant à financer</span>
+        <span style="font-family:'Satoshi', sans-serif;font-size:1.3rem;font-weight:900;color:var(--amber)">${(q.financement && q.financement.objectif > 0) ? (Math.max(0, q.financement.objectif - (q.financement.montant || 0)) + '€') : '—'}</span>
+        <span style="font-size:.6rem;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em">${(q.financement && q.financement.objectif > 0) ? 'restant à financer' : 'budget non renseigné'}</span>
       </div>` : `
       <div style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.07);border-radius:var(--r);padding:.5rem .9rem">
         <span style="font-family:'Satoshi', sans-serif;font-size:1.3rem;font-weight:900;color:var(--amber)">🌱 ${edDark('tokens', q.tokens, true)}</span>
@@ -14259,7 +14259,7 @@ function semFicheRenderStep() {
                     +'<span style="font-size:.9rem;flex-shrink:0">'+q.ic+'</span>'
                     +'<div style="flex:1;min-width:0">'
                       +'<div style="font-size:.68rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+q.titre+'</div>'
-                      +'<div style="font-size:.57rem;color:var(--moss);opacity:.75">'+(q.duree?q.duree+' · ':'')+'<strong style="color:var(--amber);font-weight:800">'+q.restant+'€</strong> restant'+(q.esrs.length?' · '+q.esrs.map(e=>'ESRS '+e).join(' · '):'')+'</div>'
+                      +'<div style="font-size:.57rem;color:var(--moss);opacity:.75">'+(q.duree?q.duree+' · ':'')+(q.sansBudget?'<span style="color:var(--moss);opacity:.8;font-style:italic">budget non renseigné</span>':'<strong style="color:var(--amber);font-weight:800">'+q.restant+'€</strong> restant')+(q.esrs.length?' · '+q.esrs.map(e=>'ESRS '+e).join(' · '):'')+'</div>'
                     +'</div>'
                     +'<span style="flex-shrink:0;font-size:.62rem;color:var(--sky);opacity:.7">›</span>'
                   +'</div>';
@@ -14292,12 +14292,14 @@ function semFicheRenderStep() {
           if (!sel.length) {
             return '<div style="margin-top:.6rem;padding:.7rem .85rem;border:1px dashed rgba(58,110,140,.3);border-radius:var(--r-lg);font-size:.66rem;color:var(--moss);opacity:.8;text-align:center">Coche les quêtes que tu veux financer : leur total s\'affichera ici.</div>';
           }
+          const sansBudget = sel.filter(function (q) { return q.sansBudget; }).length;
           return '<div style="margin-top:.6rem;padding:.8rem .9rem;background:rgba(58,110,140,.07);border:1px solid rgba(58,110,140,.25);border-radius:var(--r-lg)">'
             +'<div style="display:flex;align-items:baseline;justify-content:space-between;gap:.6rem">'
               +'<div style="font-size:.7rem;font-weight:700;color:var(--ink)">💰 Total à financer</div>'
               +'<div style="font-family:\'Satoshi\',sans-serif;font-size:1.25rem;font-weight:900;color:var(--sky)">'+total+'€</div>'
             +'</div>'
             +'<div style="font-size:.62rem;color:var(--moss);opacity:.75;margin-top:.2rem">'+sel.length+' quête'+(sel.length>1?'s':'')+' retenue'+(sel.length>1?'s':'')+' · tu les retrouveras dans ton tableau de bord, onglet « Quêtes à financer »</div>'
+            +(sansBudget?'<div style="font-size:.6rem;color:var(--terracotta);margin-top:.3rem">⚠️ '+sansBudget+' quête'+(sansBudget>1?'s':'')+' sans budget renseigné par le Pilote, non comptée'+(sansBudget>1?'s':'')+' dans ce total.</div>':'')
           +'</div>';
         })();
     semStarFinal();
@@ -14353,10 +14355,17 @@ function semProjetQuetes(lieuIdx) {
   return store.where('quetes', function (q) { return q.lieu_id === lieuId && q.statut === 'ouverte'; })
     .map(function (q, j) {
       const sol = (q.source && typeof SOLS !== 'undefined') ? SOLS.find(function (x) { return x.nom === q.source; }) : null;
-      const graines = parseInt(q.graines, 10) || (sol && sol.tok) || 50;
-      const objectif = 500 + graines * 8;                       // déterministe
-      const montant  = Math.round(objectif * (0.1 + ((j * 17) % 35) / 100));
+      // Budget réel saisi par le Pilote. Il arrive de Supabase soit à la racine
+      // de la ligne, soit dans « donnees » selon le chemin de synchronisation.
+      const objectif = parseInt(q.budget, 10) || parseInt(q.donnees && q.donnees.budget, 10) || 0;
+      // Déjà engagé : somme des financements connus pour cette quête.
+      let montant = 0;
+      try {
+        montant = (window.store ? store.where('financements', function (f) { return f.quete_id === q.id; }) : [])
+          .reduce(function (t, f) { return t + (parseInt(f.montant, 10) || 0); }, 0);
+      } catch (e) {}
       return {
+        sansBudget: !(objectif > 0),
         id: q.id, srcId: q.id, lieuIdx: lieuIdx,
         titre: q.titre || (sol && sol.quete && sol.quete.titre) || 'Quête',
         ic: q.sourceIc || (sol && sol.img) || '⚡',
