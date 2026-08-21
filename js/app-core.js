@@ -11502,14 +11502,12 @@ function piloteFicheSave() {
 function evadReflectLieuInDashboard() {
   const d = (typeof myLieuData !== 'undefined' && myLieuData) ? myLieuData : null;
   const sub = document.getElementById('pilote-lieu-sub');
-  if (!sub) return;
-  if (d && d.nom) {
-    const lieuType = (typeof TYPES_LIEU !== 'undefined' ? (TYPES_LIEU.find(t => t.id === d.type) || {}).l : null);
-    const detail = d.localisation || lieuType || '';
-    sub.textContent = d.nom + (detail ? ' · ' + detail : '');
-  } else {
-    sub.textContent = 'Mon lieu · -';
-  }
+  const title = document.getElementById('pilote-lieu-title');
+  const lieuType = (d && typeof TYPES_LIEU !== 'undefined') ? (TYPES_LIEU.find(t => t.id === d.type) || {}).l : null;
+  const ville = (d && (d.localisation || lieuType)) || '';
+  // Titre = « Tableau de bord {nom du lieu} », sous-titre = la ville.
+  if (title) title.textContent = (d && d.nom) ? ('📊 Tableau de bord ' + d.nom) : '📊 Tableau de bord du lieu';
+  if (sub)   sub.textContent   = (d && d.nom) ? (ville || '-') : '-';
 }
 
 function piloteTab(tab, btn) {
