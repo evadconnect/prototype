@@ -134,6 +134,35 @@ const ICI_UTILITE = {
   eco_biosource: "Peser les matériaux biosourcés ou réemployés, c'est chiffrer une filière locale préférée aux chaînes mondiales. Une donnée clé pour la construction bas carbone et les critères CSRD.",
   eco_partenaires: "Compter tes partenaires mesure le maillage que tu tisses. Plus il est dense, plus le lieu est résilient et crédible : c'est la carte de ton écosystème local."
 };
+/* ── Méthode de calcul de chaque indicateur ───────────────────────────────
+   Ce qu'on mesure, comment on l'obtient, et sur quoi s'appuie la preuve.
+   Chaque entrée dit trois choses : la formule, la source de la donnée, et le
+   document qui sert de justificatif. Sans ce dernier point, l'indicateur reste
+   déclaratif et n'est décoté qu'à 25 % (voir les niveaux de preuve). */
+const ICI_CALCUL = {
+  eco_co2: "Somme des économies de chaque poste, converties en kg CO₂e : kWh renouvelables produits ou non achetés × 0,06 kg/kWh (mix français), kilos de déchets détournés × leur facteur d'émission, kilomètres alimentaires évités. Source : factures d'énergie avant/après, pesées de déchets, registre des achats. Preuve : relevés de compteur et factures, comparés à l'année de référence T0.",
+  eco_renat: "Somme des surfaces rendues au vivant, en m² : potagers, haies, mares, toitures végétalisées, sols désimperméabilisés. On compte l'emprise réelle au sol, une seule fois par surface même si plusieurs solutions s'y superposent. Source : plan du lieu ou relevé au décamètre. Preuve : photos datées avant/après et croquis coté.",
+  eco_eau: "Volume d'eau potable non consommée sur l'année, en litres : eau de pluie récupérée et effectivement utilisée, plus l'eau économisée par les toilettes sèches (≈ 30 L par personne et par jour) et la phytoépuration. Source : compteur de la cuve ou volume × nombre de remplissages. Preuve : relevés de compteur mensuels.",
+  eco_enr: "Production annuelle en kWh, mesurée à l'onduleur ou au compteur de production, à laquelle s'ajoute l'énergie non achetée grâce au solaire thermique. Ne pas confondre avec la puissance installée en kWc. Source : compteur de production. Preuve : relevés mensuels ou export de l'onduleur.",
+  eco_fraicheur: "Écart de température, en °C, entre un point ombragé ou végétalisé et un point de référence nu, mesuré au même moment lors d'une journée chaude. On retient la moyenne d'au moins trois relevés estivaux. Source : deux thermomètres ou sondes. Preuve : relevés horodatés avec la position des deux points.",
+  eco_dechets: "Poids annuel, en kg, de ce qui ne part plus à l'enfouissement : biodéchets compostés, objets réparés ou réemployés, matériaux récupérés. On pèse à l'apport ou on applique un poids moyen par catégorie. Source : registre de pesée du composteur ou du repair café. Preuve : cahier de pesée ou tickets de déchetterie évités.",
+  eco_prod_locale: "Poids annuel récolté sur le lieu, en kg, toutes cultures confondues, pesé à la récolte. Les dons et l'autoconsommation comptent : c'est la production, pas la vente. Source : cahier de récolte. Preuve : registre tenu à chaque récolte, ou bons de livraison pour les paniers.",
+  soc_insertion: "Nombre de personnes distinctes accueillies dans l'année dans un parcours d'insertion, de formation ou de remobilisation. On compte les personnes, pas les passages. Source : liste nominative tenue par le lieu. Preuve : conventions signées avec les prescripteurs, France Travail, mission locale ou structure d'insertion.",
+  soc_formation: "Heures dispensées × nombre de participants, cumulées sur l'année. Un atelier de 3 h suivi par 8 personnes vaut 24 heures. Source : feuilles d'émargement. Preuve : émargements signés et programme de chaque session.",
+  soc_benevoles: "Nombre de personnes distinctes ayant contribué au moins une fois dans l'année. On compte les têtes, pas les venues, pour ne pas gonfler le chiffre avec les fidèles. Source : registre des chantiers et des quêtes. Preuve : feuilles de présence des chantiers participatifs.",
+  soc_sensibilisation: "Nombre de personnes touchées par une visite, un atelier ouvert ou un stand, sur l'année. Les publics scolaires comptent par élève. Le passage sur les réseaux ne compte pas : il faut une rencontre réelle. Source : comptage à l'entrée. Preuve : feuilles de comptage ou billetterie.",
+  soc_evenements: "Nombre d'événements ouverts au public organisés dans l'année : portes ouvertes, chantiers participatifs, marchés, ateliers. Une série hebdomadaire compte pour autant de séances. Source : agenda du lieu. Preuve : affiches, invitations ou publications datées.",
+  eco_emplois: "Emplois créés ou maintenus par le lieu, exprimés en équivalents temps plein : somme des heures travaillées ÷ 1 607 h par an. Les emplois indirects chez les partenaires ne comptent pas. Source : registre du personnel. Preuve : contrats de travail et déclarations sociales.",
+  eco_approv: "Part du budget d'achat passée auprès de fournisseurs situés à moins de 100 km, en pourcentage : montant local ÷ montant total des achats de l'année × 100. Source : comptabilité fournisseurs. Preuve : factures avec l'adresse du fournisseur.",
+  eco_biosource: "Tonnage annuel de matériaux biosourcés, paille, bois, terre, chanvre, ou issus du réemploi, effectivement mis en œuvre sur le lieu. Source : bons de livraison. Preuve : factures et bordereaux de réemploi.",
+  eco_partenaires: "Nombre de structures distinctes avec lesquelles le lieu a coopéré dans l'année : associations, producteurs, écoles, collectivités, entreprises. Une simple prise de contact ne suffit pas, il faut une action commune. Source : carnet de partenariats. Preuve : conventions, échanges écrits ou comptes rendus de projets menés ensemble."
+};
+// Méthode de calcul d'un indicateur (champ du catalogue sinon map).
+const iciCalcul = (id) => {
+  const i = (typeof ICI_CATALOG !== 'undefined') ? ICI_CATALOG.find((x) => x.id === id) : null;
+  return (i && i.calcul) || ICI_CALCUL[id] || '';
+};
+
 // Texte « utile de la calculer » d'un indicateur (champ du catalogue sinon map).
 const iciUtilite = (id) => {
   const i = (typeof ICI_CATALOG !== 'undefined') ? ICI_CATALOG.find((x) => x.id === id) : null;
