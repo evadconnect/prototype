@@ -129,7 +129,7 @@ const OB_DATA = {
     steps: [
       {
         eyebrow: 'Étape 1 · Comment ça marche',
-        headline: 'Du financement\nau rapport certifié.',
+        headline: 'Du financement\nau rapport vérifié.',
         desc: 'Un pipeline transparent : engagement → jalons → preuves → rapport ESRS auditable.',
         type: 'cycle',
         profileIntro: {
