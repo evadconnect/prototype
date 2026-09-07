@@ -5148,8 +5148,12 @@ function ficheGeoSelect(label,lat,lng){
 }
 
 let _semGeoTimer;
-function semGeoAutoInput(q){
-  const drop=document.getElementById('sem-loc-drop');
+// Le Semeur saisit sa localisation à deux endroits : dans la création de fiche
+// et dans l'onglet « Mon profil ». Les trois fonctions prennent donc un préfixe
+// d'identifiants (« sem-loc » par défaut) plutôt que d'être copiées deux fois.
+function semGeoAutoInput(q,pfx){
+  pfx=pfx||'sem-loc';
+  const drop=document.getElementById(pfx+'-drop');
   if(drop) drop.remove();
   // On garde ce que le Semeur tape : avant, la localisation était effacée à
   // chaque frappe et n'était restaurée que s'il cliquait une suggestion. Qui
@@ -5157,7 +5161,7 @@ function semGeoAutoInput(q){
   // localisation, donc épinglée au centre de la France.
   semFicheData.localisation=q;
   semFicheData.lat=null; semFicheData.lng=null;
-  const okOld=document.querySelector('#sem-loc-wrap .geo-ok');
+  const okOld=document.querySelector('#'+pfx+'-wrap .geo-ok');
   if(okOld) okOld.remove();
   if(q.length<3) return;
   clearTimeout(_semGeoTimer);
@@ -5165,18 +5169,19 @@ function semGeoAutoInput(q){
     try{
       const r=await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=5`);
       const d=await r.json();
-      semGeoShowDrop(d.features||[]);
+      semGeoShowDrop(d.features||[],pfx);
     }catch(e){}
   },320);
 }
 
-function semGeoShowDrop(features){
-  const wrap=document.getElementById('sem-loc-wrap');
+function semGeoShowDrop(features,pfx){
+  pfx=pfx||'sem-loc';
+  const wrap=document.getElementById(pfx+'-wrap');
   if(!wrap||!features.length) return;
-  const old=document.getElementById('sem-loc-drop');
+  const old=document.getElementById(pfx+'-drop');
   if(old) old.remove();
   const ul=document.createElement('div');
-  ul.id='sem-loc-drop';
+  ul.id=pfx+'-drop';
   ul.style.cssText='position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #d4deca;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.12);z-index:9999;overflow:hidden;margin-top:2px;';
   features.forEach((f,i)=>{
     const label=f.properties.label;
@@ -5185,7 +5190,7 @@ function semGeoShowDrop(features){
     const row=document.createElement('div');
     row.style.cssText=`padding:.55rem .75rem;font-size:.72rem;cursor:pointer;border-bottom:${i<features.length-1?'1px solid #eef2ea':'none'};display:flex;align-items:center;gap:.5rem;`;
     row.innerHTML=`<span style="font-size:.85rem">📍</span><span>${label}</span>`;
-    row.onmousedown=()=>semGeoSelect(label,lat,lng);
+    row.onmousedown=()=>semGeoSelect(label,lat,lng,pfx);
     row.onmouseover=()=>row.style.background='#f0f5ee';
     row.onmouseout=()=>row.style.background='';
     ul.appendChild(row);
@@ -5193,24 +5198,28 @@ function semGeoShowDrop(features){
   wrap.appendChild(ul);
 }
 
-function semGeoSelect(label,lat,lng){
+function semGeoSelect(label,lat,lng,pfx){
+  pfx=pfx||'sem-loc';
   semFicheData.localisation=label;
   // Coordonnées de l'adresse choisie, comme pour le Bâtisseur : la fiche est
   // alors posée au bon endroit sur la carte, sans dépendre d'un second
   // géocodage au moment de la publication.
   if(Number.isFinite(lat)&&Number.isFinite(lng)){ semFicheData.lat=lat; semFicheData.lng=lng; }
   if (typeof semUpdatePotentiel === 'function') semUpdatePotentiel();
-  const inp=document.getElementById('sem-loc-inp');
-  if(inp) inp.value=label;
-  const drop=document.getElementById('sem-loc-drop');
+  // Les deux champs affichent la même adresse : celui du formulaire de fiche et
+  // celui de l'onglet « Mon profil ».
+  ['sem-loc-inp','sem-prof-loc-inp'].forEach(function(id){
+    const e=document.getElementById(id); if(e) e.value=label;
+  });
+  const drop=document.getElementById(pfx+'-drop');
   if(drop) drop.remove();
-  const wrap=document.getElementById('sem-loc-wrap');
+  const wrap=document.getElementById(pfx+'-wrap');
   if(wrap){
     let ok=wrap.querySelector('.geo-ok');
     if(!ok){ok=document.createElement('div');ok.className='geo-ok';ok.style.cssText='font-size:.6rem;color:var(--fern);margin-top:.2rem;padding-left:.1rem';wrap.appendChild(ok);}
     ok.textContent='📍 Position vérifiée';
   }
-  semStarUpdateCenter();
+  if (typeof semStarUpdateCenter === 'function') semStarUpdateCenter();
 }
 
 /* ── Géolocalisation Bâtisseur ── */
@@ -12195,8 +12204,77 @@ function semFillProfile() {
   if (sd.type) { const t = document.getElementById('sem-f-type'); if (t) t.value = sd.type; }
   set('sem-f-secteur', sd.secteur);
   set('sem-f-zone', sd.zone);
+  set('sem-prof-loc-inp', sd.localisation);
+  // Pastille de confirmation : seulement si la position est réellement connue.
+  const wrap = document.getElementById('sem-prof-loc-wrap');
+  if (wrap) {
+    const old = wrap.querySelector('.geo-ok'); if (old) old.remove();
+    if (sd.lat != null && sd.lng != null) {
+      const ok = document.createElement('div');
+      ok.className = 'geo-ok';
+      ok.style.cssText = 'font-size:.6rem;color:var(--fern);margin-top:.2rem;padding-left:.1rem';
+      ok.textContent = '📍 Position vérifiée';
+      wrap.appendChild(ok);
+    }
+  }
   const logo = document.getElementById('sem-logo-preview');
   if (logo && sd.logo) logo.innerHTML = '<img src="' + sd.logo + '" style="width:100%;height:100%;object-fit:cover" alt="">';
+}
+
+/* Enregistre l'onglet « Mon profil » du Semeur. Le bouton se contentait
+   d'afficher une bulle : la localisation saisie ici n'aurait donc jamais été
+   conservée. On reprend les champs d'identité qui correspondent à la fiche
+   (le type d'organisation est laissé de côté : les libellés de ce menu ne sont
+   pas ceux de la fiche, les écrire ici fausserait les cadres ESRS proposés). */
+async function semProfilEnregistrer() {
+  const val = id => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
+  const sd = (typeof semFicheData !== 'undefined') ? semFicheData : null;
+  if (!sd) return;
+
+  const nom = val('sem-f-nom');
+  if (!nom) { if (typeof mmBubble === 'function') mmBubble('Renseigne au moins le nom de ton organisation.'); return; }
+  sd.nom = nom;
+  if (val('sem-f-secteur')) sd.secteur = val('sem-f-secteur');
+  if (val('sem-f-zone'))    sd.zone    = val('sem-f-zone');
+
+  const loc = val('sem-prof-loc-inp');
+  if (loc !== sd.localisation) { sd.localisation = loc; sd.lat = null; sd.lng = null; }
+  // Adresse tapée sans choisir de suggestion : on la géocode ici, sinon la
+  // fiche resterait épinglée au centre de la France.
+  if (loc && (sd.lat == null || sd.lng == null)) {
+    try {
+      const r = await fetch('https://api-adresse.data.gouv.fr/search/?q=' + encodeURIComponent(loc) + '&limit=1');
+      const d = await r.json();
+      if (d.features && d.features.length) {
+        sd.lng = d.features[0].geometry.coordinates[0];
+        sd.lat = d.features[0].geometry.coordinates[1];
+      }
+    } catch (e) {}
+  }
+
+  // Persistance : uniquement si la fiche Semeur existe déjà. Sinon on ne crée
+  // pas d'organisation à moitié remplie sur la carte, on renvoie vers la fiche.
+  let enBase = false;
+  try {
+    const sid = (typeof _currentSemeurId === 'function') ? _currentSemeurId() : sd.id;
+    const deja = (window.store && sid) ? store.all('semeurs').some(r => r && r.id === sid) : false;
+    if (deja) {
+      const row = store.upsert('semeurs', Object.assign({ id: sid }, sd));
+      sd.id = row.id;
+      enBase = true;
+      if (typeof syncMapSemeursFromStore === 'function') syncMapSemeursFromStore();
+      _mapCommunityRendered = false;
+      if (typeof mapRenderCommunity === 'function') mapRenderCommunity();
+    }
+  } catch (e) {}
+
+  semFillProfile();
+  if (typeof semReflectProfile === 'function') semReflectProfile();
+  if (typeof mmBubble === 'function') {
+    mmBubble(enBase
+      ? '💾 Profil enregistré' + (sd.lat != null ? ' · position mise à jour sur la carte 📍' : '')
+      : '💾 Profil enregistré sur cet appareil. Publie ta fiche Semeur pour le partager.');
+  }
 }
 
 // Reflète le profil financeur créé dans le topbar, l'aperçu, le KPI ESRS et le portefeuille.
