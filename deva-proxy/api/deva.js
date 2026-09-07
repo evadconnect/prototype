@@ -75,27 +75,38 @@ export default async function handler(req, res) {
       })
     });
 
-    // Le palier gratuit de Mistral n'accepte qu'une requête par seconde : deux
-    // utilisateurs qui écrivent en même temps suffisent à déclencher un 429.
-    // On retente une fois après une seconde avant d'abandonner ; si le 429
-    // persiste, c'est un vrai plafond de compte, qu'on remonte tel quel.
-    let r = await appelMistral();
-    if (r.status === 429) {
+    // Mistral signale un plafond soit par un vrai 429, soit par un corps
+    // d'erreur renvoyé avec un statut 200 (type "rate_limited", code 1300).
+    // On regarde donc les deux, sinon le cas le plus fréquent passe pour une
+    // « réponse vide » et l'utilisateur croit à un problème de connexion.
+    const estPlafond = (statut, d) => statut === 429
+      || d?.type === 'rate_limited'
+      || String(d?.code || '') === '1300'
+      || d?.raw_status_code === 429
+      || /rate.?limit|quota|capacity/i.test(String(d?.message || d?.error?.message || ''));
+
+    const appelEtLecture = async () => {
+      const rep = await appelMistral();
+      let d = null;
+      try { d = await rep.json(); } catch (e) {}
+      return { rep, d };
+    };
+
+    // Le palier gratuit n'accepte qu'une requête par seconde : deux
+    // utilisateurs qui écrivent en même temps suffisent à le déclencher. On
+    // retente une fois après une seconde ; si le plafond persiste, c'est un
+    // plafond de compte, qu'on remonte tel quel au client.
+    let { rep: r, d: data } = await appelEtLecture();
+    if (estPlafond(r.status, data)) {
       await new Promise(ok => setTimeout(ok, 1200));
-      r = await appelMistral();
+      ({ rep: r, d: data } = await appelEtLecture());
     }
 
-    let data = null;
-    try { data = await r.json(); } catch (e) {}
-
+    if (estPlafond(r.status, data)) {
+      return res.status(429).json({ error: 'mistral_rate_limit', status: r.status, detail: data || null });
+    }
     if (!r.ok) {
-      const msg = data?.message || data?.error?.message || '';
-      const quota = r.status === 429 || /rate.?limit|quota|capacity/i.test(String(msg));
-      return res.status(quota ? 429 : 502).json({
-        error: quota ? 'mistral_rate_limit' : 'mistral_error',
-        status: r.status,
-        detail: data || null
-      });
+      return res.status(502).json({ error: 'mistral_error', status: r.status, detail: data || null });
     }
 
     const reply = data?.choices?.[0]?.message?.content;
