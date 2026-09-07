@@ -701,7 +701,14 @@ async function pqCreerDevaAide() {
         { role: 'user', content: JSON.stringify(ctx) }
       ] })
     });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
+    if (!r.ok) {
+      let info = null;
+      try { info = await r.json(); } catch (e2) {}
+      const err = new Error('HTTP ' + r.status);
+      err.statutHttp = r.status;
+      err.codeDeva = info && info.error;
+      throw err;
+    }
     const data = await r.json();
     const prop = pqDevaExtraireJson(data && data.reply);
     if (!prop) throw new Error('réponse illisible');
@@ -710,7 +717,11 @@ async function pqCreerDevaAide() {
       ? 'Deva a proposé : ' + rempli.join(', ') + '. Tout reste modifiable, et c\'est toi qui valides.'
       : 'Tes champs étaient déjà remplis : Deva n\'a rien remplacé.');
   } catch (e) {
-    pqDevaEtat('Deva n\'a pas pu répondre (' + (e.message || 'erreur') + '). Réessaie dans un instant.', true);
+    // Un plafond du moteur se dit autrement qu'un « HTTP 429 » brut.
+    const msg = (typeof devaMessageErreur === 'function' && (e.statutHttp || e.codeDeva))
+      ? devaMessageErreur(e)
+      : 'Deva n\'a pas pu répondre (' + (e.message || 'erreur') + '). Réessaie dans un instant.';
+    pqDevaEtat(msg, true);
   }
   if (btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '✨ Deva m\'aide'; }
 }

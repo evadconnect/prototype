@@ -15392,6 +15392,12 @@ async function creerExtractFromDoc(file){
   const prompt = "Voici le texte d'un document qui décrit un lieu. Extrais ses informations et réponds UNIQUEMENT par un objet JSON valide (aucun texte avant/après, pas de balise code), avec ces clés (valeur \"\" ou [] si absente) : nom, type, ville, description, annee, surface, statut, espaces. Pour \"type\" choisis EXACTEMENT l'un de : ferme, jardin, fablab, repair, ressourcerie, tiers, cafe, epicerie, coworking, incubateur, ecolieu, habitat, ecole, autre. Garde \"description\" en 1 à 2 phrases. \"espaces\" est un tableau (max 6) des espaces physiques internes mentionnés (café, atelier, jardin, salle…) ; chaque espace = un objet {\"nom\":\"...\", \"fonction\":\"...\", \"capacite\":\"\", \"surface\":\"\", \"activites\":[]} où \"fonction\" est EXACTEMENT l'un de : cuisine, cafe, cantine, coworking, reunion, atelier, fablab, scene, expo, boutique, biblio, formation, jardin, serre, compost, hebergement, sport, meditation, stockage, autre. \"capacite\" en personnes et \"surface\" en m² si connus (sinon \"\"). N'invente pas d'espaces : uniquement ceux décrits dans le texte.\n\nTEXTE:\n" + text;
   try {
     const r = await fetch(DEVA_API_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ messages:[{ role:'user', content: prompt }] }) });
+    if (!r.ok) {
+      _creerDocSay(r.status === 429
+        ? "Mon moteur reçoit trop de demandes à la fois 🌿 Réessaie dans une minute, ou remplis à la main, je suis là."
+        : "Mon moteur ne répond pas pour l'instant. Remplis à la main, je t'aide 🙂", false);
+      return;
+    }
     const d = await r.json();
     const reply = (d && d.reply) || '';
     const jsonStr = (reply.match(/\{[\s\S]*\}/) || [reply])[0];

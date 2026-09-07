@@ -61,7 +61,7 @@ export default async function handler(req, res) {
     // milieu arrivait au client, illisible et inutilisable.
     const maxTokens = Math.min(Math.max(parseInt(body.max_tokens, 10) || 300, 100), 900);
 
-    const r = await fetch('https://api.mistral.ai/v1/chat/completions', {
+    const appelMistral = () => fetch('https://api.mistral.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -75,7 +75,29 @@ export default async function handler(req, res) {
       })
     });
 
-    const data = await r.json();
+    // Le palier gratuit de Mistral n'accepte qu'une requête par seconde : deux
+    // utilisateurs qui écrivent en même temps suffisent à déclencher un 429.
+    // On retente une fois après une seconde avant d'abandonner ; si le 429
+    // persiste, c'est un vrai plafond de compte, qu'on remonte tel quel.
+    let r = await appelMistral();
+    if (r.status === 429) {
+      await new Promise(ok => setTimeout(ok, 1200));
+      r = await appelMistral();
+    }
+
+    let data = null;
+    try { data = await r.json(); } catch (e) {}
+
+    if (!r.ok) {
+      const msg = data?.message || data?.error?.message || '';
+      const quota = r.status === 429 || /rate.?limit|quota|capacity/i.test(String(msg));
+      return res.status(quota ? 429 : 502).json({
+        error: quota ? 'mistral_rate_limit' : 'mistral_error',
+        status: r.status,
+        detail: data || null
+      });
+    }
+
     const reply = data?.choices?.[0]?.message?.content;
     if (!reply) return res.status(502).json({ error: 'Réponse Mistral vide', detail: data });
     return res.status(200).json({ reply });

@@ -219,6 +219,23 @@ function devaBuildAppContext() {
   return "Contexte live de l'application EVAD. Appuie-toi dessus pour adapter ta réponse à la situation réelle de l'utilisateur (son profil, son étape, son objectif du moment) et relier les problématiques de ses espaces aux solutions les plus pertinentes de la bibliothèque :\n\n" + parts.join('\n\n');
 }
 
+/* Un échec de Deva n'est pas toujours un problème de connexion : le plus
+   fréquent est le plafond de requêtes du moteur Mistral. Dire lequel évite à
+   l'utilisateur de chercher en vain du côté de son wifi. */
+function devaMessageErreur(err) {
+  const statut = err && err.statutHttp;
+  const code = (err && err.codeDeva) || '';
+  if (statut === 429 || code === 'mistral_rate_limit')
+    return 'Je reçois trop de questions à la fois en ce moment 🌿 Laisse passer une minute et repose-moi ta question.';
+  if (code === 'MISTRAL_API_KEY manquante')
+    return 'Mon moteur n\'est pas configuré sur le serveur. Préviens l\'équipe EVAD, la clé du proxy est manquante.';
+  if (statut >= 500)
+    return 'Mon moteur ne répond pas pour l\'instant. Réessaie dans un moment, ça revient en général vite.';
+  if (statut)
+    return 'Quelque chose a coincé de mon côté (erreur ' + statut + '). Réessaie dans un instant.';
+  return 'Une erreur réseau m\'a interrompue. Vérifie ta connexion et réessaie.';
+}
+
 async function devaSubmit() {
   const input = document.getElementById('deva-chat-input');
   if (!input) return;
@@ -256,7 +273,14 @@ async function devaSubmit() {
       body: JSON.stringify({ messages: payloadMessages })
     });
 
-    if (!response.ok) throw new Error('HTTP ' + response.status);
+    if (!response.ok) {
+      let info = null;
+      try { info = await response.json(); } catch (e) {}
+      const err = new Error('HTTP ' + response.status);
+      err.statutHttp = response.status;
+      err.codeDeva = info && info.error;
+      throw err;
+    }
     const data = await response.json();
     devaHideTyping();
 
@@ -273,7 +297,7 @@ async function devaSubmit() {
 
   } catch (err) {
     devaHideTyping();
-    devaAddMessage('deva', 'Une erreur réseau m\'a interrompue. Vérifie ta connexion et réessaie.');
+    devaAddMessage('deva', devaMessageErreur(err));
   }
 
   devaTyping = false;
