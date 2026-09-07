@@ -5151,7 +5151,14 @@ let _semGeoTimer;
 function semGeoAutoInput(q){
   const drop=document.getElementById('sem-loc-drop');
   if(drop) drop.remove();
-  semFicheData.localisation='';
+  // On garde ce que le Semeur tape : avant, la localisation était effacée à
+  // chaque frappe et n'était restaurée que s'il cliquait une suggestion. Qui
+  // tapait sa ville puis passait au champ suivant publiait une fiche sans
+  // localisation, donc épinglée au centre de la France.
+  semFicheData.localisation=q;
+  semFicheData.lat=null; semFicheData.lng=null;
+  const okOld=document.querySelector('#sem-loc-wrap .geo-ok');
+  if(okOld) okOld.remove();
   if(q.length<3) return;
   clearTimeout(_semGeoTimer);
   _semGeoTimer=setTimeout(async()=>{
@@ -5173,10 +5180,12 @@ function semGeoShowDrop(features){
   ul.style.cssText='position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #d4deca;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.12);z-index:9999;overflow:hidden;margin-top:2px;';
   features.forEach((f,i)=>{
     const label=f.properties.label;
+    const lat=f.geometry.coordinates[1];
+    const lng=f.geometry.coordinates[0];
     const row=document.createElement('div');
     row.style.cssText=`padding:.55rem .75rem;font-size:.72rem;cursor:pointer;border-bottom:${i<features.length-1?'1px solid #eef2ea':'none'};display:flex;align-items:center;gap:.5rem;`;
     row.innerHTML=`<span style="font-size:.85rem">📍</span><span>${label}</span>`;
-    row.onmousedown=()=>semGeoSelect(label);
+    row.onmousedown=()=>semGeoSelect(label,lat,lng);
     row.onmouseover=()=>row.style.background='#f0f5ee';
     row.onmouseout=()=>row.style.background='';
     ul.appendChild(row);
@@ -5184,8 +5193,12 @@ function semGeoShowDrop(features){
   wrap.appendChild(ul);
 }
 
-function semGeoSelect(label){
+function semGeoSelect(label,lat,lng){
   semFicheData.localisation=label;
+  // Coordonnées de l'adresse choisie, comme pour le Bâtisseur : la fiche est
+  // alors posée au bon endroit sur la carte, sans dépendre d'un second
+  // géocodage au moment de la publication.
+  if(Number.isFinite(lat)&&Number.isFinite(lng)){ semFicheData.lat=lat; semFicheData.lng=lng; }
   if (typeof semUpdatePotentiel === 'function') semUpdatePotentiel();
   const inp=document.getElementById('sem-loc-inp');
   if(inp) inp.value=label;
@@ -13879,7 +13892,7 @@ const SEM_IMPACT_BY_TYPE = {
 };
 
 let semFicheStep = 0;
-function _SEM_FICHE_EMPTY() { return { nom:'', localisation:'', type:'Fondation', secteur:'ESS', zone:'Nouvelle-Aquitaine', typeFinancement:'', axes:[], reporting:'CSRD', freq:'Trimestriel', kpis:'CO₂ évité, personnes formées, Vadance', selectedKpis:[], selectedCadres:[], selectedCadreItems:{}, selectedODD:[] }; }
+function _SEM_FICHE_EMPTY() { return { nom:'', localisation:'', lat:null, lng:null, type:'Fondation', secteur:'ESS', zone:'Nouvelle-Aquitaine', typeFinancement:'', axes:[], reporting:'CSRD', freq:'Trimestriel', kpis:'CO₂ évité, personnes formées, Vadance', selectedKpis:[], selectedCadres:[], selectedCadreItems:{}, selectedODD:[] }; }
 let semFicheData = _SEM_FICHE_EMPTY();
 
 /* ─── Gamification : Portée d'impact vivante pendant la création de la fiche financeur ───
@@ -14010,7 +14023,7 @@ function semFicheRenderStep() {
           oninput="semGeoAutoInput(this.value)"
           onfocus="if(this.value.length>2)semGeoAutoInput(this.value)"
           onblur="setTimeout(()=>{const d=document.getElementById('sem-loc-drop');if(d)d.remove();},200)">
-        ${semFicheData.localisation?`<div style="font-size:.6rem;color:var(--fern);margin-top:.2rem;padding-left:.1rem">📍 Position vérifiée</div>`:''}
+        ${(semFicheData.lat!=null&&semFicheData.lng!=null)?`<div class="geo-ok" style="font-size:.6rem;color:var(--fern);margin-top:.2rem;padding-left:.1rem">📍 Position vérifiée</div>`:''}
       </div>
       <label class="creer-lbl">Type de structure</label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.8rem">
