@@ -3648,6 +3648,10 @@ function mapShowBatisseur(idx) {
 
       ${window.evadMsgBtn ? window.evadMsgBtn({ id: b.id, nom: b.nom, role: 'batisseur' }, { bg: 'var(--amber)', mt: '0', mb: '.9rem' }) : ''}
 
+      <!-- Passeport d'Impact : ce qui rend la fiche crédible aux yeux d'un
+           Pilote ou d'un commerçant. Cliquable pour le détail complet. -->
+      ${window.passeportCarteHtml ? passeportCarteHtml('batisseur', b.id) : ''}
+
       <!-- Stats -->
       <div class="acteur-stat-row">
         <div class="acteur-stat">
@@ -3886,6 +3890,9 @@ function mapShowLieu(idx) {
         </button>
         ${window.evadMsgBtn ? window.evadMsgBtn({ id: place.fiche && place.fiche.id, nom: place.nom, role: 'pilote', lieu_id: place.fiche && place.fiche.id }, { mt: '.4rem' }) : ''}
       </div>
+
+      <!-- Passeport d'Impact du lieu -->
+      ${(window.passeportCarteHtml && place.fiche && place.fiche.id) ? passeportCarteHtml('lieu', place.fiche.id, { mb: '.75rem' }) : ''}
 
       <!-- Vadance + dimensions -->
       <div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-lg);padding:.8rem .9rem;margin-bottom:.75rem">
@@ -9005,6 +9012,7 @@ let batCurrentFilter = 'toutes';
 function batInitDashboard() {
   batRenderQuetes();
   batReflectProfile();
+  if (typeof passeportRemplirSlots === 'function') passeportRemplirSlots();
 }
 
 // Reflète le profil créé (batFicheData) dans le topbar + l'aperçu du dashboard.
@@ -11903,6 +11911,9 @@ function apercuRender() {
     el.style.width = pct + '%';
   });
   set('apercu-cran-cta',   el => { el.textContent = cran.cta + ' →'; el.setAttribute('onclick', cran.onclick); });
+  // Passeport d'Impact du lieu : recalculé à chaque rendu de l'aperçu, il suit
+  // les quêtes terminées et les preuves validées sans intervention.
+  if (typeof passeportRemplirSlots === 'function') passeportRemplirSlots();
 }
 
 // Stade de croissance d'une plante selon le % de preuve.
