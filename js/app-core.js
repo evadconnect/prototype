@@ -1300,18 +1300,6 @@ function lieuRenderPresentation() {
   const box = document.getElementById('lieu-presentation-content');
   if (!box) return;
 
-  // Passeport d'Impact du lieu, en tête de la fiche : c'est ce qui atteste sa
-  // crédibilité (quêtes prouvées, badges) au même endroit que ses infos. On
-  // n'en montre un que pour un lieu identifié en base ; un brouillon sans id
-  // se rabat sur mon lieu publié.
-  const passSlot = document.getElementById('lieu-fiche-passeport-slot');
-  if (passSlot) {
-    const lieuId = cData.id
-      || ((typeof myLieuData !== 'undefined' && myLieuData && myLieuData.id) || null);
-    passSlot.innerHTML = (lieuId && typeof passeportCarteHtml === 'function')
-      ? passeportCarteHtml('lieu', lieuId, { mb: '1.2rem' }) : '';
-  }
-
   const STATUTS_MAP = {asso:'Association loi 1901',scic:'SCIC',sas:'SAS',coop:'Coopérative',autre:'Autre'};
   const ACCES_MAP = {libre:'🚪 Libre accès',adhesion:'🎟 Sur adhésion',invitation:'📩 Sur invitation',rdv:'📅 Sur rendez-vous'};
 
@@ -3902,9 +3890,6 @@ function mapShowLieu(idx) {
         </button>
         ${window.evadMsgBtn ? window.evadMsgBtn({ id: place.fiche && place.fiche.id, nom: place.nom, role: 'pilote', lieu_id: place.fiche && place.fiche.id }, { mt: '.4rem' }) : ''}
       </div>
-
-      <!-- Passeport d'Impact du lieu -->
-      ${(window.passeportCarteHtml && place.fiche && place.fiche.id) ? passeportCarteHtml('lieu', place.fiche.id, { mb: '.75rem' }) : ''}
 
       <!-- Vadance + dimensions -->
       <div style="background:white;border:1px solid rgba(46,102,66,.1);border-radius:var(--r-lg);padding:.8rem .9rem;margin-bottom:.75rem">

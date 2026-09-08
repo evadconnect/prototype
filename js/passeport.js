@@ -687,13 +687,8 @@
         sb.innerHTML = bid ? carteHtml('batisseur', bid, { mb: '1.2rem' }) : '';
       }
     } catch (e) {}
-    try {
-      var sp = document.getElementById('pilote-passeport-slot');
-      if (sp) {
-        var lid = (global.myLieuData && global.myLieuData.id) || null;
-        sp.innerHTML = lid ? carteHtml('lieu', lid, { mb: '.9rem' }) : '';
-      }
-    } catch (e) {}
+    // Le passeport de lieu (côté Pilote) a été retiré : seuls les Bâtisseurs
+    // ont un passeport. Le slot du tableau de bord Pilote reste vide.
   }
 
   // Les fiches et les preuves arrivent de Supabase après le premier rendu :
