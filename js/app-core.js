@@ -3648,9 +3648,10 @@ function mapShowBatisseur(idx) {
 
       ${window.evadMsgBtn ? window.evadMsgBtn({ id: b.id, nom: b.nom, role: 'batisseur' }, { bg: 'var(--amber)', mt: '0', mb: '.9rem' }) : ''}
 
-      <!-- Passeport d'Impact : ce qui rend la fiche crédible aux yeux d'un
-           Pilote ou d'un commerçant. Cliquable pour le détail complet. -->
-      ${window.passeportCarteHtml ? passeportCarteHtml('batisseur', b.id) : ''}
+      <!-- Passeport d'Impact : bouton d'accès, même présentation que la fiche
+           pilote. Ce qui rend la fiche crédible aux yeux d'un Pilote ou d'un
+           commerçant. -->
+      ${window.passeportBoutonHtml ? passeportBoutonHtml('batisseur', b.id, { mt: '0', mb: '.9rem' }) : ''}
 
       <!-- Stats -->
       <div class="acteur-stat-row">

@@ -346,6 +346,17 @@
     });
   }
 
+  /* ── Rendu : bouton d'accès (même bouton que la fiche pilote) ──────────
+     Le passeport s'ouvre par un bouton vert, comme « Voir la fiche complète »
+     du Pilote, plutôt que par une carte cliquable. */
+  function boutonHtml(kind, id, opts) {
+    opts = opts || {};
+    if (!id) return '';
+    var label = opts.label || 'Voir le passeport →';
+    return '<button class="acteur-cta" style="background:var(--forest);color:white;margin-top:' + ou(opts.mt, '.6rem') + ';margin-bottom:' + ou(opts.mb, '0') + '" '
+      + 'onclick="passeportOuvrir(\'' + (kind === 'lieu' ? 'lieu' : 'batisseur') + '\',\'' + esc(id) + '\')">🛂 ' + label + '</button>';
+  }
+
   /* ── Rendu : carte compacte (dans une fiche, un tableau de bord) ────── */
   function carteHtml(kind, id, opts) {
     opts = opts || {};
@@ -405,45 +416,14 @@
     return 'EV-' + n.slice(0, 6);
   }
 
-  function pageIdentite(p, n) {
-    var champ = function (lbl, val) {
-      return '<div style="margin-bottom:.55rem">'
-        + '<div style="font-size:.5rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--moss);opacity:.55">' + lbl + '</div>'
-        + '<div style="font-size:.78rem;font-weight:700;color:var(--ink);margin-top:.1rem">' + val + '</div>'
-      + '</div>';
-    };
+  // Corps de l'onglet Identité : l'identité et les chiffres-clés sont désormais
+  // portés par le héros du modal (comme la fiche pilote), on ne garde ici que
+  // la manière dont le score se calcule et la ligne d'identification.
+  function pageIdentite(p) {
     var mrz = (String(p.nom).toUpperCase().replace(/[^A-Z0-9]+/g, '<') + '<<<<<<<<<<<<<<<<<<<<').slice(0, 26)
       + '<' + p.niveau.label.toUpperCase().slice(0, 6) + '<' + ('00' + p.score).slice(-3);
 
     return ''
-      + '<div style="display:flex;gap:.9rem;align-items:flex-start;margin-bottom:.9rem">'
-      +   '<div style="width:78px;height:96px;border-radius:8px;background:' + p.niveau.bg + ';border:1.5px solid ' + p.niveau.bord + ';display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0">'
-      +     '<div style="font-size:1.9rem;line-height:1">' + esc(p.ic) + '</div>'
-      +     '<div style="font-size:1.35rem;font-weight:900;color:' + p.niveau.col + ';line-height:1;margin-top:.25rem">' + p.score + '</div>'
-      +     '<div style="font-size:.48rem;color:' + p.niveau.col + ';opacity:.75;letter-spacing:.1em">VADITÉ /100</div>'
-      +   '</div>'
-      +   '<div style="flex:1;min-width:0">'
-      +     champ('Titulaire', esc(p.nom))
-      +     champ('Qualité', p.kind === 'lieu' ? 'Lieu régénératif' : 'Bâtisseur d’impact')
-      +     champ('Niveau', p.niveau.ic + ' ' + p.niveau.label)
-      +   '</div>'
-      + '</div>'
-
-      + '<div style="display:flex;gap:.5rem;margin-bottom:.9rem">'
-      +   '<div style="flex:1;text-align:center;padding:.5rem .3rem;background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:10px">'
-      +     '<div style="font-size:1rem;font-weight:900;color:var(--forest)">' + p.nbTerminees + '</div>'
-      +     '<div style="font-size:.52rem;color:var(--moss);opacity:.7;text-transform:uppercase;letter-spacing:.06em">Quêtes</div>'
-      +   '</div>'
-      +   '<div style="flex:1;text-align:center;padding:.5rem .3rem;background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:10px">'
-      +     '<div style="font-size:1rem;font-weight:900;color:var(--fern)">' + p.nbPreuves + '</div>'
-      +     '<div style="font-size:.52rem;color:var(--moss);opacity:.7;text-transform:uppercase;letter-spacing:.06em">Preuves</div>'
-      +   '</div>'
-      +   '<div style="flex:1;text-align:center;padding:.5rem .3rem;background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:10px">'
-      +     '<div style="font-size:1rem;font-weight:900;color:var(--amber)">' + n.obtenus + '</div>'
-      +     '<div style="font-size:.52rem;color:var(--moss);opacity:.7;text-transform:uppercase;letter-spacing:.06em">Badges</div>'
-      +   '</div>'
-      + '</div>'
-
       + '<div style="font-size:.56rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--moss);opacity:.6;margin-bottom:.45rem">🧮 Comment ce score se calcule</div>'
       + '<div style="background:#fff;border:1px solid rgba(46,102,66,.12);border-radius:12px;padding:.75rem .85rem;margin-bottom:.8rem">'
       +   p.composantes.map(function (c) {
@@ -562,6 +542,10 @@
       + recos;
   }
 
+  // Modal du passeport, présenté comme la fiche pilote (le modal de lieu) :
+  // même trame — voile sombre défilant, héros vert avec halos, en-tête acteur,
+  // barre d'onglets verte collée au héros — et les quatre sections en onglets
+  // plutôt qu'en pages qui glissent.
   function ouvrir(kind, id) {
     var p = (kind === 'lieu') ? passeportLieu(id) : passeportBatisseur(id);
     var badges = badgesPour(p);
@@ -570,50 +554,74 @@
     fermer();
 
     var ONGLETS = [
-      { ic: '🪪', lbl: 'Identité' },
-      { ic: '🎖', lbl: 'Badges' },
-      { ic: '📮', lbl: 'Tampons' },
-      { ic: '🧭', lbl: 'Suite' }
+      { ic: '🪪', lbl: 'Identité', html: pageIdentite(p) },
+      { ic: '🎖', lbl: 'Badges',   html: pageBadges(p, n) },
+      { ic: '📮', lbl: 'Tampons',  html: pageTampons(p) },
+      { ic: '🧭', lbl: 'Suite',    html: pageSuite(p) }
     ];
-    var pageStyle = 'width:25%;flex-shrink:0;overflow-y:auto;padding:.95rem 1.1rem 1.2rem;-webkit-overflow-scrolling:touch';
+    var qOuv = p.nbEnCours, qFin = p.nbTerminees;
+    var sousTitre = (p.kind === 'lieu' ? 'Lieu régénératif' : 'Bâtisseur d’impact') + ' · Vadité vérifiée';
+
+    // Tuile de statistique du bandeau héros (même esprit que la fiche lieu).
+    var tuile = function (val, lbl, col) {
+      return '<div style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(74,140,92,0.3);border-radius:var(--r-lg);padding:.55rem .3rem;text-align:center">'
+        + '<div style="font-family:\'Satoshi\',sans-serif;font-size:1.25rem;font-weight:900;color:' + col + ';line-height:1">' + val + '</div>'
+        + '<div style="font-size:.5rem;color:var(--sage);text-transform:uppercase;letter-spacing:.09em;margin-top:.2rem">' + lbl + '</div>'
+      + '</div>';
+    };
 
     var ov = document.createElement('div');
     ov.id = 'passeport-modal';
-    ov.style.cssText = 'position:fixed;inset:0;z-index:10030;background:rgba(13,43,34,.62);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:1.1rem;animation:obFadeIn .25s ease';
+    // Voile identique à la fiche pilote : blur léger, défilement de tout le modal.
+    ov.style.cssText = 'position:fixed;inset:0;z-index:10030;background:rgba(13,43,34,0.65);backdrop-filter:blur(4px);overflow-y:auto;padding:2rem 1rem;animation:obFadeIn .25s ease';
     ov.onclick = function (e) { if (e.target === ov) fermer(); };
 
     ov.innerHTML = ''
-      // Couverture du livret : la tranche dorée à gauche fait l'objet.
-      + '<div style="display:flex;flex-direction:column;width:392px;max-width:94vw;height:min(86vh,660px);background:var(--paper);border-radius:6px 16px 16px 6px;overflow:hidden;box-shadow:0 26px 70px rgba(0,0,0,.4);border-left:6px solid ' + p.niveau.col + ';font-family:\'Satoshi\',sans-serif" onclick="event.stopPropagation()">'
+      + '<div style="max-width:600px;margin:0 auto;border-radius:var(--r-xl);overflow:hidden;box-shadow:0 24px 60px rgba(13,43,34,0.4);position:relative;font-family:\'Satoshi\',sans-serif" onclick="event.stopPropagation()">'
 
-      // En-tête
-      +   '<div style="position:relative;padding:.85rem 1.1rem .9rem;background:linear-gradient(135deg,#0e2a1a,#1a3a22);flex-shrink:0">'
-      +     '<button onclick="passeportFermer()" aria-label="Fermer le livret" style="position:absolute;top:.65rem;right:.65rem;background:rgba(255,255,255,.14);border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:.72rem;color:rgba(255,255,255,.75)">✕</button>'
-      +     '<div style="font-size:.52rem;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.45)">EVAD</div>'
-      +     '<div style="display:flex;align-items:baseline;gap:.5rem;margin-top:.2rem">'
-      +       '<div style="font-size:.92rem;font-weight:900;color:#fff;letter-spacing:.02em">Passeport d’Impact</div>'
-      +       '<div style="font-size:.55rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:rgba(255,255,255,.4);margin-left:auto">' + numeroLivret(id) + '</div>'
+      // ── Héros vert, pleine largeur, avec halos (comme la fiche pilote) ──
+      +   '<div style="background:linear-gradient(160deg,#0e2a1a 0%,#1c3d28 55%,#162a20 100%);padding:1.7rem 1.8rem 1.4rem;position:relative;overflow:hidden">'
+      +     '<div style="position:absolute;inset:0;background:radial-gradient(ellipse at 78% 18%,rgba(74,140,92,0.35) 0%,transparent 55%),radial-gradient(ellipse at 15% 85%,rgba(200,115,42,0.18) 0%,transparent 45%);pointer-events:none"></div>'
+      +     '<div style="position:relative">'
+      +       '<button onclick="passeportFermer()" aria-label="Fermer le passeport" style="position:absolute;top:-.3rem;right:-.3rem;background:rgba(255,255,255,0.12);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:.85rem;color:rgba(255,255,255,0.8);display:flex;align-items:center;justify-content:center;z-index:2">✕</button>'
+
+      // En-tête acteur : sceau de score en guise d'avatar
+      +       '<div style="display:flex;gap:1rem;align-items:flex-start;margin-bottom:1.1rem">'
+      +         '<div style="width:60px;height:60px;border-radius:var(--r-lg);background:' + p.niveau.bg + ';border:1.5px solid ' + p.niveau.bord + ';display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 18px rgba(0,0,0,0.28)">'
+      +           '<div style="font-family:\'Satoshi\',sans-serif;font-size:1.5rem;font-weight:900;color:' + p.niveau.col + ';line-height:1">' + p.score + '</div>'
+      +           '<div style="font-size:.44rem;color:' + p.niveau.col + ';opacity:.8;letter-spacing:.08em">VADITÉ/100</div>'
+      +         '</div>'
+      +         '<div style="flex:1;min-width:0">'
+      +           '<div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.45rem">'
+      +             '<span class="acteur-badge" style="background:' + p.niveau.bg + ';color:' + p.niveau.col + ';border:1px solid ' + p.niveau.bord + '">' + p.niveau.ic + ' Niveau ' + p.niveau.label + '</span>'
+      +             '<span class="acteur-badge" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.65);border:1px solid rgba(255,255,255,0.12)">🎖 ' + n.obtenus + '/' + badges.length + ' badges</span>'
+      +           '</div>'
+      +           '<div class="acteur-name">' + esc(p.nom) + '</div>'
+      +           '<div class="acteur-sub">' + sousTitre + '</div>'
+      +           '<div style="font-size:.55rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:rgba(255,255,255,.35);margin-top:.3rem">Passeport d’Impact · ' + numeroLivret(id) + '</div>'
+      +         '</div>'
+      +       '</div>'
+
+      // Bandeau de statistiques
+      +       '<div style="display:flex;gap:.5rem">'
+      +         tuile(qFin, 'Quêtes ✓', 'var(--sun)')
+      +         tuile(p.nbPreuves, 'Preuves', '#82b894')
+      +         tuile(qOuv, 'En cours', '#6aa0bc')
+      +       '</div>'
       +     '</div>'
       +   '</div>'
 
-      // Pages qui glissent
-      +   '<div style="flex:1;min-height:0;overflow:hidden">'
-      +     '<div id="passeport-rail" style="display:flex;width:400%;height:100%;transform:translateX(0%);transition:transform .34s cubic-bezier(.22,1,.36,1)">'
-      +       '<div style="' + pageStyle + '">' + pageIdentite(p, n) + '</div>'
-      +       '<div style="' + pageStyle + '">' + pageBadges(p, n) + '</div>'
-      +       '<div style="' + pageStyle + '">' + pageTampons(p) + '</div>'
-      +       '<div style="' + pageStyle + '">' + pageSuite(p) + '</div>'
-      +     '</div>'
-      +   '</div>'
-
-      // Pied : onglets de pages
-      +   '<div style="flex-shrink:0;display:flex;gap:.3rem;padding:.5rem .6rem;background:#fff;border-top:1px solid rgba(46,102,66,.12)">'
+      // ── Barre d'onglets verte, collée au héros (mêmes classes que la fiche lieu) ──
+      +   '<div style="background:var(--forest);border-bottom:1px solid rgba(74,140,92,0.2);display:flex;gap:0;padding:0 1rem;position:sticky;top:0;z-index:6;overflow-x:auto">'
       +     ONGLETS.map(function (o, i) {
-              return '<button type="button" id="passeport-onglet-' + i + '" onclick="passeportPage(' + i + ')" '
-                + 'style="flex:1;font-family:inherit;cursor:pointer;border:none;border-radius:9px;padding:.4rem .2rem;background:' + (i === 0 ? p.niveau.bg : 'transparent') + ';color:' + (i === 0 ? p.niveau.col : 'var(--moss)') + '">'
-                + '<div style="font-size:.85rem;line-height:1.1">' + o.ic + '</div>'
-                + '<div style="font-size:.53rem;font-weight:700;margin-top:.1rem">' + o.lbl + '</div>'
-              + '</button>';
+              return '<button type="button" class="lieu-tab' + (i === 0 ? ' active' : '') + '" id="passeport-onglet-' + i + '" onclick="passeportPage(' + i + ')">' + o.ic + ' ' + o.lbl + '</button>';
+            }).join('')
+      +   '</div>'
+
+      // ── Corps : un panneau par onglet, seul l'actif est visible ──
+      +   '<div style="background:var(--paper)">'
+      +     ONGLETS.map(function (o, i) {
+              return '<div class="pass-panel" id="passeport-panel-' + i + '" style="display:' + (i === 0 ? 'block' : 'none') + ';padding:1.4rem 1.6rem">' + o.html + '</div>';
             }).join('')
       +   '</div>'
       + '</div>';
@@ -622,20 +630,21 @@
     document.addEventListener('keydown', echap);
   }
 
-  // Tourner une page. Les flèches du clavier marchent aussi : un livret se
-  // feuillette, il ne se pilote pas seulement à la souris.
+  // Changer d'onglet : on affiche le panneau correspondant et on met l'onglet
+  // en avant, exactement comme lieuTab pour la fiche pilote. Les flèches du
+  // clavier fonctionnent aussi.
   function page(i) {
     if (!_courant) return;
     i = Math.max(0, Math.min(3, i));
     _courant.page = i;
-    var rail = document.getElementById('passeport-rail');
-    if (rail) rail.style.transform = 'translateX(-' + (i * 25) + '%)';
     for (var k = 0; k < 4; k++) {
-      var b = document.getElementById('passeport-onglet-' + k);
-      if (!b) continue;
-      b.style.background = (k === i) ? _courant.p.niveau.bg : 'transparent';
-      b.style.color = (k === i) ? _courant.p.niveau.col : 'var(--moss)';
+      var panneau = document.getElementById('passeport-panel-' + k);
+      if (panneau) panneau.style.display = (k === i) ? 'block' : 'none';
+      var onglet = document.getElementById('passeport-onglet-' + k);
+      if (onglet) onglet.classList.toggle('active', k === i);
     }
+    var m = document.getElementById('passeport-modal');
+    if (m) m.scrollTop = 0;
   }
 
   // Détail d'un badge, sous la planche : ce qu'il faut faire pour l'obtenir,
@@ -684,7 +693,7 @@
       var sb = document.getElementById('bat-passeport-slot');
       if (sb) {
         var bid = (global.batFicheData && global.batFicheData.id) || null;
-        sb.innerHTML = bid ? carteHtml('batisseur', bid, { mb: '1.2rem' }) : '';
+        sb.innerHTML = bid ? boutonHtml('batisseur', bid, { label: 'Voir mon passeport →', mt: '0', mb: '1.2rem' }) : '';
       }
     } catch (e) {}
     // Le passeport de lieu (côté Pilote) a été retiré : seuls les Bâtisseurs
@@ -699,6 +708,7 @@
   global.passeportBatisseur = passeportBatisseur;
   global.passeportLieu = passeportLieu;
   global.passeportCarteHtml = carteHtml;
+  global.passeportBoutonHtml = boutonHtml;
   global.passeportOuvrir = ouvrir;
   global.passeportPage = page;
   global.passeportBadgeInfo = badgeInfo;
