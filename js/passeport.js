@@ -371,7 +371,7 @@
       +     '</div>'
       +     '<div style="flex:1;min-width:0">'
       +       '<div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap">'
-      +         '<span style="font-size:.74rem;font-weight:700;color:var(--ink)">🛂 ' + titre + '</span>'
+      +         '<span style="font-size:.74rem;font-weight:700;color:var(--ink)">' + titre + '</span>'
       +         '<span style="font-size:.58rem;font-weight:800;color:' + n.col + ';background:' + n.bg + ';border:1px solid ' + n.bord + ';padding:.1rem .45rem;border-radius:100px">' + n.ic + ' ' + n.label + '</span>'
       +       '</div>'
       +       '<div style="font-size:.62rem;color:var(--moss);opacity:.75;margin-top:.2rem">' + esc(sous) + '</div>'
